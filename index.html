@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BW² — Dashboard de Inversión</title>
+  <meta name="description" content="Dashboard multi-sucursal para análisis de inversión en franquicia FarmaTuya">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Libraries loaded ON DEMAND by app.js helpers (ensureChartJS, ensureLeaflet, ensurePDFLibs) -->
+  <!-- Google Maps loaded dynamically by engine/google-places.js -->
+  <script>
+    /* ── Lazy Library Loader ── */
+    window._libCache = {};
+    window.loadLib = function(id, src, type) {
+      if (window._libCache[id]) return window._libCache[id];
+      window._libCache[id] = new Promise((resolve, reject) => {
+        if (type === 'css') {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet'; link.href = src;
+          link.onload = resolve; link.onerror = reject;
+          document.head.appendChild(link);
+        } else {
+          const s = document.createElement('script');
+          s.src = src; s.async = true;
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        }
+      });
+      return window._libCache[id];
+    };
+    window.ensureChartJS = function() {
+      if (window.Chart) return Promise.resolve();
+      return loadLib('chartjs', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js');
+    };
+    window.ensureLeaflet = function() {
+      if (window.L) return Promise.resolve();
+      return Promise.all([
+        loadLib('leaflet-css', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', 'css'),
+        loadLib('leaflet-js', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js')
+      ]);
+    };
+    window.ensurePDFLibs = function() {
+      const promises = [];
+      if (!window.jspdf) promises.push(loadLib('jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js'));
+      if (!window.html2canvas) promises.push(loadLib('html2canvas', 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'));
+      return Promise.all(promises);
+    };
+  </script>
+  <link rel="stylesheet" href="styles.css?v=bw39">
+  <script>
+    window.addEventListener('error',e=>console.error('[Error Global]', e.message, e.error));
+    window.addEventListener('unhandledrejection',e=>console.error('[Rechazo Async]', e.reason));
+    if(!localStorage.getItem('bw2_workspace')){localStorage.removeItem('farmatuya_empresa');console.log('[BW2] clean slate')}
+    console.log('[BW2] inline script OK, localStorage keys:', Object.keys(localStorage));
+  </script>
+</head>
+<body>
+  <!-- ═══ AUTH SCREEN ═══ -->
+  <div id="auth-screen" class="auth-screen" style="display:none">
+    <div class="auth-bg">
+      <div class="auth-blob auth-blob-1"></div>
+      <div class="auth-blob auth-blob-2"></div>
+      <div class="auth-blob auth-blob-3"></div>
+    </div>
+    <div class="auth-card" id="auth-card">
+      <!-- Login View -->
+      <div class="auth-view" id="auth-login-view">
+        <div class="auth-logo">
+          <svg viewBox="0 0 80 40" width="80" height="40">
+            <text x="2" y="32" font-family="Inter,sans-serif" font-weight="900" font-size="32" fill="#1A1A1A">BW</text>
+            <text x="60" y="20" font-family="Inter,sans-serif" font-weight="700" font-size="14" fill="#6B7A2E">²</text>
+          </svg>
+          <p class="auth-tagline">Dashboard de Inversión</p>
+        </div>
+        <h2 class="auth-title">Iniciar Sesión</h2>
+        <form id="auth-login-form" autocomplete="on">
+          <div class="auth-field">
+            <label for="login-email">Correo electrónico</label>
+            <input type="email" id="login-email" name="email" placeholder="tu@correo.com" autocomplete="email" required>
+          </div>
+          <div class="auth-field">
+            <label for="login-password">Contraseña</label>
+            <div class="auth-password-wrap">
+              <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+              <button type="button" class="auth-toggle-pwd" data-target="login-password" tabindex="-1">👁</button>
+            </div>
+          </div>
+          <div id="login-error" class="auth-error" style="display:none"></div>
+          <label class="auth-remember">
+            <input type="checkbox" id="login-remember" checked>
+            <span>Recordar mi contraseña</span>
+          </label>
+          <button type="submit" class="auth-btn" id="btn-login">
+            <span class="auth-btn-text">Entrar</span>
+            <span class="auth-btn-loader" style="display:none"></span>
+          </button>
+        </form>
+        <p class="auth-switch">¿No tienes cuenta? <a href="#" id="goto-register">Crear cuenta</a></p>
+      </div>
+
+      <!-- Register View -->
+      <div class="auth-view" id="auth-register-view" style="display:none">
+        <div class="auth-logo">
+          <svg viewBox="0 0 80 40" width="80" height="40">
+            <text x="2" y="32" font-family="Inter,sans-serif" font-weight="900" font-size="32" fill="#1A1A1A">BW</text>
+            <text x="60" y="20" font-family="Inter,sans-serif" font-weight="700" font-size="14" fill="#6B7A2E">²</text>
+          </svg>
+        </div>
+        <h2 class="auth-title">Crear Cuenta</h2>
+        <form id="auth-register-form" autocomplete="on">
+          <div class="auth-row">
+            <div class="auth-field">
+              <label for="reg-firstName">Nombre</label>
+              <input type="text" id="reg-firstName" name="firstName" placeholder="Juan" autocomplete="given-name" required>
+            </div>
+            <div class="auth-field">
+              <label for="reg-lastName">Apellido</label>
+              <input type="text" id="reg-lastName" name="lastName" placeholder="Pérez" autocomplete="family-name">
+            </div>
+          </div>
+          <div class="auth-field">
+            <label for="reg-email">Correo electrónico</label>
+            <input type="email" id="reg-email" name="email" placeholder="tu@correo.com" autocomplete="email" required>
+          </div>
+          <div class="auth-field">
+            <label for="reg-password">Contraseña</label>
+            <div class="auth-password-wrap">
+              <input type="password" id="reg-password" name="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required minlength="6">
+              <button type="button" class="auth-toggle-pwd" data-target="reg-password" tabindex="-1">👁</button>
+            </div>
+            <div class="auth-pwd-strength" id="pwd-strength">
+              <div class="auth-pwd-bar"><div class="auth-pwd-bar-fill" id="pwd-strength-fill"></div></div>
+              <span class="auth-pwd-label" id="pwd-strength-label"></span>
+            </div>
+          </div>
+          <div class="auth-field">
+            <label for="reg-password2">Confirmar contraseña</label>
+            <div class="auth-password-wrap">
+              <input type="password" id="reg-password2" placeholder="Repite tu contraseña" autocomplete="new-password" required>
+              <button type="button" class="auth-toggle-pwd" data-target="reg-password2" tabindex="-1">👁</button>
+            </div>
+          </div>
+          <div id="register-error" class="auth-error" style="display:none"></div>
+          <button type="submit" class="auth-btn" id="btn-register">
+            <span class="auth-btn-text">Crear Cuenta</span>
+            <span class="auth-btn-loader" style="display:none"></span>
+          </button>
+        </form>
+        <p class="auth-switch">¿Ya tienes cuenta? <a href="#" id="goto-login">Iniciar sesión</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ENTERPRISE HEADER ═══ -->
+  <header id="app-header">
+    <div class="header-left">
+      <button class="header-home-btn" id="btn-bw2-home" title="Inicio BW²"><svg class="header-bw2-logo" id="bw2-default-logo" viewBox="0 0 48 32" width="48" height="32"><text x="2" y="24" font-family="Inter,sans-serif" font-weight="900" font-size="22" fill="#1A1A1A">BW</text><text x="36" y="16" font-family="Inter,sans-serif" font-weight="700" font-size="10" fill="#6B7A2E">²</text></svg><img id="bw2-custom-logo" src="" alt="Logo" style="display:none;height:28px;max-width:120px;object-fit:contain"></button>
+      <img src="" alt="" class="header-logo" style="display:none">
+      <nav class="header-breadcrumb" id="header-breadcrumb"></nav>
+    </div>
+    <div class="header-center" id="enterprise-header-info"></div>
+    <div class="header-right" style="display:flex;align-items:center;gap:1rem;">
+      <div class="header-market-toggle" style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:var(--text-2);font-weight:600;" title="Aplicar Factor de Mercado en Proyecciones">
+        <span style="line-height:1">F. Mercado</span>
+        <label class="header-toggle" style="margin:0;margin-top:1px;display:flex;align-items:center">
+          <input type="checkbox" id="global-market-toggle" checked>
+          <div class="header-toggle-track"><span class="header-toggle-thumb"></span></div>
+        </label>
+      </div>
+      <div class="header-market-toggle" style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:var(--text-2);font-weight:600;" title="Multiplicar los montos por 1.16 en la vista consolidada">
+        <span style="line-height:1" id="iva-label">Sin IVA</span>
+        <label class="header-toggle" style="margin:0;margin-top:1px;display:flex;align-items:center">
+          <input type="checkbox" id="toggle-iva">
+          <div class="header-toggle-track"><span class="header-toggle-thumb"></span></div>
+        </label>
+      </div>
+      <button class="btn-sm" title="Actualizar Estudio de Mercado" id="global-refresh-loc-btn" style="background:var(--surface);border:1px solid var(--border);color:var(--text-1);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.4rem;padding:0.4rem 0.8rem;border-radius:20px;font-size:0.8rem;transition:all 0.2s">
+        <span style="display:flex;align-items:center;font-size:1rem;line-height:1">📍</span> <span style="font-weight:600;display:flex;align-items:center;line-height:1">Actualizar Mercado</span>
+      </button>
+      <button class="profile-avatar-btn" id="btn-open-profile" title="Mi Perfil">
+        <span class="profile-avatar-initials" id="profile-avatar-initials">👤</span>
+        <img class="profile-avatar-img" id="profile-avatar-img" src="" alt="" style="display:none">
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══ CONTEXTUAL SIDEBAR NAV ═══ -->
+  <nav id="main-nav">
+    <!-- JS populates this contextually based on current view level -->
+  </nav>
+
+
+  <!-- ═══ VIEWS ═══ -->
+  <main id="main-content">
+
+    <!-- ═══ BW² HOME VIEW (Level 1: User) ═══ -->
+    <section id="view-bw2-home" style="display:none">
+      <div id="bw2-home-container" class="bw2-home"></div>
+    </section>
+
+    <!-- ═══ EMPRESA DASHBOARD VIEW (Level 2: Empresa) ═══ -->
+    <section id="view-empresa-dashboard" style="display:none">
+      <div id="empresa-dash-summary" class="bw2-global-summary" style="margin-bottom:0.75rem"></div>
+      <div class="view-header" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1.5rem">
+        <div>
+          <h2 id="empresa-dash-title">Empresa</h2>
+          <p>Selecciona un proyecto para ver las sucursales</p>
+        </div>
+      </div>
+      <div id="empresa-dash-proyectos" class="empresa-proyectos-grid"></div>
+    </section>
+
+    <!-- ═══ PORTFOLIO VIEW (Level 3: Proyecto) ═══ -->
+    <section id="view-portfolio" style="display:none">
+      <div id="portfolio-summary" class="bw2-global-summary" style="display:none;margin-bottom:0.75rem"></div>
+      <div class="view-header"><h2 id="portfolio-title">Sucursales de Proyecto</h2><p>Haz clic en 📊 <strong>Ver</strong> para explorar los detalles de cada sucursal</p></div>
+      <div class="portfolio-grid" id="portfolio-grid"></div>
+    </section>
+
+    <!-- ═══ BRANCH DETAIL VIEW ═══ -->
+    <section id="view-branch" style="display:none">
+      <!-- ═══ COMPACT CONTEXT LINE ═══ -->
+      <div class="branch-context-line" id="branch-context-line">
+        <!-- JS fills: Sucursal 1 · 🏪 Súper · 🟡 Base · 📍 -1.3% -->
+      </div>
+      
+      <!-- ═══ THIN FILTER BAR (subordinated to KPIs) ═══ -->
+      <div class="filter-bar">
+        <div class="filter-bar-group">
+          <select class="filter-select" id="branch-scenario-select">
+            <option value="conservative">🔴 Conservador</option>
+            <option value="base" selected>🟡 Base</option>
+            <option value="upside">🟢 Upside</option>
+          </select>
+        </div>
+        <div class="filter-bar-group">
+          <select class="filter-select" id="branch-timeline-select">
+            <option value="0" selected>📊 Desde Apertura</option>
+            <option value="2">💰 Desde Capital</option>
+          </select>
+        </div>
+        <div class="filter-bar-group" id="res-royalty-panel" style="display:none">
+          <select class="filter-select" id="res-royalty-select">
+            <option value="variable_2_5" selected>💳 Variable 2.5%</option>
+            <option value="condonacion_6m">🎁 Condonación 6m</option>
+            <option value="pago_unico">💰 Pago Único</option>
+          </select>
+        </div>
+        <div class="filter-bar-group" style="margin-left:auto">
+          <button class="btn-sm" title="Descargar flujo completo a 60 meses en formato CSV" style="background:var(--surface);border:1px solid var(--border);color:var(--text-2);cursor:pointer;display:flex;align-items:center;gap:0.4rem;height:32px;transition:all 0.2s;font-weight:600" onclick="if(window._exportPnL) window._exportPnL()"><span>📥</span> P&L 60m (CSV)</button>
+        </div>
+      </div>
+
+      <div class="kpi-strip" id="branch-kpi-strip">
+        <div class="kpi-strip-item">
+          <span class="kpi-strip-label">Pto. Equilibrio <span class="kpi-help">?<span class="kpi-tip">Ventas mínimas mensuales para no perder dinero. Si vendes menos que esto, la sucursal opera a pérdida.</span></span></span>
+          <span class="kpi-strip-value" id="branch-kpi-equilibrio">-</span>
+          <span class="kpi-strip-detail" id="kpi-be-pct"></span>
+        </div>
+        <div class="kpi-strip-divider"></div>
+        <div class="kpi-strip-item">
+          <span class="kpi-strip-label">Ganancia / Mes <span class="kpi-help">?<span class="kpi-tip">Lo que gana la sucursal cada mes después de pagar todos los costos operativos (EBITDA). Es tu utilidad real mensual.</span></span></span>
+          <span class="kpi-strip-value" id="branch-kpi-profit">-</span>
+        </div>
+        <div class="kpi-strip-divider"></div>
+        <div class="kpi-strip-item">
+          <span class="kpi-strip-label">Recuperación <span class="kpi-help">?<span class="kpi-tip">Cuántos meses necesitas para recuperar toda tu inversión inicial. Menor es mejor. Óptimo: menos de 24 meses.</span></span></span>
+          <span class="kpi-strip-value" id="branch-kpi-payback">-</span>
+          <span class="kpi-strip-detail" id="kpi-payback-sub"></span>
+        </div>
+        <div class="kpi-strip-divider"></div>
+        <div class="kpi-strip-item">
+          <span class="kpi-strip-label">ROI 12m <span class="kpi-help">?<span class="kpi-tip">Porcentaje de tu dinero que recuperas en el primer año. Si es positivo, ya estás ganando desde el año 1.</span></span></span>
+          <span class="kpi-strip-value" id="kpi-roi-value">-</span>
+        </div>
+        <div class="kpi-strip-divider"></div>
+        <div class="kpi-strip-item">
+          <span class="kpi-strip-label">Factor Mercado <span class="kpi-help">?<span class="kpi-tip">Multiplicador basado en la ubicación real. Analiza competencia, densidad poblacional y tráfico. 1.0 = sin ajuste.</span></span></span>
+          <span class="kpi-strip-value" id="branch-kpi-factor" style="color:var(--text-2)">—</span>
+          <span class="kpi-strip-detail" id="kpi-factor-label"></span>
+        </div>
+      </div>
+
+      <!-- Branch tabs are now in the sidebar, no horizontal tab nav needed -->
+
+      <!-- ═══ TAB 1: CONFIGURACIÓN ═══ -->
+      <div id="btab-config" class="branch-tab-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+           <h2 style="margin:0;font-size:1.25rem;display:flex;align-items:center;gap:0.75rem">Configuración de Sucursal
+             <button id="config-market-indicator" class="btn-sm" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text-3);font-size:0.75rem;padding:0.25rem 0.6rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s" title="Ir a Resultados">📍 Mercado: --</button>
+           </h2>
+        </div>
+
+        <!-- Format & Scenario Selectors -->
+        <div class="neu-card config-card">
+          <h3 class="card-title">Modelo y Ubicación</h3>
+          <div class="config-grid">
+            <div class="config-item">
+              <label>Formato</label>
+              <div class="neu-segmented small" id="branch-format-selector">
+                <button class="seg-btn" data-format="express">⚡ Express</button>
+                <button class="seg-btn" data-format="super">🏪 Súper</button>
+                <button class="seg-btn" data-format="integral">🏥 Integral</button>
+                <span class="seg-divider">|</span>
+                <button class="seg-btn" data-format="coolpet_estetica">🐾 Estética</button>
+                <button class="seg-btn" data-format="coolpet_farmaspot">🐕 FarmaSpot</button>
+                <button class="seg-btn" data-format="coolpet_farmavet">🏥 FarmaVet</button>
+              </div>
+            </div>
+            <div class="config-item colonia-config">
+              <label>Ubicación</label>
+              <div id="colonia-display" class="colonia-display">—</div>
+              <input type="hidden" id="branch-colonia-input">
+              <div class="colonia-suggestions" id="colonia-suggestions" style="display:none"></div>
+              <div id="colonia-status" class="colonia-status"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Supuestos Edit Panel -->
+        <section id="branch-edit-panel">
+          <div class="edit-panel-header">
+            <h3>Supuestos de Sucursal</h3>
+            <button class="btn-sm secondary" id="btn-reset-branch-defaults">🔄 Restablecer valores</button>
+          </div>
+          <div class="edit-section">
+            <h4 class="edit-section-title" data-toggle="edit-inv">Inversión <span class="toggle-arrow">▼</span></h4>
+            <div class="edit-grid" id="edit-inv"></div>
+          </div>
+          <div class="edit-section">
+            <h4 class="edit-section-title" data-toggle="edit-fc">Gastos Fijos <span class="toggle-arrow">▼</span></h4>
+            <div class="edit-grid" id="edit-fc"></div>
+          </div>
+          <div class="edit-section">
+            <h4 class="edit-section-title" data-toggle="edit-vc">Costos Variables <span class="toggle-arrow">▼</span></h4>
+            <div class="edit-grid" id="edit-vc"></div>
+          </div>
+          <div class="edit-section">
+            <h4 class="edit-section-title" data-toggle="edit-sales">Ventas <span class="toggle-arrow">▼</span></h4>
+            <div class="edit-grid" id="edit-sales"></div>
+          </div>
+          <div class="edit-section" id="branch-royalty-group" style="display:none">
+            <h4 class="edit-section-title">Modo Regalía (Súper)</h4>
+            <div class="neu-segmented small" id="branch-royalty-selector">
+              <button class="seg-btn active" data-royalty="variable_2_5">Variable 2.5%</button>
+              <button class="seg-btn" data-royalty="condonacion_6m">Cond. 6m</button>
+              <button class="seg-btn" data-royalty="pago_unico">Pago Único</button>
+            </div>
+          </div>
+          <div class="adv-audit" id="branch-audit-badges"></div>
+        </section>
+      </div>
+
+      <!-- ═══ TAB 2: RESULTADOS (default active) ═══ -->
+      <div id="btab-resultados" class="branch-tab-panel active">
+
+        <div class="edit-layout-toolbar" id="toolbar-branch-resultados" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:1rem">
+             <span style="font-weight:600">Modo Edición:</span>
+             <span style="font-size:0.85rem;color:var(--text-2)">Arrastra las tarjetas para reordenarlas. Usa ← → para ancho y ↑ ↓ para alto.</span>
+          </div>
+          <div style="display:flex;gap:0.5rem">
+             <button class="btn-sm primary btn-save-layout" data-target="branch-resultados">Guardar Layout</button>
+          </div>
+        </div>
+
+        <!-- ═══ COLLAPSIBLE SECTION: Checklist & Alertas ═══ -->
+        <details class="res-section" open>
+          <summary class="res-section-header">
+            <span class="res-section-icon" style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;background:var(--green)"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span class="res-section-title">Checklist y Alertas</span>
+            <span class="res-section-chevron">▾</span>
+          </summary>
+          <div class="dash-grid res-section-body">
+            <div class="dash-card dash-8">
+              <h3 class="section-title" style="margin-bottom:0.5rem">Checklist de Cierre</h3>
+              <div id="branch-checklist" style="display:grid;grid-template-columns:1fr 1fr;gap:0.25rem 0.75rem"></div>
+            </div>
+            <div class="dash-card dash-4" style="align-self:start">
+              <h3 class="section-title" style="margin-bottom:0.5rem">Alertas y Sugerencias</h3>
+              <div id="branch-alerts" style="display:flex;flex-direction:column;gap:0.5rem"></div>
+            </div>
+          </div>
+        </details>
+
+        <!-- ═══ COLLAPSIBLE SECTION: Análisis Financiero (merged) ═══ -->
+        <details class="res-section" open>
+          <summary class="res-section-header">
+            <span class="res-section-icon" style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;background:var(--accent)"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+            <span class="res-section-title">Análisis Financiero</span>
+            <span class="res-section-chevron">▾</span>
+          </summary>
+          <div class="res-section-body">
+          <div class="dash-grid" id="branch-an-grid">
+            <!-- Cashflow Chart -->
+            <div class="dash-card dash-8">
+              <h3 class="section-title" style="margin-bottom:0.5rem">Flujo de Caja Acumulado (ROI) <span class="kpi-help">?<span class="kpi-tip">Muestra la recuperación del capital mes a mes. El punto en que la línea cruza a valores positivos indica tu mes de Recuperación real.</span></span></h3>
+              <div class="chart-box"><canvas id="chart-branch-cashflow"></canvas></div>
+            </div>
+
+            <!-- Estructura de Costos Donut -->
+            <div class="dash-card dash-4">
+              <h3 class="section-title" style="margin-bottom:0.5rem">Estructura de Costos <span class="kpi-help">?<span class="kpi-tip">Desglose porcentual del peso de Renta, Nómina, Marketing y otros operativos fijos y variables.</span></span></h3>
+              <div class="chart-box"><canvas id="chart-branch-costs-main"></canvas></div>
+              <div id="cost-donut-legend" class="donut-legend"></div>
+            </div>
+
+            <!-- Ingresos vs EBITDA Bar Chart -->
+            <div class="dash-card dash-8">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+                <h3 class="section-title" style="margin:0">Ingresos vs EBITDA <span class="kpi-help">?<span class="kpi-tip">Comparación visual entre Ventas (ingreso bruto) y EBITDA (ganancia operativa) para observar tu margen a través del tiempo.</span></span></h3>
+              </div>
+              <div class="chart-box"><canvas id="chart-branch-pnl"></canvas></div>
+            </div>
+
+            <!-- Variable Costs Bar Chart -->
+            <div class="dash-card dash-4">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+                <h3 class="section-title" style="margin:0">Costos Variables (%) <span class="kpi-help">?<span class="kpi-tip">El porcentaje de tu venta que se destina directamente al costo de producto comprado, regalías y otros cargos variables.</span></span></h3>
+              </div>
+              <div class="chart-box" style="height:180px"><canvas id="chart-branch-cv"></canvas></div>
+            </div>
+
+            <!-- Annual P&L -->
+            <div class="dash-card dash-12">
+              <h3 class="section-title" style="margin-bottom:0.5rem">Resumen Anual (Proyectado) <span class="kpi-help">?<span class="kpi-tip">Cuadro maestro de ganancias anualizadas que muestra la fotografía macro del crecimiento en los próximos 5 años.</span></span></h3>
+              <div class="table-scroll" id="branch-annual-table"></div>
+            </div>
+
+            <!-- Escenarios Chart -->
+            <div class="dash-card dash-8">
+              <h3 class="section-title" style="margin-bottom:0.5rem">Flujo por Escenario <span class="kpi-help">?<span class="kpi-tip">Simula los tres escenarios (Conservador, Base, Upside) simultáneamente para medir la cantidad de estrés que soporta tu negocio.</span></span></h3>
+              <div class="chart-box"><canvas id="chart-scenarios-cf"></canvas></div>
+              <div class="table-scroll" id="scenarios-comparison-table" style="margin-top:1rem"></div>
+            </div>
+
+            <!-- Tornado de Sensibilidad -->
+            <div class="dash-card dash-4">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+                <h3 class="section-title" style="margin:0">Tornado de Sensibilidad (EBITDA) <span class="kpi-help">?<span class="kpi-tip">Análisis de impacto marginal: muestra cuánta ganancia operativa pierdes exactamente si una partida sube su precio un 10%.</span></span></h3>
+              </div>
+              <div class="chart-box" style="height:220px"><canvas id="chart-branch-tornado"></canvas></div>
+            </div>
+          </div>
+          </div>
+        </details>
+
+      </div>
+
+      <!-- ═══ TAB: CORRIDA FINANCIERA ═══ -->
+      <div id="btab-corrida" class="branch-tab-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:1rem">
+          <div>
+            <h2 style="margin:0;font-size:1.25rem;display:flex;align-items:center;gap:0.75rem">📊 Corrida Financiera</h2>
+            <p style="margin:0.25rem 0 0;font-size:0.8rem;color:var(--text-3)">Edita los <strong>valores base</strong> (columna izquierda) · La proyección a 60 meses se recalcula automáticamente · <span style="color:#d97706">●</span> = modificado</p>
+          </div>
+          <button class="btn-secondary" id="btn-reset-overrides" title="Restaurar valores del modelo base" style="padding:0.45rem 0.85rem;font-size:0.75rem;display:flex;align-items:center;gap:0.4rem;height:fit-content;white-space:nowrap;box-shadow:var(--shadow-neu-sm)">
+            <svg style="pointer-events:none;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            Restablecer
+          </button>
+        </div>
+        <div id="branch-pnl-table-full" style="overflow:auto;max-height:calc(100vh - 200px);border:1px solid var(--border);border-radius:8px"></div>
+      </div>
+
+      <!-- ═══ TAB X: GROWTH & MARKETING ═══ -->
+      <div id="btab-marketing" class="branch-tab-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+           <h2 style="margin:0;font-size:1.25rem;display:flex;align-items:center;gap:0.75rem">Growth & Marketing Operativo</h2>
+        </div>
+
+        <div class="neu-card">
+          <h3 class="card-title">Consultorio Adyacente (CAF) <span class="kpi-help">?<span class="kpi-tip">Proyecta el tráfico de pacientes que el consultorio médico anexo aporta orgánicamente a las ventas de la farmacia por recetas cruzadas.</span></span></h3>
+          <p class="section-desc" style="margin-bottom:1rem;color:var(--text-light);font-size:0.875rem">Proyecta el tráfico de pacientes y su conversión a ventas en la farmacia (ticket cruzado).</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Consultas Mensuales (Max)</label>
+              <input type="number" class="input-text" id="mkt-caf-consultas" placeholder="0" step="50">
+            </div>
+            <div class="form-group">
+              <label>Conversión a Farmacia (%)</label>
+              <input type="number" class="input-text" id="mkt-caf-conversion" placeholder="40" step="5" min="0" max="100">
+            </div>
+            <div class="form-group">
+              <label>Ticket Promedio Receta ($)</label>
+              <input type="number" class="input-text" id="mkt-caf-ticket" placeholder="350" step="10">
+            </div>
+          </div>
+        </div>
+
+        <div class="neu-card" style="margin-top:0.75rem">
+          <h3 class="card-title">Omnicanalidad & Compliance <span class="kpi-help">?<span class="kpi-tip">Métricas fijas adicionales para captación digital de clientes y costos de cumplimiento normativo ante las autoridades de salud.</span></span></h3>
+          <p class="section-desc" style="margin-bottom:1rem;color:var(--text-light);font-size:0.875rem">Presupuestos fijos mensuales de captación digital y costos de riesgo regulatorio (Avisos COFEPRIS).</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label>SEO Local / Google Maps ($/Mes)</label>
+              <input type="number" class="input-text" id="mkt-seo" placeholder="0" step="500">
+            </div>
+            <div class="form-group">
+              <label>Pauta Digital / Ads ($/Mes)</label>
+              <input type="number" class="input-text" id="mkt-ads" placeholder="0" step="1000">
+            </div>
+            <div class="form-group">
+              <label>Compliance COFEPRIS ($/Mes)</label>
+              <input type="number" class="input-text" id="mkt-cofepris" placeholder="1500" step="500">
+            </div>
+          </div>
+        </div>
+
+        <div class="neu-card" style="margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center">
+          <div>
+            <h3 class="card-title" style="margin-bottom:0.25rem">Programa de Lealtad (Fidelización) <span class="kpi-help">?<span class="kpi-tip">Activar un programa de puntos. Representa en el modelo un aumento global del 10% en ventas a cambio de un costo operativo extra del 2%.</span></span></h3>
+            <p class="section-desc" style="color:var(--text-light);font-size:0.875rem;margin:0">Proyecta un <b>+10% de ventas</b> globales, con un costo incremental del <b>2%</b> sobre ingresos.</p>
+          </div>
+          <div>
+            <label class="iva-toggle">
+              <input type="checkbox" id="mkt-loyalty-toggle">
+              <span class="iva-slider" style="background:var(--success)"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ TAB 3: ESTUDIO SOCIOECONÓMICO ═══ -->
+      <div id="btab-socioeconomico" class="branch-tab-panel">
+        <div class="neu-card">
+          <h3 class="card-title">Estudio de Ubicación y Entorno <span class="kpi-help">?<span class="kpi-tip">Motor de inteligencia geoespacial. Extrae datos censales del INEGI y comercios del DENUE para predecir tus ventas con base en el tráfico y competencia real.</span></span></h3>
+          <p class="section-desc" style="margin-bottom:1rem;color:var(--text-light);font-size:0.875rem">Busca una ubicación para desplegar automáticamente el análisis del mercado y potencial de ventas.</p>
+          <div class="loc-input-row" style="position:relative">
+            <div class="colonia-autocomplete" style="flex:1;position:relative">
+              <input type="text" class="input-text" id="loc-address-input" placeholder="🔍 Escribe una colonia, municipio o código postal..." autocomplete="off" style="width:100%">
+              <div id="loc-address-status" class="colonia-status" style="position:absolute;right:8px;top:50%;transform:translateY(-50%)"></div>
+              <div class="colonia-suggestions" id="loc-address-suggestions"></div>
+            </div>
+            <button class="btn-action" id="btn-run-location-study">📍 Evaluar</button>
+          </div>
+          <div id="loc-status" class="loc-status"></div>
+        </div>
+
+        <div id="loc-empty-state" style="text-align:center;padding:4rem 2rem;color:var(--text-light)">
+          <div style="font-size:3rem;margin-bottom:1rem;opacity:0.6">🌍</div>
+          <h4 style="margin-bottom:0.5rem;color:var(--text-dark)">Sin estudio de mercado</h4>
+          <p style="max-width:400px;margin:0 auto;line-height:1.4">Busca una ubicación en la barra de arriba para descubrir el potencial de ventas, nivel socioeconómico y saturación de farmacias en la zona.</p>
+        </div>
+        <div id="loc-results" style="display:none">
+          <div class="kpi-grid" id="loc-score-cards"></div>
+          
+          <div id="loc-insights-container" style="display:none; margin-bottom:0.75rem"></div>
+
+          <div class="neu-card map-card" style="margin-bottom:0.75rem">
+            <h3 class="card-title">Mapa <span class="kpi-help">?<span class="kpi-tip">Muestra la ubicación de la sucursal, el polígono de análisis (isócrona o radio) y los competidores/generadores de tráfico detectados.</span></span></h3>
+            <div id="loc-map" style="width:100%;height:420px;border-radius:var(--r-md)"></div>
+          </div>
+          <div class="neu-card" style="margin-bottom:0.75rem">
+            <h3 class="card-title">Indicadores Territoriales <span class="kpi-help">?<span class="kpi-tip">Métricas sociodemográficas y de actividad comercial estimadas dentro de tu zona de influencia (p. ej. ingresos, rezago, saturación).</span></span></h3>
+            <div id="loc-indicators"></div>
+          </div>
+          <div class="dash-grid" style="margin-bottom:0.75rem">
+            <div class="neu-card dash-5" style="margin-bottom:0">
+              <h3 class="card-title">Análisis de Factores (Radar) <span class="kpi-help">?<span class="kpi-tip">Grafica los puntajes (score) absolutos de cada factor contra su peso real. Un polígono más grande y redondeado indica una excelente sucursal.</span></span></h3>
+              <div style="height:350px;width:100%"><canvas id="loc-radar-chart"></canvas></div>
+              <div style="font-size:0.75rem;color:var(--text-3);text-align:center;margin-top:0.5rem;line-height:1.4">
+                <strong>Score:</strong> Calificación de 0-100 calculada por algoritmo para tu negocio.<br>
+                <strong>Peso (%):</strong> Importancia real del factor en la fórmula de éxito de la farmacia.<br>
+                <strong>Nodos:</strong> <span style="color:#16a34a">🟢 Óptimo (≥75)</span> | <span style="color:#ca8a04">🟡 Regular (50-74)</span> | <span style="color:#dc2626">🔴 Crítico (<50)</span>
+              </div>
+            </div>
+            <div class="dash-7" style="display:flex;flex-direction:column;gap:0.75rem">
+              <div class="neu-card" style="margin-bottom:0;flex:1">
+                <h3 class="card-title">Cobertura Multi-Radio (POIs) <span class="kpi-help">?<span class="kpi-tip">Conteo de puntos de interés clave como hospitales, supermercados y competidores separados por anillos concéntricos (radio 1, 2, 3 km).</span></span></h3>
+                <div id="loc-multiradius" style="overflow-x:auto"></div>
+              </div>
+              <div class="neu-card" style="margin-bottom:0;flex:1">
+                <h3 class="card-title">Matriz de Competencia Directa <span class="kpi-help">?<span class="kpi-tip">Listado de las farmacias o negocios rivales encontrados en la zona, con la distancia aproximada hacia cada uno de ellos.</span></span></h3>
+                <div id="loc-competition" style="overflow-x:auto"></div>
+              </div>
+            </div>
+          </div>
+          <div class="neu-card loc-meta" style="margin-bottom:0.75rem">
+            <div id="loc-sources"></div>
+          </div>
+      </div>
+    </section>
+
+    <!-- ═══ CONSOLIDATED VIEW ═══ -->
+    <section id="view-consolidated" style="display:none">
+      <div class="view-header" style="margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+        <div>
+          <h2 style="font-size:1.5rem;font-weight:800;color:var(--text-1);letter-spacing:-0.03em;display:flex;align-items:center;gap:0.75rem">
+            <span>Consolidado FarmaTuya</span>
+            <button id="consol-market-indicator" class="btn-sm" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text-3);font-size:0.75rem;padding:0.25rem 0.6rem;font-weight:600;cursor:default;white-space:nowrap;transition:all 0.2s">📍 Mercado: --</button>
+          </h2>
+          <p>Métricas agregadas del holding y todas las sucursales</p>
+        </div>
+      </div>
+      
+      <div class="edit-layout-toolbar" id="toolbar-consolidated" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:1rem">
+           <span style="font-weight:600">Modo Edición:</span>
+           <span style="font-size:0.85rem;color:var(--text-2)">Arrastra las tarjetas para reordenarlas. Usa las flechas (← →) para ajustar su tamaño.</span>
+        </div>
+        <div style="display:flex;gap:0.5rem">
+           <button class="btn-sm primary btn-save-layout" data-target="consolidated">Guardar Layout</button>
+        </div>
+      </div>
+
+      <!-- KPI Strip (compact, like Resultados) -->
+      <div class="kpi-strip" id="consol-kpi-strip"></div>
+
+      <!-- Row 2: Chart (7col) + Branch Table (5col) — independent heights -->
+      <div class="consol-main-row">
+        <div class="consol-chart-col" style="flex:5">
+          <div class="dash-card visible">
+            <h3 class="section-title" style="margin-bottom:0.5rem">Flujo de Caja Consolidado (60 meses) <span class="kpi-help">?<span class="kpi-tip">Suma lineal de todo el flujo de efectivo generado por todas las sucursales de tu proyecto a lo largo del plazo de 5 años.</span></span></h3>
+            <div class="chart-box"><canvas id="chart-consol-cashflow"></canvas></div>
+          </div>
+        </div>
+        <div class="consol-table-col" style="flex:7">
+          <div class="dash-card visible">
+            <h3 class="section-title" style="margin-bottom:0.5rem">Detalle por Sucursal <span class="kpi-help">?<span class="kpi-tip">Desglose individual del peso, rentabilidad y tiempo de recuperación que aporta cada ubicación al fondo global.</span></span></h3>
+            <div class="table-responsive" id="consol-branch-table"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: Partners (compact horizontal table) -->
+      <div class="dash-card visible" style="margin-top:0.75rem">
+        <h3 class="section-title" style="margin-bottom:0.5rem">Retorno por Socio <span class="kpi-help">?<span class="kpi-tip">Muestra la repartición real de dividendos basados en el porcentaje de acciones (Equity) de cada inversionista capturado.</span></span></h3>
+        <div class="table-responsive" id="consol-partners"></div>
+      </div>
+
+      <!-- Timeline: collapsible, closed by default -->
+      <details class="res-section" style="margin-top:0.75rem">
+        <summary class="res-section-header">
+          <span class="res-section-icon">🗓️</span>
+          <span class="res-section-title">Proceso de Apertura — ¿Cuánto tarda abrir la siguiente?</span>
+          <span class="res-section-chevron">▾</span>
+        </summary>
+        <div class="res-section-body" style="padding:1rem">
+          <p class="timeline-subtitle" style="margin-bottom:1rem">Tiempo total estimado: <strong>6 a 8 semanas</strong> desde la firma del contrato de arrendamiento</p>
+          <div class="timeline">
+            <div class="timeline-step" data-step="1">
+              <div class="step-marker">1</div>
+              <div class="step-content">
+                <div class="step-title">Pago Cuota de Marca</div>
+                <div class="step-desc">Pago durante la FIF para respetar la promoción correspondiente</div>
+                <div class="step-note">* Reembolsable si no se concreta la firma</div>
+              </div>
+            </div>
+            <div class="timeline-step" data-step="2">
+              <div class="step-marker">2</div>
+              <div class="step-content">
+                <div class="step-title">Firma de Contrato de Franquicia</div>
+                <div class="step-desc">Durante la FIF o máximo 30 días naturales después</div>
+                <div class="step-time">⏱️ 0–30 días</div>
+              </div>
+            </div>
+            <div class="timeline-step" data-step="3">
+              <div class="step-marker">3</div>
+              <div class="step-content">
+                <div class="step-title">Búsqueda y Decisión de Local</div>
+                <div class="step-desc">Arranque de búsqueda a partir de la firma del contrato de franquicia</div>
+                <div class="step-time">⏱️ 15–90 días</div>
+              </div>
+            </div>
+            <div class="timeline-step" data-step="4">
+              <div class="step-marker">4</div>
+              <div class="step-content">
+                <div class="step-title">Pago de Servicios y Equipamiento</div>
+                <div class="step-desc">Se paga al aprobarse el layout y plano del local</div>
+                <div class="step-time">⏱️ Al aprobar plano</div>
+              </div>
+            </div>
+            <div class="timeline-step" data-step="5">
+              <div class="step-marker">5</div>
+              <div class="step-content">
+                <div class="step-title">Pago de Inventario Inicial</div>
+                <div class="step-desc">Pagos escalonados: al abrir, a los 21 días, y a los 51 días</div>
+                <div class="step-note">* Conforme a proveedor</div>
+              </div>
+            </div>
+            <div class="timeline-step final" data-step="✓">
+              <div class="step-marker final">✓</div>
+              <div class="step-content">
+                <div class="step-title">¡Apertura!</div>
+                <div class="step-desc">6 a 8 semanas desde la firma del contrato de arrendamiento</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ═══ COMPARADOR VIEW ═══ -->
+    <section id="view-comparador" style="display:none">
+      <div class="view-header"><h2>Comparador de Sucursales</h2><p>Métricas lado a lado</p></div>
+      <div class="comparar-grid">
+        <div class="comparar-table-col">
+          <div class="dash-card visible"><h3 class="section-title" style="margin-bottom:0.5rem">Métricas Comparativas</h3><div class="table-scroll" id="comparador-table"></div></div>
+        </div>
+        <div class="comparar-chart-col">
+          <div class="dash-card visible"><h3 class="section-title" style="margin-bottom:0.5rem">Flujo Acumulado Comparado</h3><div class="chart-box"><canvas id="chart-comparador-cf"></canvas></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ EMPRESA SETTINGS VIEW ═══ -->
+    <section id="view-empresa" style="display:none">
+      <div class="view-header"><h2>Sociedad y Socios</h2><p>Configuración central — los cambios recalculan automáticamente</p></div>
+      <!-- KPI summary strip -->
+      <div class="kpi-strip" id="empresa-kpis"></div>
+
+      <!-- Two-column layout: empresa + socios -->
+      <div class="empresa-layout">
+        <!-- Left: Company data -->
+        <div class="neu-card">
+          <h3 class="card-title">Datos de la Sociedad</h3>
+          <div class="form-group">
+            <label>Nombre / Razón Social</label>
+            <input type="text" class="input-text" id="emp-name" placeholder="NOJOM">
+            <small class="field-help">El nombre legal de tu sociedad holding</small>
+          </div>
+          <div class="form-group" style="margin-top:0.5rem">
+            <label>Logo de la Sociedad</label>
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.25rem">
+              <img id="emp-logo-preview" src="assets/nojom-bird.png" style="width:40px;height:40px;object-fit:contain;border-radius:var(--r-sm);box-shadow:var(--shadow-neu-sm);padding:4px;background:var(--surface)">
+              <input type="file" id="emp-logo-upload" accept="image/*" style="display:none">
+              <label for="emp-logo-upload" style="cursor:pointer;background:var(--surface);border:none;border-radius:var(--r-sm);padding:0.4rem 0.75rem;font-size:0.75rem;font-weight:600;color:var(--text-2);box-shadow:var(--shadow-neu-sm);transition:all 0.2s;font-family:var(--font)">📁 Seleccionar</label>
+            </div>
+            <small class="field-help" style="display:block;margin-top:0.25rem">Se recomienda imagen cuadrada PNG/JPG</small>
+          </div>
+          <div class="form-group">
+            <label>Proyecto Activo</label>
+            <input type="text" class="input-text" id="emp-project-name" placeholder="FarmaTuya" style="font-weight:700;color:var(--accent)">
+            <small class="field-help">Franquicia o negocio que opera la sociedad</small>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Capital Total</label>
+              <input type="number" class="input-text" id="emp-capital" placeholder="3000000" step="100000" disabled title="Este campo se calcula automáticamente a partir del capital de los socios">
+              <small class="field-help">Dinero total invertido entre todos los socios</small>
+            </div>
+            <div class="form-group">
+              <label>Reserva Corporativa</label>
+              <input type="number" class="input-text" id="emp-reserve" placeholder="200000" step="50000">
+              <small class="field-help">Colchón de seguridad que no se invierte</small>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Gastos Corporativos Mensuales</label>
+            <input type="number" class="input-text" id="emp-corp-expenses" placeholder="0" step="1000">
+            <small class="field-help">Gastos fijos de la empresa matriz al mes</small>
+          </div>
+          <button class="btn-sm primary" id="btn-save-empresa">Guardar Cambios</button>
+        </div>
+
+        <!-- Right: Partners -->
+        <div class="neu-card">
+          <h3 class="card-title">Socios <span id="equity-alert" class="equity-alert"></span></h3>
+          <div id="partners-table-container"></div>
+          <div class="partner-add-row">
+            <input type="text" class="input-text" id="add-partner-name" placeholder="Nombre">
+            <input type="number" class="input-text" id="add-partner-capital" placeholder="Capital" step="100000">
+            <input type="number" class="input-text" id="add-partner-equity" placeholder="%" min="0" max="100" step="1">
+            <button class="btn-sm primary" id="btn-add-partner">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="neu-card danger-zone">
+        <h3 class="card-title">Zona de Peligro</h3>
+        <p style="color:var(--text-3);margin-bottom:0.75rem">Reinicia todos los datos a los valores por defecto.</p>
+        <button class="btn-sm warn" id="btn-reset-empresa">Reiniciar Todo</button>
+      </div>
+    </section>
+
+    <!-- ═══ GLOSARIO VIEW ═══ -->
+    <section id="view-glosario" style="display:none">
+      <div class="view-header"><h2>Diccionario de Conceptos</h2><p>Explicaciones sencillas de los términos financieros del dashboard</p></div>
+      <div class="glosario-search"><input type="text" class="input-text" id="glosario-search" placeholder="Buscar concepto..."></div>
+      <div class="glosario-grid" id="glosario-grid"></div>
+    </section>
+  </main>
+
+  <!-- ═══ STEP-BY-STEP WIZARD MODAL ═══ -->
+  <div class="modal-overlay" id="modal-wizard" style="display:none">
+    <div class="modal-card modal-wizard-card">
+      <div class="wizard-header">
+        <h3 id="wizard-title">Nueva Entidad</h3>
+        <div class="wizard-progress" id="wizard-progress">
+          <!-- Step dots injected via JS -->
+        </div>
+      </div>
+      
+      <div class="wizard-body" id="wizard-body">
+        <!-- Step content inside .wizard-step injected/toggled via JS -->
+      </div>
+      
+      <div class="modal-actions wizard-actions">
+        <button class="btn-sm" id="wizard-btn-cancel">Cancelar</button>
+        <div class="wizard-nav-buttons" style="display:flex;gap:0.5rem">
+          <button class="btn-sm" id="wizard-btn-prev" style="display:none">← Atrás</button>
+          <button class="btn-sm primary" id="wizard-btn-next">Siguiente →</button>
+          <button class="btn-sm primary" id="wizard-btn-finish" style="display:none">Crear ✨</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CONFIRM MODAL ═══ -->
+  <div class="modal-overlay" id="modal-confirm" style="display:none">
+    <div class="modal-card modal-confirm-card">
+      <h3 id="modal-confirm-title">¿Confirmar?</h3>
+      <div id="modal-confirm-body" class="modal-confirm-body"></div>
+      <div class="modal-actions">
+        <button class="btn-sm" id="modal-confirm-cancel">Cancelar</button>
+        <button class="btn-sm danger" id="modal-confirm-ok">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PROFILE POPUP MODAL ═══ -->
+  <div class="bw2-modal-overlay" id="modal-profile" style="display:none">
+    <div class="bw2-modal profile-modal">
+      <div class="bw2-modal-header">
+        <h3>👤 Mi Perfil</h3>
+        <button class="bw2-modal-close" id="btn-close-profile">✕</button>
+      </div>
+      <div class="bw2-modal-body">
+        <!-- Photo/Logo Upload + Crop -->
+        <div class="profile-photo-section">
+          <div class="profile-photo-upload" id="profile-photo-dropzone">
+            <div class="profile-photo-placeholder" id="profile-photo-placeholder">
+              <span class="profile-photo-icon">📷</span>
+              <span>Sube tu foto</span>
+              <small>Arrastra o haz clic · JPG, PNG</small>
+            </div>
+            <div class="profile-photo-preview" id="profile-photo-preview" style="display:none">
+              <img id="profile-photo-img" src="" alt="Preview">
+              <button class="profile-photo-remove" id="btn-remove-profile-photo" title="Eliminar foto">✕</button>
+            </div>
+            <input type="file" id="profile-photo-input" accept="image/*" style="display:none">
+          </div>
+          <!-- Crop Area (hidden until image selected) -->
+          <div class="profile-crop-area" id="profile-crop-area" style="display:none">
+            <div class="crop-container" id="crop-container">
+              <canvas id="crop-canvas" width="220" height="220"></canvas>
+              <div class="crop-circle-overlay"></div>
+            </div>
+            <div class="crop-controls">
+              <label class="crop-zoom-label">🔍 Zoom</label>
+              <input type="range" id="crop-zoom" min="100" max="300" value="100" class="crop-zoom-slider">
+            </div>
+            <div class="crop-actions">
+              <button class="btn-crop-confirm" id="btn-crop-confirm">✂️ Recortar</button>
+              <button class="btn-crop-cancel" id="btn-crop-cancel">Cancelar</button>
+            </div>
+          </div>
+        </div>
+        <!-- Name Fields -->
+        <div class="bw2-form-group">
+          <label for="profile-nombre">Nombre</label>
+          <input type="text" class="input-text" id="profile-nombre" placeholder="Tu nombre">
+        </div>
+        <div class="bw2-form-group">
+          <label for="profile-apellido">Apellido</label>
+          <input type="text" class="input-text" id="profile-apellido" placeholder="Tu apellido">
+        </div>
+        <!-- Email (read-only) -->
+        <div class="bw2-form-group">
+          <label for="profile-email">Correo electrónico</label>
+          <input type="email" class="input-text" id="profile-email" placeholder="tu@correo.com">
+          <small id="profile-email-error" style="display:none;color:#dc2626;font-weight:600;font-size:0.7rem"></small>
+        </div>
+        <!-- Workspace Logo (moved from header) -->
+        <div class="bw2-form-group" style="padding-top:0.5rem; border-top:1px solid var(--border); margin-top:0.5rem">
+          <label>Logo de Workspace</label>
+          <div style="display:flex; align-items:center; gap:1rem">
+            <button class="btn-secondary btn-sm" id="btn-edit-platform-logo">📷 Subir Logo Personalizado</button>
+            <input type="file" id="bw2-platform-logo-input" accept="image/jpeg,image/png,image/webp,image/svg+xml" style="display:none">
+            <span style="font-size:0.7rem; color:var(--text-3)">Formatos recomendados: PNG, SVG (transparente)</span>
+          </div>
+        </div>
+        <!-- Change Password -->
+        <details class="profile-pwd-section" id="profile-pwd-section">
+          <summary style="cursor:pointer;font-size:0.78rem;font-weight:700;color:var(--text-2);margin:0.5rem 0">🔑 Cambiar contraseña</summary>
+          <div style="margin-top:0.5rem">
+            <div class="bw2-form-group">
+              <label for="profile-current-pwd">Contraseña actual</label>
+              <input type="password" class="input-text" id="profile-current-pwd" placeholder="••••••••">
+            </div>
+            <div class="bw2-form-group">
+              <label for="profile-new-pwd">Nueva contraseña</label>
+              <input type="password" class="input-text" id="profile-new-pwd" placeholder="Mínimo 6 caracteres">
+            </div>
+            <button class="btn-secondary" id="btn-change-pwd" style="width:100%;margin-top:0.25rem">Cambiar contraseña</button>
+            <div id="pwd-change-msg" style="display:none;font-size:0.75rem;margin-top:0.35rem;font-weight:600"></div>
+          </div>
+        </details>
+      </div>
+      <div class="bw2-modal-footer" style="flex-direction:column;gap:0.5rem">
+        <div style="display:flex;gap:0.5rem;width:100%">
+          <button class="btn-secondary" id="btn-cancel-profile" style="flex:1">Cancelar</button>
+          <button class="btn-primary" id="btn-save-profile" style="flex:1">Guardar</button>
+        </div>
+        <button class="btn-secondary" id="btn-logout" style="width:100%;color:#dc2626;border-color:rgba(220,38,38,0.2)">🚪 Cerrar Sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <footer id="app-footer"><p>BW² — Dashboard de Inversión · v8.0 · Multi-Empresa</p></footer>
+  <script type="module" src="app.js?v=bw54"></script>
+</body>
+</html>
