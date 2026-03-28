@@ -1634,9 +1634,8 @@ async function setupGeocodingAutocomplete(inputId, suggestionsId, statusId, onSe
 
   // If Google Places is available, use it
   if (isGoogleMapsLoaded()) {
-    // Check if already attached to avoid duplicates
-    if (_googleAutocompletes.includes(inputId)) return;
-    _googleAutocompletes.push(inputId);
+    // Check if already attached to avoid duplicates (Google adds .pac-target-input)
+    if (ci.classList.contains('pac-target-input')) return;
 
     attachPlacesAutocomplete(ci, {
       types: ['geocode', 'establishment'],
@@ -3270,6 +3269,12 @@ function renderBranchLocation(branch) {
         console.error('Study error:', e);
         const freshStatusEl = $('loc-status');
         if (freshStatusEl) freshStatusEl.innerHTML = '<span class="loc-error">❌ No se pudo completar: ' + e.message + '</span>';
+        
+        // Prevent infinite auto-reload loop by saving a failure state instead of leaving it null
+        _suppressFullRender = true;
+        updateBranchLocation(branch.id, { errors: [{ error: e.message }] });
+        _suppressFullRender = false;
+        
         if (emptyEl && (!study || !study.coordinates)) emptyEl.style.display = 'block';
       } finally {
         const freshBtn = $('btn-run-location-study');
@@ -3287,8 +3292,8 @@ function renderBranchLocation(branch) {
     if (emptyEl) emptyEl.style.display = 'none';
     renderLocationResults(study);
     if (statusEl) statusEl.innerHTML = '<span class="loc-success">📍 Último estudio: ' + new Date(study.lastUpdated).toLocaleString('es-MX') + '</span>';
-  } else if (addrInput && addrInput.value.trim().length >= 3 && btn) {
-    // Auto-run: branch has a colonia but no saved study — trigger automatically
+  } else if (addrInput && addrInput.value.trim().length >= 3 && btn && !study) {
+    // Auto-run: branch has a colonia but NO study attempted yet — trigger automatically
     setTimeout(() => { if (btn && !btn.disabled) btn.click(); }, 300);
   } else {
     if (emptyEl) emptyEl.style.display = 'block';
