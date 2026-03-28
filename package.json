@@ -1,0 +1,13 @@
+{
+  "name": "bw2-core",
+  "version": "1.0.0",
+  "description": "FarmaTuya Financial Dashboard",
+  "main": "app.js",
+  "scripts": {
+    "test": "node validate_engine.mjs",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.0.11"
+  }
+}

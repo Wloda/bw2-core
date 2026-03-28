@@ -210,9 +210,10 @@ function _save() {
     if (e.name === 'QuotaExceededError' || e.code === 22) {
       console.error('[BW2] localStorage quota exceeded — data NOT saved');
       // Dispatch a custom event so the UI can show a toast
-      window.dispatchEvent(new CustomEvent('bw2:storage-error', { detail: { message: 'Almacenamiento lleno. Elimina datos o exporta antes de continuar.' } }));
+      window.dispatchEvent(new CustomEvent('bw2:storage-error', { detail: { message: 'Almacenamiento lleno. Elimina imágenes o exporta antes de continuar.' } }));
     } else {
       console.error('[BW2] localStorage save error:', e);
+      window.dispatchEvent(new CustomEvent('bw2:storage-error', { detail: { message: 'Error interno guardando progreso. Tu trabajo del tab actual no se guardará.' } }));
     }
   }
   _listeners.forEach(fn => fn(_workspace));

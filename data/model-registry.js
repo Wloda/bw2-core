@@ -229,6 +229,7 @@ export const MODELS = {
     franchise: { brandFee: 219000, services: 70000, equipment: 270000, additional: 40000, total: 599000 },
     royaltyPromo: null,
     totalInitialInvestment: { min: 514000, max: 599000, default: 599000 },
+    taxRate: 0.30,
     sourceNotes: {
       capex_documented: 'brochure_coolpet',
       franchise_fees_documented: 'brochure_coolpet',
@@ -278,6 +279,7 @@ export const MODELS = {
     franchise: { brandFee: 219000, services: 80000, equipment: 300000, inventory: 200000, total: 799000 },
     royaltyPromo: null,
     totalInitialInvestment: { min: 714000, max: 799000, default: 799000 },
+    taxRate: 0.30,
     sourceNotes: {
       capex_documented: 'brochure_coolpet',
       franchise_fees_documented: 'brochure_coolpet',
@@ -327,6 +329,7 @@ export const MODELS = {
     franchise: { brandFee: 249000, services: 100000, equipment: 400000, inventory: 250000, total: 999000 },
     royaltyPromo: null,
     totalInitialInvestment: { min: 914000, max: 999000, default: 999000 },
+    taxRate: 0.30,
     sourceNotes: {
       capex_documented: 'brochure_coolpet',
       franchise_fees_documented: 'brochure_coolpet',
@@ -351,4 +354,4 @@ export const BENCHMARKS = {
   edomex:  { name: 'EDOMEX',  revenue: 290000, payback: 32, rent: 22000 }
 };
 
-export const SEASONALITY = [0.90, 0.95, 1.00, 1.00, 1.00, 1.05, 1.00, 1.00, 1.00, 1.00, 1.05, 1.15];
+export const SEASONALITY = [0.90, 0.95, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.05, 1.10];

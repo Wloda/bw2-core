@@ -12,6 +12,8 @@ console.log('══════════════════════�
 console.log('  BW² FINANCIAL ENGINE — NUMERICAL VALIDATION');
 console.log('═══════════════════════════════════════════════════\n');
 
+let fatalErrors = 0;
+
 for (const [modelId, model] of Object.entries(MODELS)) {
   console.log(`\n${'═'.repeat(60)}`);
   console.log(`  MODEL: ${model.label} (${modelId})`);
@@ -156,6 +158,7 @@ for (const [modelId, model] of Object.entries(MODELS)) {
     console.log(`  COGS=95%: EBITDA=${fmt(rNeg.avgMonthlyEBITDA)}, BE=${fmt(rNeg.breakEvenRevenue)}, Score=${rNeg.viabilityScore}`);
   } catch(e) {
     console.log(`  COGS=95%: ERROR: ${e.message}`);
+    fatalErrors++;
   }
 
   // ── 10. Scenario comparison ──
@@ -188,6 +191,13 @@ for (const [modelId, model] of Object.entries(MODELS)) {
     });
   } catch(e) {
     console.log(`  Sensitivity ERROR: ${e.message}`);
+    fatalErrors++;
+  }
+  
+  // Track NaNs and bad math
+  if (isNaN(model.taxRate) || isNaN(r.npv) || r.paybackMonth === null) {
+      console.log(`  [FATAL] Missing math values for ${modelId}: Tax=${pct(model.taxRate)}, NPV=${r.npv}, PB=${r.paybackMonth}`);
+      fatalErrors++;
   }
 }
 
@@ -243,4 +253,12 @@ if (rSuper) {
   console.log(`  Final loss pool: ${fmt(pool)}`);
 }
 
-console.log('\n\n✅ Validation complete.\n');
+console.log('\n\n✅ Validation checks finished.\n');
+
+if (fatalErrors > 0) {
+  console.log(`💥 FAIL: Se detectaron ${fatalErrors} errores fatales en el motor matemático. PUSH DENEGADO.`);
+  process.exit(1);
+} else {
+  console.log(`✨ SUCCESS: Zero errores matemáticos detectados.`);
+  process.exit(0);
+}
