@@ -1690,9 +1690,9 @@ async function setupGeocodingAutocomplete(inputId, suggestionsId, statusId, onSe
           });
         }
       } catch (e) {
-        if (statusEl) statusEl.innerHTML = '<span class="no-results">Error de conexión</span>';
+        if (statusEl) statusEl.innerHTML = '<span class="no-results">Error de conexión M</span>';
       }
-    }, 400);
+    }, 700); // Increased debounce to prevent 429 rate limiting
   });
   document.addEventListener('click', (e) => { if (sugBox && !e.target.closest('.colonia-autocomplete')) sugBox.classList.remove('open'); });
 }
@@ -2400,11 +2400,11 @@ document.addEventListener('DOMContentLoaded',()=>{
               });
             });
           } catch (e) {
-            acDropdown.innerHTML = `<div style="padding:0.5rem;color:var(--red,red);font-size:0.7rem">Error de conexión</div>`;
+            acDropdown.innerHTML = `<div style="padding:0.5rem;color:var(--red,red);font-size:0.7rem">Error de conexión API</div>`;
             acDropdown.style.display = 'block';
           }
         };
-        marketAddrInput.addEventListener('input', () => { clearTimeout(acTimer); acTimer = setTimeout(() => acSearch(marketAddrInput.value.trim()), 400); });
+        marketAddrInput.addEventListener('input', () => { clearTimeout(acTimer); acTimer = setTimeout(() => acSearch(marketAddrInput.value.trim()), 700); });
         marketAddrInput.addEventListener('focus', () => { if (marketAddrInput.value.trim().length >= 3) acSearch(marketAddrInput.value.trim()); });
         document.addEventListener('click', (e) => { if (!acDropdown.contains(e.target) && e.target !== marketAddrInput) acDropdown.style.display = 'none'; });
       }

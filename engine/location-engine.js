@@ -88,7 +88,8 @@ async function _nominatimGeocode(query, returnMultiple = false) {
   });
 
   const resp = await fetch(`${NOMINATIM_URL}?${params}`, {
-    headers: { 'Accept': 'application/json', 'User-Agent': 'FarmaTuya/3.0' }
+    headers: { 'Accept': 'application/json', 'User-Agent': 'FarmaTuya/3.0' },
+    signal: AbortSignal.timeout(6000)
   });
 
   if (!resp.ok) throw new Error(`Geocoding error: ${resp.status}`);
