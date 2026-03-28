@@ -146,7 +146,8 @@ const _origEnsureChartJS = window.ensureChartJS;
 window.ensureChartJS = async function() { await _origEnsureChartJS(); _configureChartDefaults(); };
 
 const $=id=>document.getElementById(id);
-const fmt={m:v=>'$'+Math.round(v).toLocaleString('es-MX'),mk:v=>'$'+(v/1000).toFixed(0)+'K',p:v=>(v*100).toFixed(1)+'%',pi:v=>Math.round(v*100)+'%',mo:v=>v?v+' m':'∞'};
+const _getf = () => document.getElementById('toggle-iva')?.checked ? 1.16 : 1;
+const fmt={m:v=>'$'+Math.round(v*_getf()).toLocaleString('es-MX'),mk:v=>'$'+(v*_getf()/1000).toFixed(0)+'K',p:v=>(v*100).toFixed(1)+'%',pi:v=>Math.round(v*100)+'%',mo:v=>v?v+' m':'∞'};
 
 /* ── Projection Cache (cleared each render cycle) ── */
 const _projCache = new Map();
@@ -875,6 +876,7 @@ function renderEmpresaDashboard(empresa){
   (empresa.proyectos||[]).forEach(proj => {
     const activeBranches = (proj.branches||[]).filter(b=>b.status!=='archived');
     let projEBITDA=0, projScore=0, projScored=0, projPayback=0;
+    let sparkData = [];
     activeBranches.forEach(b => {
       try {
         const r = runBranchProjection(b, empresa);
@@ -882,6 +884,10 @@ function renderEmpresaDashboard(empresa){
           projEBITDA += r.avgMonthlyEBITDA||0;
           if(r.paybackMonth > projPayback) projPayback = r.paybackMonth;
           if(r.viabilityScore){ projScore += r.viabilityScore; projScored++; }
+          if(r.months) {
+            const last12 = r.months.slice(-12);
+            last12.forEach((m,i) => { sparkData[i] = (sparkData[i]||0) + (m.ebitda||0); });
+          }
         }
       } catch(e){}
     });
@@ -910,7 +916,12 @@ function renderEmpresaDashboard(empresa){
         <div class="emp-dash-kpi"><span class="emp-dash-kpi-label">Recuperación</span><span class="emp-dash-kpi-value">${projPayback?projPayback+' m':'—'}</span></div>
         <div class="emp-dash-kpi" style="display:flex;align-items:center;gap:0.4rem"><span class="emp-dash-kpi-label">Score</span>${scoreRing(pScore, 36)}</div>
       </div>
-      <button class="btn-open-proyecto-dash" data-emp-id="${empresa.id}" data-proj-id="${proj.id}">Abrir Proyecto →</button>
+      </div>
+      ${sparkData.length >= 2 ? sparklineSVG(sparkData) : ''}
+      <div class="emp-dash-proj-footer">
+        <div class="emp-dash-proj-meta-foot">${activeBranches.length} sucursal${activeBranches.length!==1?'es':''} activas</div>
+        <button class="btn-open-proyecto-dash btn-compact-open" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" style="width:auto;margin-top:0;display:inline-block;">Abrir →</button>
+      </div>
     </div>`;
   });
 
@@ -3750,9 +3761,8 @@ async function renderConsolidated(empresa){
   updateConsolMarketIndicator(pseudoEmpresa);
   const consol = runConsolidation(pseudoEmpresa, getActiveEmpresa());
   const ivaOn = $('toggle-iva')?.checked;
-  const f = ivaOn ? 1.16 : 1; // IVA factor
-  const fm = v => fmt.m(v * f); // format money with IVA
-  const fmk = v => fmt.mk(v * f);
+  const fm = v => fmt.m(v);
+  const fmk = v => fmt.mk(v);
 
   // IVA label update
   const ivaLabel = $('iva-label');
@@ -3792,7 +3802,7 @@ async function renderConsolidated(empresa){
 
   // Consolidated cashflow chart
   dc('consol-cashflow');const ctx=$('chart-consol-cashflow');if(ctx){
-    charts['consol-cashflow']=new Chart(ctx,{type:'line',data:{labels:consol.months.map(m=>'M'+m.month),datasets:[{label:'Acumulado Empresa',data:consol.months.map(m=>m.cumulativeCashFlow*f),borderColor:'#4d7cfe',backgroundColor:'rgba(77,124,254,0.1)',fill:true,tension:0.3,pointRadius:0,borderWidth:2.5},{label:'Mensual',data:consol.months.map(m=>m.netIncome*f),type:'bar',backgroundColor:consol.months.map(m=>m.netIncome>=0?'rgba(52,211,153,0.35)':'rgba(248,113,113,0.3)'),borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt.m(c.parsed.y)}`}}},scales:{y:{ticks:{callback:v=>fmk(v/f)}}}}});
+    charts['consol-cashflow']=new Chart(ctx,{type:'line',data:{labels:consol.months.map(m=>'M'+m.month),datasets:[{label:'Acumulado Empresa',data:consol.months.map(m=>m.cumulativeCashFlow),borderColor:'#4d7cfe',backgroundColor:'rgba(77,124,254,0.1)',fill:true,tension:0.3,pointRadius:0,borderWidth:2.5},{label:'Mensual',data:consol.months.map(m=>m.netIncome),type:'bar',backgroundColor:consol.months.map(m=>m.netIncome>=0?'rgba(52,211,153,0.35)':'rgba(248,113,113,0.3)'),borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt.m(c.parsed.y)}`}}},scales:{y:{ticks:{callback:v=>fmk(v)}}}}});
   }
 
   // Partner table (compact horizontal)
