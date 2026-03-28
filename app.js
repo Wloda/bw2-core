@@ -1660,7 +1660,11 @@ async function setupGeocodingAutocomplete(inputId, suggestionsId, statusId, onSe
     debounce = setTimeout(async () => {
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(q + ', México')}&limit=6`;
-        const res = await fetch(url, { headers: { 'User-Agent': 'FarmaTuya/3.0' } });
+        const res = await fetch(url, { headers: { 'User-Agent': 'FarmaTuya/3.0' }, signal: AbortSignal.timeout(6000) });
+        if (!res.ok) {
+          if (statusEl) statusEl.innerHTML = (res.status === 429) ? '<span class="loc-warning" style="font-size:10px">⚠️ Límite de servidor alcanzado. Intenta más tarde.</span>' : '<span class="loc-warning" style="font-size:10px">⚠️ Servicio no disponible</span>';
+          return;
+        }
         const features = await res.json();
         if (!Array.isArray(features) || !features.length) {
           if (sugBox) { sugBox.innerHTML = '<div class="colonia-suggestion"><span class="sug-main">Sin resultados</span></div>'; sugBox.classList.add('open'); }
@@ -1689,7 +1693,11 @@ async function setupGeocodingAutocomplete(inputId, suggestionsId, statusId, onSe
           });
         }
       } catch (e) {
-        if (statusEl) statusEl.innerHTML = '<span class="no-results">Error de conexión M</span>';
+        if (e.name === 'TimeoutError') {
+          if (statusEl) statusEl.innerHTML = '<span class="no-results" style="font-size:10px">⏳ Tiempo agotado</span>';
+        } else {
+          if (statusEl) statusEl.innerHTML = '<span class="no-results" style="font-size:10px">⚠️ Servidor inalcanzable</span>';
+        }
       }
     }, 700); // Increased debounce to prevent 429 rate limiting
   });
