@@ -681,6 +681,15 @@ export async function runLocationStudy(addressQuery, preGeocodedObject, forceRef
   study.scores = calcLocationScores(study);
   study.suggestion = suggestScenario(study.scores.total);
 
+  // CRITICAL FIX: Shrink classified arrays before returning to prevent localStorage QuotaExceededError
+  if (study.classified) {
+    Object.keys(study.classified).forEach(k => {
+      // Keep only up to 15 POIs per category to render the mini-map. 
+      // The calculations all rely on radiusSummary or occurred before this step.
+      study.classified[k] = study.classified[k].slice(0, 15);
+    });
+  }
+
   return study;
 }
 
