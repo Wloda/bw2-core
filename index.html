@@ -753,18 +753,20 @@
             <input type="number" class="input-text" id="emp-corp-expenses" placeholder="0" step="1000">
             <small class="field-help">Gastos fijos de la empresa matriz al mes</small>
           </div>
-          <button class="btn-sm primary" id="btn-save-empresa">Guardar Cambios</button>
+          <div style="margin-top: 1.5rem;">
+            <button class="btn-sm primary" id="btn-save-empresa" style="width: 100%; padding: 0.75rem; font-size: 0.9rem; justify-content: center;">💾 Guardar Cambios</button>
+          </div>
         </div>
 
         <!-- Right: Partners -->
         <div class="neu-card">
           <h3 class="card-title">Socios <span id="equity-alert" class="equity-alert"></span></h3>
           <div id="partners-table-container"></div>
-          <div class="partner-add-row">
-            <input type="text" class="input-text" id="add-partner-name" placeholder="Nombre">
-            <input type="number" class="input-text" id="add-partner-capital" placeholder="Capital" step="100000">
-            <input type="number" class="input-text" id="add-partner-equity" placeholder="%" min="0" max="100" step="1">
-            <button class="btn-sm primary" id="btn-add-partner">+</button>
+          <div class="partner-add-row" style="display: grid; grid-template-columns: 2fr 1.5fr 1fr 40px; gap: 0.5rem; margin-top: 1rem; align-items: center; padding-top: 1rem; border-top: 1px dashed var(--border);">
+            <input type="text" class="input-text" id="add-partner-name" placeholder="Nombre de nuevo socio..." style="font-size:0.8rem">
+            <input type="number" class="input-text num" id="add-partner-capital" placeholder="Capital ($)" step="100000" style="font-size:0.8rem">
+            <input type="number" class="input-text num" id="add-partner-equity" placeholder="Equidad %" min="0" max="100" step="1" style="font-size:0.8rem">
+            <button class="btn-sm primary" id="btn-add-partner" style="height: 100%; border-radius: var(--r-sm); font-size: 1.2rem; justify-content: center; padding: 0;" title="Agregar socio">＋</button>
           </div>
         </div>
       </div>
