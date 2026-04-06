@@ -3228,7 +3228,7 @@ function renderBranchLocation(branch) {
   if (statusEl) statusEl.innerHTML = '';
 
   // Setup Geocoding Autocomplete
-  setupGeocodingAutocomplete('loc-address-input', 'loc-address-suggestions', 'loc-address-status', (name, full) => {
+  setupGeocodingAutocomplete('loc-address-input', 'loc-address-suggestions', 'loc-address-status', (name, full, lat, lng) => {
     // Suppress re-render while we update colonia + run study
     _suppressFullRender = true;
     // Clear stale study since location changed
@@ -3238,7 +3238,14 @@ function renderBranchLocation(branch) {
     if (addrInput) addrInput.value = name;
     _suppressFullRender = false;
     const btn = $('btn-run-location-study');
-    if (btn) btn.click();
+    if (btn) {
+      if (lat && lng) {
+        btn.dataset.lat = lat;
+        btn.dataset.lng = lng;
+        btn.dataset.full = full || name;
+      }
+      btn.click();
+    }
   });
 
   // Button handler
@@ -3255,8 +3262,24 @@ function renderBranchLocation(branch) {
       btn.textContent = '⏳ ...';
       if (emptyEl) emptyEl.style.display = 'none'; // hide while loading
       statusEl.innerHTML = '<span class="loc-loading">Geocodificando → Buscando establecimientos → Calculando scores...</span>';
+      
+      let preGeocoded = null;
+      if (btn.dataset.lat && btn.dataset.lng) {
+        preGeocoded = {
+          lat: parseFloat(btn.dataset.lat),
+          lng: parseFloat(btn.dataset.lng),
+          displayName: btn.dataset.full || query,
+          colonia: query,
+          source: 'Autocomplete (Places/Nominatim)',
+          importance: 1
+        };
+        delete btn.dataset.lat;
+        delete btn.dataset.lng;
+        delete btn.dataset.full;
+      }
+
       try {
-        const result = await runLocationStudy(query, null, true); // forceRefresh
+        const result = await runLocationStudy(query, preGeocoded, true); // forceRefresh
         _suppressFullRender = true;
         updateBranchLocation(branch.id, result);
         _suppressFullRender = false;
@@ -4016,10 +4039,25 @@ window._removePartner = (id) => {
   if(saveBtn) saveBtn.addEventListener('click',()=>{
     const fileInp = $('emp-logo-upload');
     const commit = (logoStr) => {
+      // Auto-save any pending New Partner data that was typed but not explicitly added via '+'
+      const nName = $('add-partner-name')?.value?.trim();
+      const nCap = parseFloat($('add-partner-capital')?.value);
+      if (nName && !isNaN(nCap)) {
+        const nEq = (parseFloat($('add-partner-equity')?.value)||0)/100;
+        addPartner(nName, nCap, nEq);
+        $('add-partner-name').value = '';
+        $('add-partner-capital').value = '';
+        $('add-partner-equity').value = '';
+      }
+
+      const proj = getActiveProyecto();
+      const currentCapital = proj ? proj.totalCapital : 0;
+
       const data = {
         name:$('emp-name').value,
         projectName:$('emp-project-name')?.value || 'FarmaTuya',
-        totalCapital:parseFloat($('emp-capital').value)||0,
+        // Total Capital is derived from partners — DO NOT OVERWRITE with the visually stale/disabled input value!
+        totalCapital: currentCapital,
         corporateReserve:parseFloat($('emp-reserve').value)||0,
         corporateExpenses:parseFloat($('emp-corp-expenses')?.value)||0
       };
