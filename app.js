@@ -4069,10 +4069,27 @@ window._removePartner = (id) => {
       setTimeout(()=>saveBtn.textContent='Guardar Cambios',1500);
     };
 
+    const resizeImg = (file, cb) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > 200 || h > 200) {
+          if (w > h) { h = Math.round((h * 200) / w); w = 200; }
+          else { w = Math.round((w * 200) / h); h = 200; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img, 0, 0, w, h);
+        cb(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = URL.createObjectURL(file);
+    };
+
     if (fileInp && fileInp.files && fileInp.files[0]) {
-      const fr = new FileReader();
-      fr.onload = (e) => commit(e.target.result);
-      fr.readAsDataURL(fileInp.files[0]);
+      resizeImg(fileInp.files[0], (dataUrl) => commit(dataUrl));
     } else {
       commit(undefined);
     }
@@ -4082,12 +4099,22 @@ window._removePartner = (id) => {
   const fileInp = $('emp-logo-upload');
   if(fileInp) fileInp.addEventListener('change', (e) => {
     if(e.target.files && e.target.files[0]) {
-      const fr = new FileReader();
-      fr.onload = (ev) => {
-         const preview = $('emp-logo-preview');
-         if (preview) preview.src = ev.target.result;
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > 200 || h > 200) {
+          if (w > h) { h = Math.round((h * 200) / w); w = 200; } else { w = Math.round((w * 200) / h); h = 200; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img, 0, 0, w, h);
+        const previewEl = $('emp-logo-preview');
+        if (previewEl) previewEl.src = canvas.toDataURL('image/jpeg', 0.8);
       };
-      fr.readAsDataURL(e.target.files[0]);
+      img.src = URL.createObjectURL(e.target.files[0]);
     }
   });
   const addPBtn=$('btn-add-partner');
