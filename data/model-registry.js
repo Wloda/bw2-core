@@ -49,7 +49,7 @@ export const MODELS = {
     summary: {
       profitRange: [43000, 51000],
       profit5Y: 2035623.40,
-      invRange: [968059, 1071119],
+      invRange: [649000, 752840],
       fixedCosts: 51529.68,
       documentedClaimPayback: 36, beMonths: [6, 8]
     },
@@ -58,10 +58,11 @@ export const MODELS = {
     franchise: null,
     royaltyPromo: null,
     taxRate: 0.30,  // ISR estándar
-    totalInitialInvestment: { min: 968059, max: 1071119, default: 1071119 },
+    // Express: ~78% de Súper. Min = sin IVA, Max = con IVA (×1.16)
+    totalInitialInvestment: { min: 649000, max: 752840, default: 752840 },
     sourceNotes: {
       capex_documented: null, franchise_fees_documented: null,
-      royalty_promo_documented: null, source_status_for_capex: 'SOURCE_MISSING'
+      royalty_promo_documented: null, source_status_for_capex: 'ESTIMATED_FROM_SUPER'
     }
   },
 
@@ -103,23 +104,24 @@ export const MODELS = {
     summary: {
       profitRange: [52000, 61000],
       profit5Y: 2745781.34,
-      invRange: [1161729, 1282459],
+      invRange: [829000, 961640],
       fixedCosts: 57090.20,
       documentedClaimPayback: 36, beMonths: [6, 8]
     },
 
     derived: null,
-    franchise: { brandFee: 209000, services: 70000, equipment: 325000, inventory: 280000, total: 884000 },
+    franchise: { brandFee: 209000, services: 70000, equipment: 300000, inventory: 250000, total: 829000 },
     royaltyPromo: { default: 'variable_2_5', waiver6m: true, upfront5Y: 125000 },
     // Tasa fiscal: RESICO/Régimen Simplificado ~3%. Calibrado para que el payback
     // base coincida con la corrida documentada de la franquicia (36m).
     taxRate: 0.03,
-    totalInitialInvestment: { min: 1161729, max: 1282459, default: 1282459 },
+    // Cotización confirmada: $829,000 + IVA. Min = sin IVA, Max = con IVA (×1.16)
+    totalInitialInvestment: { min: 829000, max: 961640, default: 961640 },
     sourceNotes: {
       capex_documented: 'cotizacion_f1_super',
       franchise_fees_documented: 'cotizacion_f1_super',
       royalty_promo_documented: 'cotizacion_f1_super',
-      source_status_for_capex: 'DOCUMENTED'
+      source_status_for_capex: 'CONFIRMED_2026'
     }
   },
 
@@ -160,7 +162,7 @@ export const MODELS = {
     summary: {
       profitRange: [66000, 79000],
       profit5Y: 3145672.38,
-      invRange: [1437519, 1612039],
+      invRange: [829000, 961640],
       fixedCosts: 87259.68,
       documentedClaimPayback: 36, beMonths: [6, 8]
     },
@@ -169,10 +171,11 @@ export const MODELS = {
     franchise: null,
     royaltyPromo: null,
     taxRate: 0.30,  // ISR estándar
-    totalInitialInvestment: { min: 1437519, max: 1612039, default: 1612039 },
+    // Integral: mismo rango que Súper (Súper es el máximo confirmado). Min = sin IVA, Max = con IVA
+    totalInitialInvestment: { min: 829000, max: 961640, default: 961640 },
     sourceNotes: {
       capex_documented: null, franchise_fees_documented: null,
-      royalty_promo_documented: null, source_status_for_capex: 'SOURCE_MISSING'
+      royalty_promo_documented: null, source_status_for_capex: 'ESTIMATED_FROM_SUPER'
     }
   },
 
