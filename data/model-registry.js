@@ -49,7 +49,7 @@ export const MODELS = {
     summary: {
       profitRange: [43000, 51000],
       profit5Y: 2035623.40,
-      invRange: [649000, 752840],
+      invRange: [968059, 1071119],
       fixedCosts: 51529.68,
       documentedClaimPayback: 36, beMonths: [6, 8]
     },
@@ -58,11 +58,11 @@ export const MODELS = {
     franchise: null,
     royaltyPromo: null,
     taxRate: 0.30,  // ISR estándar
-    // Express: ~78% de Súper. Min = sin IVA, Max = con IVA (×1.16)
-    totalInitialInvestment: { min: 649000, max: 752840, default: 752840 },
+    totalInitialInvestment: { min: 968059, max: 1071119, default: 1071119 },
     sourceNotes: {
-      capex_documented: null, franchise_fees_documented: null,
-      royalty_promo_documented: null, source_status_for_capex: 'ESTIMATED_FROM_SUPER'
+      capex_documented: 'recopilacion_financiera_farmatuya_2026',
+      franchise_fees_documented: null,
+      royalty_promo_documented: null, source_status_for_capex: 'DOCUMENTED'
     }
   },
 
@@ -75,10 +75,10 @@ export const MODELS = {
       payroll: 18510.52, socialCharge: 2278.68, // PDF doc value (30% would be $5,553)
       servPap: { m1: 3700.50, m2: 5550.75, m3: 7401.00 },
       omissions: { m1: 571.64, m2: 603.65, m3: 603.65 },
-      totalDocumented: { m1: 53432.68, m2: 55282.93, m3: 57090.20 },
-      totalReconciled: 57090.20,
+      totalDocumented: { m1: 53432.68, m2: 55282.93, m3: 60364.68 },
+      totalReconciled: 60364.68,
       auditStatus: 'RECONCILED',
-      auditNote: 'socialCharge uses PDF documented value $2,279 (not 30% = $5,553). Matches PDF Resumen (3).pdf page 2.'
+      auditNote: 'Matches official Recopilación Financiera FarmaTuya 2026: CF mensuales $60,364.68.'
     },
 
     variableCosts: {
@@ -104,24 +104,24 @@ export const MODELS = {
     summary: {
       profitRange: [52000, 61000],
       profit5Y: 2745781.34,
-      invRange: [829000, 961640],
-      fixedCosts: 57090.20,
+      invRange: [1161729, 1282459],
+      fixedCosts: 60364.68,
       documentedClaimPayback: 36, beMonths: [6, 8]
     },
 
     derived: null,
-    franchise: { brandFee: 209000, services: 70000, equipment: 300000, inventory: 250000, total: 829000 },
+    franchise: { brandFee: 209000, services: 70000, equipment: 325000, inventory: 280000, total: 884000 },
     royaltyPromo: { default: 'variable_2_5', waiver6m: true, upfront5Y: 125000 },
     // Tasa fiscal: RESICO/Régimen Simplificado ~3%. Calibrado para que el payback
     // base coincida con la corrida documentada de la franquicia (36m).
     taxRate: 0.03,
-    // Cotización confirmada: $829,000 + IVA. Min = sin IVA, Max = con IVA (×1.16)
-    totalInitialInvestment: { min: 829000, max: 961640, default: 961640 },
+    // Recopilación Financiera FarmaTuya 2026: $1,161,729 - $1,282,459
+    totalInitialInvestment: { min: 1161729, max: 1282459, default: 1282459 },
     sourceNotes: {
-      capex_documented: 'cotizacion_f1_super',
+      capex_documented: 'recopilacion_financiera_farmatuya_2026',
       franchise_fees_documented: 'cotizacion_f1_super',
       royalty_promo_documented: 'cotizacion_f1_super',
-      source_status_for_capex: 'CONFIRMED_2026'
+      source_status_for_capex: 'DOCUMENTED'
     }
   },
 
@@ -162,7 +162,7 @@ export const MODELS = {
     summary: {
       profitRange: [66000, 79000],
       profit5Y: 3145672.38,
-      invRange: [829000, 961640],
+      invRange: [1437519, 1612039],
       fixedCosts: 87259.68,
       documentedClaimPayback: 36, beMonths: [6, 8]
     },
@@ -171,11 +171,12 @@ export const MODELS = {
     franchise: null,
     royaltyPromo: null,
     taxRate: 0.30,  // ISR estándar
-    // Integral: mismo rango que Súper (Súper es el máximo confirmado). Min = sin IVA, Max = con IVA
-    totalInitialInvestment: { min: 829000, max: 961640, default: 961640 },
+    // Recopilación Financiera FarmaTuya 2026: $1,437,519 - $1,612,039
+    totalInitialInvestment: { min: 1437519, max: 1612039, default: 1612039 },
     sourceNotes: {
-      capex_documented: null, franchise_fees_documented: null,
-      royalty_promo_documented: null, source_status_for_capex: 'ESTIMATED_FROM_SUPER'
+      capex_documented: 'recopilacion_financiera_farmatuya_2026',
+      franchise_fees_documented: null,
+      royalty_promo_documented: null, source_status_for_capex: 'DOCUMENTED'
     }
   },
 
