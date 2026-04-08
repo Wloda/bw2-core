@@ -273,7 +273,9 @@ export function updateEmpresaData(empresaId, updates) {
   const emp = getEmpresaById(empresaId);
   if (emp) {
     if (updates.name !== undefined) emp.name = updates.name;
+    if (updates.nombre !== undefined) emp.name = updates.nombre;
     if (updates.logo !== undefined) emp.logo = updates.logo;
+    if (updates.capitalInicial !== undefined) emp.capitalInicial = updates.capitalInicial;
     _save();
   }
 }
