@@ -14,6 +14,7 @@ window.addEventListener('storage', (e) => {
 
 // A small test component to mount somewhere to prove React works
 import { ProjectSettingsView } from './components/ProjectSettingsView';
+import { PortfolioView } from './components/PortfolioView';
 
 const ReactIntegration = () => {
   const [viewState, setViewState] = React.useState({ view: 'bw2home' });
@@ -31,6 +32,7 @@ const ReactIntegration = () => {
   return (
     <>
       {viewState.view === 'empresa' && <ProjectSettingsView />}
+      {viewState.view === 'portfolio' && <PortfolioView />}
     </>
   );
 };

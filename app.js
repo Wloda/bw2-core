@@ -545,9 +545,9 @@ function renderCurrentView() {
     }
     else if(state.view==='consolidated') { $('view-consolidated').style.display='block'; renderConsolidated(activeProj); }
     else if(state.view==='comparador') { $('view-comparador').style.display='block'; renderComparador(activeProj); }
-    else if(state.view==='empresa') { $('view-empresa').style.display='block'; renderProyectoSettings(activeProj); }
+    else if(state.view==='empresa') { /* Handled entirely by React (ProjectSettingsView) */ }
     else if(state.view==='glosario') { $('view-glosario').style.display='block'; renderGlosario(); }
-    else { $('view-portfolio').style.display='block'; renderPortfolioSummary(activeProj); renderPortfolio(activeProj); }
+    else { /* Handled entirely by React (PortfolioView) */ }
   }
 
   // Update contextual sidebar and breadcrumb
