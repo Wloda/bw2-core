@@ -1694,7 +1694,7 @@ async function setupGeocodingAutocomplete(inputId, suggestionsId, statusId, onSe
             </div>`;
           }).join('');
           sugBox.classList.add('open');
-          if (statusEl) statusEl.innerHTML = '<span class="searching">↓ Selecciona una ubicación</span>';
+          if (statusEl) statusEl.innerHTML = '';
           sugBox.querySelectorAll('.colonia-suggestion').forEach(s => {
             s.addEventListener('click', () => {
               ci.value = s.dataset.name;

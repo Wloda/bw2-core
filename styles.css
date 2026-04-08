@@ -1378,7 +1378,7 @@ body:has(#app-header){padding-top:50px}
 .colonia-suggestions{
   display:none;position:absolute;top:100%;left:0;right:0;
   background:var(--raised);border-radius:0 0 var(--r-sm) var(--r-sm);
-  box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:100;
+  box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:9999;
   max-height:200px;overflow-y:auto;
   border:1px solid rgba(0,0,0,0.08);border-top:none
 }
@@ -3904,4 +3904,23 @@ td.corrida-editable:hover {
   
   /* Charts fitting */
   .chart-box canvas { width: 100% !important; max-height: 220px !important; }
+}
+
+/* Fix Google Maps Autocomplete z-index over Leaflet */
+.pac-container {
+  z-index: 9999 !important;
+  border-bottom-left-radius: 8px !important;
+  border-bottom-right-radius: 8px !important;
+  box-shadow: var(--shadow-card) !important;
+  border: 1px solid var(--border) !important;
+  border-top: none !important;
+  font-family: var(--font) !important;
+  margin-top: 4px;
+}
+.pac-item {
+  padding: 0.5rem 1rem !important;
+  cursor: pointer !important;
+}
+.pac-item:hover {
+  background: var(--bg-hover) !important;
 }
