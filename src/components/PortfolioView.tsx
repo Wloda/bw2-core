@@ -173,9 +173,9 @@ export const PortfolioView: React.FC = () => {
                 )}
                 
                 <div className="branch-actions">
-                  <button className="btn-sm" disabled>👁 Ver Detalle</button>
-                  <button className="btn-sm" disabled>✏️ Renombrar</button>
-                  {!isArchived && <button className="btn-sm warn" disabled>🗑 Archivar</button>}
+                  <button className="btn-sm" onClick={() => (window as any)._openBranch?.(b.id)}>👁 Ver Detalle</button>
+                  <button className="btn-sm" onClick={() => (window as any)._renameBranch?.(b.id)}>✏️ Renombrar</button>
+                  {!isArchived && <button className="btn-sm warn" onClick={() => (window as any)._archiveBranch?.(b.id)}>🗑 Archivar</button>}
                 </div>
               </div>
             );

@@ -536,7 +536,7 @@ function renderCurrentView() {
     if(mainContent) mainContent.style.marginLeft = '';
     if(appFooter) appFooter.style.marginLeft = '';
 
-    if(state.view==='portfolio') { $('view-portfolio').style.display='block'; renderPortfolioSummary(activeProj); renderPortfolio(activeProj); }
+    if(state.view==='portfolio') { /* Handled entirely by React (PortfolioView) */ }
     else if(state.view==='branch'&&state.activeBranchId) {
       $('view-branch').style.display='block';
       // Ensure active tab is shown
@@ -547,7 +547,7 @@ function renderCurrentView() {
     else if(state.view==='comparador') { $('view-comparador').style.display='block'; renderComparador(activeProj); }
     else if(state.view==='empresa') { /* Handled entirely by React (ProjectSettingsView) */ }
     else if(state.view==='glosario') { $('view-glosario').style.display='block'; renderGlosario(); }
-    else { /* Handled entirely by React (PortfolioView) */ }
+    else { /* Handled by Portfolio fallback in React if applicable */ }
   }
 
   // Update contextual sidebar and breadcrumb
@@ -1421,7 +1421,14 @@ function updateNav() {
 
   nav.innerHTML = html;
   window.dispatchEvent(new CustomEvent('bw2:sync-state', {
-    detail: { view: state.view, activeTab: state.activeTab, activeBranchId: state.activeBranchId }
+    detail: { 
+      view: state.view, 
+      activeTab: state.activeTab, 
+      activeBranchId: state.activeBranchId,
+      empresas: window.empresaStore ? window.empresaStore.getEmpresas() : getEmpresas(),
+      activeEmpresaId: getActiveEmpresa() ? getActiveEmpresa().id : null,
+      activeProyectoId: getActiveProyecto() ? getActiveProyecto().id : null
+    }
   }));
 
   // Wire up events

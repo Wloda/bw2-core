@@ -22,6 +22,14 @@ const ReactIntegration = () => {
   React.useEffect(() => {
     const handleNavSync = (e: any) => {
       if (e.detail) {
+        // Hydrate Zustand with the legacy state from Vanilla so React Portfolio uses real data
+        if (e.detail.empresas) {
+          useAppStore.setState({ 
+            empresas: e.detail.empresas,
+            activeEmpresaId: e.detail.activeEmpresaId || null,
+            activeProyectoId: e.detail.activeProyectoId || null
+          });
+        }
         setViewState({ view: e.detail.view });
       }
     };
