@@ -356,7 +356,7 @@ function openCommandPalette() {
       <div class="cmd-palette-hint"><span><kbd>↑↓</kbd> Navegar</span><span><kbd>↵</kbd> Abrir</span><span><kbd>Esc</kbd> Cerrar</span></div>
     </div>`;
 
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
   document.body.appendChild(overlay);
 
   const input = overlay.querySelector('.cmd-palette-input');
@@ -536,7 +536,7 @@ function renderCurrentView() {
     if(mainContent) mainContent.style.marginLeft = '';
     if(appFooter) appFooter.style.marginLeft = '';
 
-    if(state.view==='portfolio') { /* Handled entirely by React (PortfolioView) */ }
+    if(state.view==='portfolio') { $('view-portfolio').style.display='block'; renderPortfolio(activeProj); }
     else if(state.view==='branch'&&state.activeBranchId) {
       $('view-branch').style.display='block';
       // Ensure active tab is shown
@@ -545,9 +545,9 @@ function renderCurrentView() {
     }
     else if(state.view==='consolidated') { $('view-consolidated').style.display='block'; renderConsolidated(activeProj); }
     else if(state.view==='comparador') { $('view-comparador').style.display='block'; renderComparador(activeProj); }
-    else if(state.view==='empresa') { /* Handled entirely by React (ProjectSettingsView) */ }
+    else if(state.view==='empresa') { $('view-empresa').style.display='block'; renderProyectoSettings(activeProj); }
     else if(state.view==='glosario') { $('view-glosario').style.display='block'; renderGlosario(); }
-    else { /* Handled by Portfolio fallback in React if applicable */ }
+    else { $('view-portfolio').style.display='block'; renderPortfolio(activeProj); }
   }
 
   // Update contextual sidebar and breadcrumb
@@ -616,6 +616,7 @@ function renderBW2Home(){
 
   // Calculate globals
   let gCap=0,gComm=0,gBranches=0,gEBITDA=0,gScore=0,gScored=0;
+  let gTangible=0,gWorkingCapital=0;
   empresas.forEach(emp => {
     (emp.proyectos||[]).forEach(proj => {
       gCap += proj.totalCapital||0;
@@ -626,6 +627,8 @@ function renderBW2Home(){
           const r = runBranchProjection(b, emp);
           if(r){
             gComm += getOOP(r);
+            gTangible += r.totalInvestment * _getf();
+            gWorkingCapital += r.workingCapitalRequired || 0;
             gEBITDA += r.avgMonthlyEBITDA||0;
             if(r.viabilityScore){ gScore += r.viabilityScore; gScored++; }
           }
@@ -640,14 +643,15 @@ function renderBW2Home(){
   let h = '';
 
   // ── Summary (full-width grid, no floating title) ──
-  h += `<div class="bw2-global-summary">
-    <div class="global-summary-grid">
-      <div class="global-summary-card"><span class="global-summary-label">Capital Total</span><span class="global-summary-value">${fmt.m(gCap)}</span></div>
-      <div class="global-summary-card"><span class="global-summary-label">Inv. Requerida</span><span class="global-summary-value" style="color:var(--yellow)">${fmt.oop(gComm)}</span><span class="global-summary-sub">${gCap?((gComm/gCap)*100).toFixed(0):'0'}%</span></div>
-      <div class="global-summary-card"><span class="global-summary-label">Libre / Faltante</span><span class="global-summary-value" style="color:${gFree>=0?'var(--green)':'var(--red)'}">${fmt.m(gFree)}</span></div>
-      <div class="global-summary-card"><span class="global-summary-label">Sucursales</span><span class="global-summary-value">${gBranches}</span><span class="global-summary-sub">${empresas.length} empresa${empresas.length!==1?'s':''}</span></div>
-      <div class="global-summary-card"><span class="global-summary-label">EBITDA/mes</span><span class="global-summary-value" style="color:${gEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(gEBITDA)}</span></div>
-      <div class="global-summary-card"><span class="global-summary-label">Score</span><span class="global-summary-value">${scoreRing(gAvg, 40)}</span></div>
+  h += `<div class="bw2-global-summary" style="margin-bottom:0.75rem;">
+    <div class="kpi-grid">
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital Total</div><div class="kpi-value">${fmt.m(gCap)}</div></div>
+      <div class="kpi-card" data-status="${gTangible>gCap?'danger':'warn'}"><div class="kpi-label">CAPEX + Inv.</div><div class="kpi-value" style="color:${gTangible>gCap?'var(--red)':'var(--yellow)'}">${fmt.m(gTangible)}</div><div class="kpi-detail">${gCap>0?((gTangible/gCap)*100).toFixed(0):'0'}% de cap.</div></div>
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Reserva Opex</div><div class="kpi-value">${fmt.m(gWorkingCapital)}</div><div class="kpi-detail">Capital de Trabajo</div></div>
+      <div class="kpi-card" data-status="${gFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${gFree>=0?'var(--green)':'var(--red)'}">${fmt.m(gFree)}</div></div>
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${gBranches}</div><div class="kpi-detail">${empresas.length} empresa${empresas.length!==1?'s':''}</div></div>
+      <div class="kpi-card" data-status="${gEBITDA>=0?'success':'danger'}"><div class="kpi-label">EBITDA/mes</div><div class="kpi-value" style="color:${gEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(gEBITDA)}</div></div>
+      <div class="kpi-card" data-status="${gAvg >= 80 ? 'success' : gAvg >= 60 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value" style="display:flex;align-items:center;">${scoreRing(gAvg, 40)}</div></div>
     </div>
   </div>`;
 
@@ -854,14 +858,13 @@ function renderEmpresaDashboard(empresa){
 
   if(summaryEl){
     summaryEl.innerHTML=`
-      <div class="global-summary-title">🏢 ${esc(empresa.name)} — Resumen General</div>
-      <div class="global-summary-grid">
-        <div class="global-summary-card"><span class="global-summary-label">Capital Total</span><span class="global-summary-value">${fmt.m(totalCap)}</span></div>
-        <div class="global-summary-card"><span class="global-summary-label">Inv. Requerida</span><span class="global-summary-value" style="color:var(--yellow)">${fmt.oop(totalComm)}</span><span class="global-summary-sub">${totalCap?((totalComm/totalCap)*100).toFixed(0):'0'}%</span></div>
-        <div class="global-summary-card"><span class="global-summary-label">Libre / Faltante</span><span class="global-summary-value" style="color:${totalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(totalFree)}</span></div>
-        <div class="global-summary-card"><span class="global-summary-label">Sucursales</span><span class="global-summary-value">${totalBranches}</span><span class="global-summary-sub">${empresa.proyectos.length} proyecto${empresa.proyectos.length!==1?'s':''}</span></div>
-        <div class="global-summary-card"><span class="global-summary-label">EBITDA/mes</span><span class="global-summary-value" style="color:${totalEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(totalEBITDA)}</span></div>
-        <div class="global-summary-card"><span class="global-summary-label">Score</span><span class="global-summary-value">${scoreRing(avgScore, 40)}</span></div>
+      <div class="kpi-grid">
+        <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital Total</div><div class="kpi-value">${fmt.m(totalCap)}</div></div>
+        <div class="kpi-card" data-status="${totalComm>totalCap?'danger':'warn'}"><div class="kpi-label">Inv. Requerida</div><div class="kpi-value" style="color:${totalComm>totalCap?'var(--red)':'var(--yellow)'}">${fmt.oop(totalComm)}</div><div class="kpi-detail">${totalCap?((totalComm/totalCap)*100).toFixed(0):'0'}% del cap.</div></div>
+        <div class="kpi-card" data-status="${totalFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${totalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(totalFree)}</div></div>
+        <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${totalBranches}</div><div class="kpi-detail">${empresa.proyectos.length} proyecto${empresa.proyectos.length!==1?'s':''}</div></div>
+        <div class="kpi-card" data-status="${totalEBITDA>=0?'success':'danger'}"><div class="kpi-label">EBITDA/mes</div><div class="kpi-value" style="color:${totalEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(totalEBITDA)}</div></div>
+        <div class="kpi-card" data-status="${avgScore >= 70 ? 'success' : avgScore >= 50 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value" style="display:flex;align-items:center;">${scoreRing(avgScore, 40)}</div></div>
       </div>`;
   }
 
@@ -1135,7 +1138,7 @@ function showBW2Modal(type, empId, projId){
   // Close handlers
   overlay.querySelector('.bw2-modal-close').onclick=()=>overlay.remove();
   overlay.querySelector('.bw2-modal-cancel').onclick=()=>overlay.remove();
-  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+
 
   // Submit handler
   overlay.querySelector('.bw2-modal-submit').onclick=()=>{
@@ -1281,7 +1284,7 @@ window._renameBranch = (id)=>{
   setTimeout(()=>{const inp=document.getElementById('bw2-input-branch-name');if(inp){inp.focus();inp.select();}},100);
   overlay.querySelector('.bw2-modal-close').onclick=()=>overlay.remove();
   overlay.querySelector('.bw2-modal-cancel').onclick=()=>overlay.remove();
-  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+
   overlay.querySelector('.bw2-modal-submit').onclick=()=>{
     const newName = document.getElementById('bw2-input-branch-name')?.value.trim();
     if(!newName){showToast('El nombre es requerido','error');return;}
@@ -1500,7 +1503,7 @@ function updateNav() {
         });
 
         overlay.querySelector('.bw2-modal-close').onclick=()=>overlay.remove();
-        overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+
 
         pdfBtn.innerHTML = originalHtml;
         pdfBtn.disabled = false;
@@ -1661,26 +1664,30 @@ async function setupGeocodingAutocomplete(inputId, suggestionsId, statusId, onSe
     if (statusEl) statusEl.innerHTML = '<span class="searching">🔍 Buscando...</span>';
     debounce = setTimeout(async () => {
       try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(q + ', México')}&limit=6`;
-        const res = await fetch(url, { headers: { 'User-Agent': 'FarmaTuya/3.0' }, signal: AbortSignal.timeout(6000) });
+        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q + ', México')}&limit=6`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
         if (!res.ok) {
           if (statusEl) statusEl.innerHTML = (res.status === 429) ? '<span class="loc-warning" style="font-size:10px">⚠️ Límite de servidor alcanzado. Intenta más tarde.</span>' : '<span class="loc-warning" style="font-size:10px">⚠️ Servicio no disponible</span>';
           return;
         }
-        const features = await res.json();
-        if (!Array.isArray(features) || !features.length) {
+        const data = await res.json();
+        const features = data.features || [];
+        if (!features.length) {
           if (sugBox) { sugBox.innerHTML = '<div class="colonia-suggestion"><span class="sug-main">Sin resultados</span></div>'; sugBox.classList.add('open'); }
           if (statusEl) statusEl.innerHTML = '<span class="no-results">Sin resultados</span>'; return;
         }
         if (sugBox) {
           sugBox.innerHTML = features.map((f, i) => {
-            const addr = f.address || {};
-            const rawName = f.name || addr.road || addr.suburb || 'Sin nombre';
-            const detail = [addr.city || addr.county || addr.town, addr.state].filter(Boolean).join(', ');
-            const fullName = f.display_name;
-            return `<div class="colonia-suggestion" data-name="${esc(rawName)}" data-full="${esc(fullName)}" data-lat="${f.lat}" data-lon="${f.lon}">
-              <div class="sug-main">${esc(rawName)} <small style="opacity:0.5;font-weight:400;margin-left:4px">${f.type ? '('+f.type+')' : ''}</small></div>
-              <div class="sug-detail">${esc(detail || fullName)}</div>
+            const prop = f.properties || {};
+            const rawName = prop.name || [prop.street, prop.housenumber].filter(Boolean).join(' ') || 'Sin nombre';
+            const detail = [prop.city || prop.county, prop.state].filter(Boolean).join(', ');
+            const fullName = [rawName, detail].filter(Boolean).join(', ');
+            return `<div class="colonia-suggestion" data-name="${esc(rawName)}" data-full="${esc(fullName)}" data-lat="${f.geometry.coordinates[1]}" data-lon="${f.geometry.coordinates[0]}">
+              <div class="sug-main">${esc(rawName)} <small style="opacity:0.5;font-weight:400;margin-left:4px">${prop.osm_value ? '('+prop.osm_value+')' : ''}</small></div>
+              <div class="sug-detail">${esc(detail)}</div>
             </div>`;
           }).join('');
           sugBox.classList.add('open');
@@ -2460,6 +2467,8 @@ function updateBranchKPIBar(r){
   if(elEq) {
     elEq.textContent = fmt.m(r.breakEvenRevenue);
     elEq.style.color = be<0.5?'var(--green)':be<0.7?'var(--text-1)':'var(--red)';
+    const card = elEq.closest && elEq.closest('.kpi-card');
+    if(card) card.dataset.status = be<0.5 ? 'good' : (be<0.7 ? 'neutral' : 'bad');
   }
   const bePct = $('kpi-be-pct');
   if(bePct) bePct.textContent = (be*100).toFixed(0) + '% cap.';
@@ -2469,6 +2478,8 @@ function updateBranchKPIBar(r){
   if(elProfit) {
     elProfit.textContent = fmt.m(r.avgMonthlyEBITDA);
     elProfit.style.color = r.avgMonthlyEBITDA>0?'var(--green)':'var(--red)';
+    const card = elProfit.closest && elProfit.closest('.kpi-card');
+    if(card) card.dataset.status = r.avgMonthlyEBITDA>0 ? 'good' : 'bad';
   }
 
   // 3) Payback
@@ -2478,6 +2489,8 @@ function updateBranchKPIBar(r){
   if(elPayback) {
     elPayback.textContent = pbVal != null ? pbVal + ' m' : '∞';
     elPayback.style.color = pbColor;
+    const card = elPayback.closest && elPayback.closest('.kpi-card');
+    if(card) card.dataset.status = pbVal&&pbVal<=36 ? 'good' : (pbVal&&pbVal<=48 ? 'warn' : 'bad');
   }
   const pbSub = $('kpi-payback-sub');
   if(pbSub) pbSub.textContent = pm.rampa.extrapolated ? 'estimado' : 'recuperación';
@@ -2488,6 +2501,8 @@ function updateBranchKPIBar(r){
     const roi = r.roi12 || 0;
     roiEl.textContent = roi.toFixed(1) + '%';
     roiEl.style.color = roi > 20 ? 'var(--green)' : roi > 0 ? 'var(--yellow)' : 'var(--red)';
+    const card = roiEl.closest && roiEl.closest('.kpi-card');
+    if(card) card.dataset.status = roi > 20 ? 'good' : (roi > 0 ? 'warn' : 'bad');
   }
 
   // 5) Market Factor
@@ -2503,15 +2518,21 @@ function updateBranchKPIBar(r){
         const isPositive = delta >= 0;
         factorEl.textContent = combinedFactor.toFixed(3) + 'x';
         factorEl.style.color = isPositive ? 'var(--green)' : 'var(--red)';
+        const card = factorEl.closest && factorEl.closest('.kpi-card');
+        if(card) card.dataset.status = isPositive ? 'good' : 'bad';
         if (factorLabel) factorLabel.textContent = (isPositive ? '+' : '') + delta.toFixed(1) + '%';
       } catch(e) {
         factorEl.textContent = '—';
         factorEl.style.color = 'var(--text-3)';
+        const card = factorEl.closest && factorEl.closest('.kpi-card');
+        if(card) card.dataset.status = 'neutral';
         if (factorLabel) factorLabel.textContent = 'Error';
       }
     } else {
       factorEl.textContent = '—';
       factorEl.style.color = 'var(--text-3)';
+      const card = factorEl.closest && factorEl.closest('.kpi-card');
+      if(card) card.dataset.status = 'neutral';
       if (factorLabel) factorLabel.textContent = 'Sin estudio';
     }
   }
@@ -3333,6 +3354,8 @@ function renderBranchLocation(branch) {
   } else {
     if (emptyEl) emptyEl.style.display = 'block';
     if (resultsEl) resultsEl.style.display = 'none';
+    const hdr = $('loc-results-header');
+    if (hdr) hdr.style.display = 'none';
   }
 }
 
@@ -3340,6 +3363,8 @@ async function renderLocationResults(study) {
   const resultsEl = $('loc-results');
   if (!resultsEl) return;
   resultsEl.style.display = 'block';
+  const hdr = $('loc-results-header');
+  if (hdr) hdr.style.display = 'block';
 
   const s = study.scores || { territorial: 0, comercial: 0, total: 0 };
   const sug = study.suggestion || { label: '—', factor: 1, desc: '' };
@@ -3829,14 +3854,14 @@ async function renderConsolidated(empresa){
       { label: 'EBITDA MENSUAL', value: fm(consol.avgMonthlyEBITDA), color: profitColor, detail: 'agregado' },
       { label: 'SCORE', value: consol.avgScore+'/100', color: scoreColor, detail: 'portafolio' }
     ];
-    kpiStrip.innerHTML = kpis.map((k, i) =>
-      (i > 0 ? '<div class="kpi-strip-divider"></div>' : '') +
-      `<div class="kpi-strip-item">
-        <span class="kpi-strip-label">${k.label}</span>
-        <span class="kpi-strip-value" style="${k.color ? 'color:' + k.color : ''}">${k.value}</span>
-        <span class="kpi-strip-detail">${k.detail}</span>
-      </div>`
-    ).join('');
+    kpiStrip.innerHTML = kpis.map((k, i) => {
+      const st = k.color?.includes('positive')?'good':k.color?.includes('negative')?'bad':k.color?.includes('yellow')?'warn':'neutral';
+      return `<div class="kpi-card" data-status="${st}">
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-value" style="${k.color ? 'color:' + k.color : ''}">${k.value}</div>
+        <div class="kpi-detail">${k.detail}</div>
+      </div>`;
+    }).join('');
   }
 
   // Consolidated cashflow chart
@@ -3935,8 +3960,9 @@ function renderProyectoSettings(proyecto){
   }
 
   // ── Form fields ──
+  const empresa = getActiveEmpresa();
   const nameEl = $('emp-name');
-  if (nameEl) nameEl.value = proyecto.name || '';
+  if (nameEl) nameEl.value = empresa.name || '';
   
   const logoPreview = $('emp-logo-preview');
   if (logoPreview) logoPreview.src = proyecto.logo || 'assets/nojom-bird.png';

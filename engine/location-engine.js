@@ -87,10 +87,14 @@ async function _nominatimGeocode(query, returnMultiple = false) {
     limit: returnMultiple ? '8' : '1'
   });
 
+  params.append('email', 'contacto@bw2.ai');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
   const resp = await fetch(`${NOMINATIM_URL}?${params}`, {
-    headers: { 'Accept': 'application/json', 'User-Agent': 'FarmaTuya/3.0' },
-    signal: AbortSignal.timeout(6000)
+    headers: { 'Accept': 'application/json' },
+    signal: controller.signal
   });
+  clearTimeout(timeoutId);
 
   if (!resp.ok) throw new Error(`Geocoding error: ${resp.status}`);
   const data = await resp.json();
@@ -559,10 +563,13 @@ async function queryDENUE(lat, lng, radiusMeters = 1000) {
 
   try {
     const url = `${DENUE_URL}/${encodeURIComponent(keyword)}/${lat},${lng}/${radius}/0`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     const resp = await fetch(url, {
       headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(8000) // 8s timeout
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (!resp.ok) return null;
     const data = await resp.json();

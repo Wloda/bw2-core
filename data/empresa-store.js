@@ -84,15 +84,15 @@ function createProyecto(name = 'Nuevo Proyecto') {
     name,
     isFranchise: true,
     logo: null,
-    totalCapital: 2000000,
+    totalCapital: 1400000,
     corporateReserve: 200000,
     corporateExpenses: 0,
     partners: [
-      { id: 'p1', name: 'Socio 1', capital: 1000000, equity: 0.50 },
-      { id: 'p2', name: 'Socio 2', capital: 1000000, equity: 0.50 }
+      { id: 'p1', name: 'Ari Jutorski', capital: 700000, equity: 0.50 },
+      { id: 'p2', name: 'Benjamin Wlodawer', capital: 700000, equity: 0.50 }
     ],
     branches: [
-      createBranch('super', 'Sucursal 1', 'Col. Centro')
+      createBranch('super', 'Hospital Angeles Lomas', 'Hospital Angeles Lomas')
     ],
     createdAt: new Date().toISOString()
   };
