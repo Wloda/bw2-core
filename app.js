@@ -510,7 +510,7 @@ function renderCurrentView() {
   const headerBrand = document.querySelector('#app-header .header-brand');
   const hInfo=$('enterprise-header-info');
 
-  const isEmpresaDash = state.view === 'empresa-dashboard';
+  const isEmpresaDash = state.activeLevel === 2;
 
   if(isBW2Home || (!activeEmp && !isEmpresaDash)) {
     $('view-bw2-home').style.display='block';
@@ -521,8 +521,11 @@ function renderCurrentView() {
     if(mainContent) mainContent.style.marginLeft = '';
     if(appFooter) appFooter.style.marginLeft = '';
   } else if(isEmpresaDash) {
-    // Level 2: Empresa Dashboard or Configuración
-    if (state.view === 'empresa-dashboard') {
+    // Level 2: Empresa Dashboard / Config
+    if (state.view === 'empresa') {
+      const db = $('view-empresa-dashboard');
+      if (db) db.style.display = 'none';
+    } else {
       $('view-empresa-dashboard').style.display='block';
       if(activeEmp) {
         renderEmpresaDashboard(activeEmp);
@@ -841,7 +844,7 @@ function renderEmpresaDashboard(empresa){
   titleEl.innerHTML = `🏢 ${empresa.name || 'Empresa'} <button id="btn-edit-active-empresa" class="icon-btn" style="margin-left:8px;font-size:1.1rem;background:none;border:none;cursor:pointer;opacity:0.5;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5" title="Editar Información de Empresa">✏️</button>`;
   const editBtn = $('btn-edit-active-empresa');
   if (editBtn) editBtn.addEventListener('click', () => {
-    state.activeLevel = 2;
+    state.activeLevel = 2; // Stay at level 2
     state.view = 'empresa';
     renderCurrentView();
   });
@@ -1372,8 +1375,8 @@ function updateNav() {
   const nav = $('main-nav');
   if (!nav) return;
 
-  const isHome = state.activeLevel === 1 || state.view === 'bw2home';
-  const isEmpresaDash = state.activeLevel === 2;
+  const isHome = state.view === 'bw2home';
+  const isEmpresaDash = state.view === 'empresa-dashboard';
   const isBranch = state.view === 'branch' && state.activeBranchId;
   const branch = isBranch ? getBranch(state.activeBranchId) : null;
   const activeEmp = getActiveEmpresa();
@@ -1405,7 +1408,7 @@ function updateNav() {
     html += `<div class="nav-section">Empresa</div>`;
     html += `<button class="nav-btn ${state.view === 'empresa' ? 'active' : ''}" data-view="empresa"><span class="nav-icon">${ico('shield')}</span><span class="nav-text">Sociedad y Socios</span></button>`;
     html += `<div class="nav-divider"></div>`;
-    html += `<div class="nav-section">Portafolio Operativo</div>`;
+    html += `<div class="nav-section">Portafolio</div>`;
     html += `<button class="nav-btn ${state.view === 'empresa-dashboard' ? 'active' : ''}" data-view="empresa-dashboard"><span class="nav-icon">${ico('folder')}</span><span class="nav-text">Proyectos</span></button>`;
     html += `<div style="margin-top:1.5rem">`;
     html += `<button class="btn-add" id="btn-add-proyecto-nav"><span class="nav-icon">+</span> <span class="nav-text">Nuevo Proyecto</span></button>`;
@@ -1427,6 +1430,7 @@ function updateNav() {
     html += `<button class="nav-btn ${state.view === 'portfolio' ? 'active' : ''}" data-view="portfolio"><span class="nav-icon">${ico('mapPin')}</span><span class="nav-text">Sucursales</span></button>`;
     html += `<button class="nav-btn ${state.view === 'consolidated' ? 'active' : ''}" data-view="consolidated"><span class="nav-icon">${ico('chart')}</span><span class="nav-text">P&L Consolidado</span></button>`;
     html += `<button class="nav-btn ${state.view === 'comparador' ? 'active' : ''}" data-view="comparador"><span class="nav-icon">${ico('scale')}</span><span class="nav-text">Comparar Red</span></button>`;
+    html += `<div class="nav-divider"></div>`;
     html += `<div style="margin-top:1.5rem">`;
     html += `<button class="btn-add" id="btn-add-branch"><span class="nav-icon">+</span> <span class="nav-text">Nueva Unidad</span></button>`;
     html += `</div>`;
@@ -1563,22 +1567,20 @@ function updateBreadcrumb() {
   }
 
   // Level 3: Proyecto
-  if (state.activeLevel >= 3 && proy) {
+  if (state.view !== 'empresa-dashboard' && proy) {
     crumbs.push({ label: proy.name || 'Proyecto', action: 'portfolio' });
   }
 
-  // Level 4 / Current View
+  // Level 4: Current Entity (Branch or Settings view)
   if (isBranch && branch) {
     crumbs.push({ label: branch.name || 'Sucursal', action: null });
-  } else if (state.activeLevel === 3 && state.view !== 'portfolio' && proy) {
+  } else if (state.view !== 'empresa-dashboard' && state.view !== 'portfolio' && proy) {
     const viewLabels = {
-      consolidated: 'Consolidado', comparador: 'Comparar'
+      consolidated: 'Consolidado', comparador: 'Comparar', empresa: 'Configuración de Sociedad'
     };
     if (viewLabels[state.view]) {
       crumbs.push({ label: viewLabels[state.view], action: null });
     }
-  } else if (state.activeLevel === 2 && state.view === 'empresa') {
-    crumbs.push({ label: 'Configuración Corporativa', action: null });
   }
 
   bc.innerHTML = crumbs.map((c, i) => {

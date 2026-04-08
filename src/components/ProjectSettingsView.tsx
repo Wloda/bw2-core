@@ -83,9 +83,9 @@ export const ProjectSettingsView: React.FC = () => {
         <div className="neu-card">
           <h3 className="card-title">Configuración Corporativa (Nivel Empresa)</h3>
           <div className="form-group">
-            <label>Nombre / Razón Social de la Empresa</label>
+            <label>Nombre / Razón Social</label>
             <input type="text" className="input-text" value={activeEmp.name} onChange={e => updateEmpresa(activeEmpresaId, { name: e.target.value })} />
-            <small className="field-help">El nombre corporativo de tu sociedad holding</small>
+            <small className="field-help">El nombre legal de tu sociedad holding</small>
           </div>
           
           <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
