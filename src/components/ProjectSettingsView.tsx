@@ -12,11 +12,14 @@ export const ProjectSettingsView: React.FC = () => {
   const [newPartnerCapital, setNewPartnerCapital] = useState('');
   const [newPartnerEquity, setNewPartnerEquity] = useState('');
 
-  if (!activeEmp || !activeProj) return null;
+  if (!activeEmp) return null;
 
-  // Run consolidation to get KPIs
-  // Because runConsolidation was ported from JS, it natively accepts the project and activeEmp
-  const consol = runConsolidation(activeProj, activeEmp);
+  // Run consolidation to get KPIs across ALL projects of the enterprise
+  // Create a pseudo-project containing all branches
+  const allBranches = activeEmp.proyectos?.flatMap(p => p.branches || []) || [];
+  const pseudoProj = activeProj || { branches: allBranches };
+
+  const consol = runConsolidation(pseudoProj, activeEmp);
   const capStatus = consol.capitalFree >= 0 ? 'good' : 'bad';
   
   const totalEquity = activeEmp.partners.reduce((s, p) => s + p.equity, 0);
@@ -56,7 +59,7 @@ export const ProjectSettingsView: React.FC = () => {
           <div className="kpi-desc">{activeEmp.partners.length} socios globales</div>
         </div>
         <div className={`kpi-card neutral`}>
-          <div className="kpi-title">Inv. Requerida (Proyecto)</div>
+          <div className="kpi-title">Inv. Requerida ({activeProj ? 'Proyecto' : 'Global'})</div>
           <div className="kpi-val">{fmtM(consol.capitalCommitted)}</div>
           <div className="kpi-desc">Capex de {consol.branchCount || 0} suc + reserva</div>
         </div>
