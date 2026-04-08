@@ -617,7 +617,11 @@ function esc(str) {
 }
 
 /* ═══ HOME — Uses same design language as Level 2 ═══ */
-function renderBW2Home(){
+function renderBW2Home() {
+  // Migrated to React (src/components/BW2HomeView.tsx)
+}
+
+function __old_renderBW2Home() {
   const container=$('bw2-home-container');if(!container)return;
   const empresas = getEmpresas();
 
@@ -819,165 +823,217 @@ function renderPortfolioSummary(empresa){
 }
 
 /* ═══ EMPRESA DASHBOARD (Level 2) ═══ */
-function renderEmpresaDashboard(empresa){
-  const titleEl=$('empresa-dash-title');
-  const summaryEl=$('empresa-dash-summary');
-  const gridEl=$('empresa-dash-proyectos');
-  if(!titleEl||!gridEl) return;
+function renderEmpresaDashboard(empresa) {
+  // Migrated to React
+}
 
-  titleEl.innerHTML = `🏢 ${empresa.name || 'Empresa'} <button id="btn-edit-active-empresa" class="icon-btn" style="margin-left:8px;font-size:1.1rem;background:none;border:none;cursor:pointer;opacity:0.5;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5" title="Editar Información de Empresa">✏️</button>`;
-  const editBtn = $('btn-edit-active-empresa');
-  if (editBtn) editBtn.addEventListener('click', () => {
-    state.activeLevel = 2; // Stay at level 2
-    state.view = 'empresa';
-    renderCurrentView();
-  });
-
-  // Calculate empresa-wide KPIs across all projects
-  let totalCap = empresa.totalCapital || 0;
-  let totalComm = 0, totalBranches = 0, totalEBITDA = 0, totalScore = 0, scoredCount = 0;
-  (empresa.proyectos||[]).forEach(proj => {
-    (proj.branches||[]).forEach(b => {
-      if(b.status==='archived') return;
-      totalBranches++;
-      try {
-        const r = runBranchProjection(b, proj, empresa);
-        if(r) {
-          totalComm += getOOP(r);
-          totalEBITDA += r.avgMonthlyEBITDA||0;
-          if(r.viabilityScore){ totalScore += r.viabilityScore; scoredCount++; }
-        }
-      } catch(e){}
-    });
-  });
-  const avgScore = scoredCount ? Math.round(totalScore/scoredCount) : 0;
-  const totalFree = totalCap - totalComm;
-
-  if(summaryEl){
-    summaryEl.innerHTML=`
-      <div class="kpi-grid">
-        <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital Total</div><div class="kpi-value">${fmt.m(totalCap)}</div></div>
-        <div class="kpi-card" data-status="${totalComm>totalCap?'danger':'warn'}"><div class="kpi-label">Inv. Requerida</div><div class="kpi-value" style="color:${totalComm>totalCap?'var(--red)':'var(--yellow)'}">${fmt.oop(totalComm)}</div><div class="kpi-detail">${totalCap?((totalComm/totalCap)*100).toFixed(0):'0'}% del cap.</div></div>
-        <div class="kpi-card" data-status="${totalFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${totalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(totalFree)}</div></div>
-        <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${totalBranches}</div><div class="kpi-detail">${empresa.proyectos.length} proyecto${empresa.proyectos.length!==1?'s':''}</div></div>
-        <div class="kpi-card" data-status="${totalEBITDA>=0?'success':'danger'}"><div class="kpi-label">EBITDA/mes</div><div class="kpi-value" style="color:${totalEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(totalEBITDA)}</div></div>
-        <div class="kpi-card" data-status="${avgScore >= 70 ? 'success' : avgScore >= 50 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value" style="display:flex;align-items:center;">${scoreRing(avgScore, 40)}</div></div>
-      </div>`;
-  }
-
-  // Sync empresa dinamismo selects
-  const ov = empresa.overrides || {};
-  const erSel=$('empresa-royalty-select'); if(erSel) erSel.value = ov.royaltyMode || 'variable_2_5';
-  const ewSel=$('empresa-waiver-select');  if(ewSel) ewSel.value = (ov.waiverFromOpening||false).toString();
-  const epSel=$('empresa-preopen-select'); if(epSel) epSel.value = (ov.preOpenMonths||0).toString();
-  const emSel=$('empresa-market-toggle');  if(emSel) emSel.checked = ov.applyMarketFactor!==false;
-  const esSel=$('empresa-scenario-select');if(esSel) esSel.value = (ov.baseScenarioFactor||1).toString();
-
-  // Render project cards
-  let html = '';
-  (empresa.proyectos||[]).forEach(proj => {
-    const activeBranches = (proj.branches||[]).filter(b=>b.status!=='archived');
-    let projEBITDA=0, projScore=0, projScored=0, projPayback=0;
-    let sparkData = [];
-    activeBranches.forEach(b => {
-      try {
-        const r = runBranchProjection(b, empresa);
-        if(r) {
-          projEBITDA += r.avgMonthlyEBITDA||0;
-          if(r.paybackMonth > projPayback) projPayback = r.paybackMonth;
-          if(r.viabilityScore){ projScore += r.viabilityScore; projScored++; }
-          if(r.months) {
-            const last12 = r.months.slice(-12);
-            last12.forEach((m,i) => { sparkData[i] = (sparkData[i]||0) + (m.ebitda||0); });
-          }
-        }
-      } catch(e){}
-    });
-    const pScore = projScored ? Math.round(projScore/projScored) : 0;
-    const scoreCol = pScore>=80?'var(--green)':pScore>=60?'var(--yellow)':'var(--red)';
-    const projLogoHtml = proj.logo
-      ? `<img src="${proj.logo}" alt="${esc(proj.name)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover">`
-      : '<span style="font-size:1.25rem">📁</span>';
-
-    html += `<div class="emp-dash-proj-card" data-emp-id="${empresa.id}" data-proj-id="${proj.id}">
-      <div class="emp-dash-proj-header">
-        <div style="display:flex;align-items:center;gap:0.5rem">
-          ${projLogoHtml}
-          <div>
-            <div class="emp-dash-proj-name">${esc(proj.name)}</div>
-            <div class="emp-dash-proj-meta">Capital: ${fmt.m(proj.totalCapital)} · ${activeBranches.length} sucursal${activeBranches.length!==1?'es':''}</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:0.25rem">
-          <button class="btn-icon btn-edit-proyecto" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" title="Editar">✏️</button>
-          <button class="btn-icon btn-delete-proyecto" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" title="Eliminar">🗑️</button>
-        </div>
-      </div>
-      <div class="emp-dash-proj-kpis">
-        <div class="emp-dash-kpi"><span class="emp-dash-kpi-label">Ganancia/mes</span><span class="emp-dash-kpi-value" style="color:${projEBITDA>=0?'var(--accent)':'var(--red)'}">${fmt.m(projEBITDA)}</span></div>
-        <div class="emp-dash-kpi"><span class="emp-dash-kpi-label">Recuperación</span><span class="emp-dash-kpi-value">${projPayback?projPayback+' m':'—'}</span></div>
-        <div class="emp-dash-kpi" style="display:flex;align-items:center;gap:0.4rem"><span class="emp-dash-kpi-label">Score</span>${scoreRing(pScore, 36)}</div>
-      </div>
-      ${sparkData.length >= 2 ? sparklineSVG(sparkData) : ''}
-      <div class="emp-dash-proj-footer">
-        <div class="emp-dash-proj-meta-foot">${activeBranches.length} sucursal${activeBranches.length!==1?'es':''} activas</div>
-        <button class="btn-open-proyecto-dash btn-compact-open" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" style="width:auto;margin-top:0;display:inline-block;">Abrir →</button>
-      </div>
-    </div>`;
-  });
-
-  // Add "new project" card
-  html += `<div class="emp-dash-proj-card emp-dash-add-card">
-    <button class="btn-add-proyecto-dash" data-emp-id="${empresa.id}">+ Nuevo Proyecto</button>
-  </div>`;
-
-  gridEl.innerHTML = html;
-
-  // Wire events
-  gridEl.querySelectorAll('.btn-open-proyecto-dash').forEach(btn => {
-    btn.addEventListener('click', () => {
-      setActiveProyecto(btn.dataset.empId, btn.dataset.projId);
-      state.view = 'portfolio';
-      state.activeBranchId = null;
-      renderCurrentView();
-    });
-  });
-  gridEl.querySelectorAll('.btn-add-proyecto-dash').forEach(btn => {
-    btn.addEventListener('click', () => {
-      WizardManager.open('proyecto', btn.dataset.empId);
-    });
-  });
-  gridEl.querySelectorAll('.btn-edit-proyecto').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      showBW2Modal('editar-proyecto', btn.dataset.empId, btn.dataset.projId);
-    });
-  });
-  gridEl.querySelectorAll('.btn-delete-proyecto').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const proj = getProyectoById(btn.dataset.empId, btn.dataset.projId);
-      if(!proj) return;
-      showConfirm(
-        `🗑️ ¿Eliminar "${proj.name}"?`,
-        `<p>Se eliminarán todas las sucursales de este proyecto.</p>`,
-        '🗑️ Eliminar',
-        ()=>{ removeProyecto(btn.dataset.empId, btn.dataset.projId); renderEmpresaDashboard(getActiveEmpresa()); }
-      );
-    });
-  });
+function __old_renderEmpresaDashboard(empresa){
+  // Migrated to React (src/components/EmpresaDashboardView.tsx)
 }
 
 
 
 function showBW2Modal(type, empId, projId){
-  // Delegar todo el renderizado de Modales al ModalManager de React
-  window.dispatchEvent(new CustomEvent('bw2:open-modal', {
-    detail: { 
-      type, 
-      payload: (type === 'editar-proyecto') ? { empId, projId } : empId 
+  // Remove existing dynamically-created modal (not static ones like profile)
+  const old = document.querySelector('.bw2-modal-overlay:not([id])');
+  if(old) old.remove();
+
+  let title='', fields='', submitLabel='Guardar';
+  let existingLogo = null;
+
+  // Logo upload field HTML
+  const logoField = (label, currentLogo) => {
+    existingLogo = currentLogo;
+    return `<div class="bw2-form-group">
+      <label>${label}</label>
+      <div class="bw2-logo-upload" id="bw2-logo-dropzone">
+        <input type="file" id="bw2-input-logo" accept="image/jpeg,image/png,image/webp" style="display:none">
+        <div class="bw2-logo-preview" id="bw2-logo-preview" ${currentLogo ? '' : 'style="display:none"'}>
+          <img id="bw2-logo-preview-img" src="${currentLogo || ''}" alt="Logo">
+          <button type="button" class="bw2-logo-remove" id="bw2-logo-remove" title="Quitar logo">✕</button>
+        </div>
+        <div class="bw2-logo-placeholder" id="bw2-logo-placeholder" ${currentLogo ? 'style="display:none"' : ''}>
+          <span class="bw2-logo-icon">📷</span>
+          <span>Arrastra una imagen o <strong>haz clic</strong></span>
+          <small>JPG, PNG · Máx 2MB</small>
+        </div>
+      </div>
+    </div>`;
+  };
+
+  if(type==='crear-empresa'){
+    title='Nueva Empresa';
+    fields=`<div class="bw2-form-group">
+      <label>Nombre de la Empresa</label>
+      <input type="text" id="bw2-input-name" class="input-text" placeholder="Ej: Mi Empresa S.A. de C.V." autofocus>
+    </div>
+    <div class="bw2-form-group">
+      <label>Capital Inicial ($)</label>
+      <input type="number" id="bw2-input-capital" class="input-text" value="2000000" step="100000">
+    </div>
+    ${logoField('Logo de la Empresa', null)}`;
+    submitLabel='Crear Empresa';
+  } else if(type==='editar-empresa'){
+    const emp = getEmpresaById(empId);
+    title='Editar Empresa';
+    fields=`<div class="bw2-form-group">
+      <label>Nombre de la Empresa</label>
+      <input type="text" id="bw2-input-name" class="input-text" value="${emp?.nombre||emp?.name||''}" autofocus>
+    </div>
+    ${logoField('Logo de la Empresa', emp?.logo || null)}`;
+  } else if(type==='crear-proyecto'){
+    title='Nuevo Proyecto';
+    fields=`<div class="bw2-form-group">
+      <label>Nombre del Proyecto</label>
+      <input type="text" id="bw2-input-name" class="input-text" placeholder="Ej: FarmaTuya Zona Norte" autofocus>
+    </div>
+    <div class="bw2-form-group">
+      <label>Capital Total ($)</label>
+      <input type="number" id="bw2-input-capital" class="input-text" value="2000000" step="100000">
+    </div>
+    <div class="bw2-form-group">
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+        <input type="checkbox" id="bw2-input-franchise" checked>
+        Es un proyecto de franquicia
+      </label>
+      <p style="font-size:0.75rem;color:var(--text-3);margin-top:0.25rem">Si marcas esto, el proyecto incluirá cálculos de regalías.</p>
+    </div>
+    ${logoField('Logo del Proyecto', null)}`;
+    submitLabel='Crear Proyecto';
+  } else if(type==='editar-proyecto'){
+    const proj = getProyectoById(empId, projId);
+    const isF = proj?.isFranchise !== false;
+    title='Editar Proyecto';
+    fields=`<div class="bw2-form-group">
+      <label>Nombre del Proyecto</label>
+      <input type="text" id="bw2-input-name" class="input-text" value="${proj?.nombre||proj?.name||''}" autofocus>
+    </div>
+    <div class="bw2-form-group">
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+        <input type="checkbox" id="bw2-input-franchise" ${isF ? 'checked' : ''}>
+        Es un proyecto de franquicia
+      </label>
+    </div>
+    ${logoField('Logo del Proyecto', proj?.logo || null)}`;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className='bw2-modal-overlay';
+  overlay.innerHTML=`<div class="bw2-modal">
+    <div class="bw2-modal-header">
+      <h3>${title}</h3>
+      <button class="bw2-modal-close">✕</button>
+    </div>
+    <div class="bw2-modal-body">${fields}</div>
+    <div class="bw2-modal-footer">
+      <button class="btn-secondary bw2-modal-cancel">Cancelar</button>
+      <button class="btn-primary bw2-modal-submit">${submitLabel}</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+
+  // ── Logo upload logic ──
+  let pendingLogoDataURL = existingLogo || null;
+  const fileInput = overlay.querySelector('#bw2-input-logo');
+  const dropzone = overlay.querySelector('#bw2-logo-dropzone');
+  const preview = overlay.querySelector('#bw2-logo-preview');
+  const previewImg = overlay.querySelector('#bw2-logo-preview-img');
+  const placeholder = overlay.querySelector('#bw2-logo-placeholder');
+  const removeBtn = overlay.querySelector('#bw2-logo-remove');
+
+  function showPreview(dataURL) {
+    pendingLogoDataURL = dataURL;
+    previewImg.src = dataURL;
+    preview.style.display = 'flex';
+    placeholder.style.display = 'none';
+  }
+  function clearPreview() {
+    pendingLogoDataURL = null;
+    previewImg.src = '';
+    preview.style.display = 'none';
+    placeholder.style.display = 'flex';
+  }
+
+  if(dropzone) {
+    // Click to upload
+    dropzone.addEventListener('click', (e) => {
+      if(e.target === fileInput) return; // prevent re-trigger
+      if(e.target.closest('#bw2-logo-remove')) return;
+      fileInput.click();
+    });
+    // File selected
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files[0];
+      if(!file) return;
+      if(file.size > 2 * 1024 * 1024) { showToast('Imagen muy grande (máx 2MB)', 'error'); return; }
+      try {
+        const dataURL = await resizeImageToDataURL(file, 256);
+        showPreview(dataURL);
+      } catch(e) { showToast('Error al procesar imagen', 'error'); }
+    });
+    // Drag & drop
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('dragover'); });
+    dropzone.addEventListener('drop', async (e) => {
+      e.preventDefault(); dropzone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if(!file || !file.type.startsWith('image/')) { showToast('Solo se aceptan imágenes', 'error'); return; }
+      if(file.size > 2 * 1024 * 1024) { showToast('Imagen muy grande (máx 2MB)', 'error'); return; }
+      try {
+        const dataURL = await resizeImageToDataURL(file, 256);
+        showPreview(dataURL);
+      } catch(e) { showToast('Error al procesar imagen', 'error'); }
+    });
+    // Remove
+    if(removeBtn) removeBtn.addEventListener('click', (e) => { e.stopPropagation(); clearPreview(); });
+  }
+
+  // Focus input
+  setTimeout(()=>{const inp=$('bw2-input-name');if(inp)inp.focus();},100);
+
+  // Close handlers
+  overlay.querySelector('.bw2-modal-close').onclick=()=>overlay.remove();
+  overlay.querySelector('.bw2-modal-cancel').onclick=()=>overlay.remove();
+
+
+  // Submit handler
+  overlay.querySelector('.bw2-modal-submit').onclick=()=>{
+    const nameVal = $('bw2-input-name')?.value.trim();
+    if(!nameVal || nameVal.length < 1){showToast('El nombre es requerido','error');return;}
+    if(nameVal.length > 100){showToast('El nombre es demasiado largo (máx 100 caracteres)','error');return;}
+
+    if(type==='crear-empresa'){
+      const cap = parseFloat($('bw2-input-capital')?.value)||2000000;
+      const newEmp = addEmpresa(nameVal);
+      if(pendingLogoDataURL || cap !== 2000000) updateEmpresaData(newEmp.id, {logo: pendingLogoDataURL, capitalInicial: cap});
+      showToast(`Empresa "${nameVal}" creada`,'success');
+    } else if(type==='editar-empresa'){
+      updateEmpresaData(empId, {nombre:nameVal, logo: pendingLogoDataURL});
+      showToast('Empresa actualizada','success');
+    } else if(type==='crear-proyecto'){
+      const cap = parseFloat($('bw2-input-capital')?.value)||2000000;
+      const isFranchise = $('bw2-input-franchise') ? $('bw2-input-franchise').checked : true;
+      const newProj = addProyecto(empId, nameVal);
+      if(newProj){
+        updateProyecto(empId, newProj.id, {totalCapital:cap, isFranchise, logo: pendingLogoDataURL});
+        showToast(`Proyecto "${nameVal}" creado`,'success');
+      }
+    } else if(type==='editar-proyecto'){
+      const isFranchise = $('bw2-input-franchise') ? $('bw2-input-franchise').checked : true;
+      updateProyecto(empId, projId, {name:nameVal, isFranchise, logo: pendingLogoDataURL});
+      showToast('Proyecto actualizado','success');
     }
-  }));
+
+    overlay.remove();
+    if (type === 'crear-empresa' || type === 'editar-empresa') {
+      renderBW2Home();
+    } else {
+      renderCurrentView();
+    }
+  };
+
+  // Enter key submit
+  overlay.addEventListener('keydown',e=>{if(e.key==='Enter')overlay.querySelector('.bw2-modal-submit').click();});
 }
 
 /* ═══ PORTFOLIO VIEW ═══ */
