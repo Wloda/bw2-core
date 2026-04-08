@@ -816,7 +816,7 @@ function renderPortfolioSummary(empresa){
   el.innerHTML=`
     <div class="kpi-grid">
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital</div><div class="kpi-value">${fmt.m(pseudoEmpresa.totalCapital)}</div></div>
-      <div class="kpi-card" data-status="${consol.capitalCommitted>pseudoEmpresa.totalCapital?'danger':'warn'}"><div class="kpi-label">Inv. Requerida</div><div class="kpi-value" style="color:${consol.capitalCommitted>pseudoEmpresa.totalCapital?'var(--red)':'var(--yellow)'}">${fmt.iva(consol.capitalCommitted)}</div><div class="kpi-detail">${pseudoEmpresa.totalCapital?((consol.capitalCommitted/pseudoEmpresa.totalCapital)*100).toFixed(0):'0'}% del cap.</div></div>
+      <div class="kpi-card" data-status="${consol.capitalCommitted>pseudoEmpresa.totalCapital?'danger':'warn'}"><div class="kpi-label">Inv. Requerida</div><div class="kpi-value" style="color:${consol.capitalCommitted>pseudoEmpresa.totalCapital?'var(--red)':'var(--yellow)'}">${fmt.m(consol.capitalCommitted)}</div><div class="kpi-detail">${pseudoEmpresa.totalCapital?((consol.capitalCommitted/pseudoEmpresa.totalCapital)*100).toFixed(0):'0'}% del cap.</div></div>
       <div class="kpi-card" data-status="${consol.capitalFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${consol.capitalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(consol.capitalFree)}</div></div>
       <div class="kpi-card" data-status="${consol.avgMonthlyEBITDA>=0?'success':'danger'}"><div class="kpi-label">Ganancia/mes</div><div class="kpi-value" style="color:${consol.avgMonthlyEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(consol.avgMonthlyEBITDA)}</div></div>
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${consol.branchCount}</div></div>
@@ -4156,7 +4156,7 @@ function renderProyectoSettings(proyecto){
     const capStatus = consol.capitalFree >= 0 ? 'good' : 'bad';
     kpiEl.innerHTML = [
       kc('Capital Total', fmt.m(proyecto.totalCapital), `${proyecto.partners.length} socios`, 'neutral'),
-      kc('Inv. Requerida', fmt.iva(consol.capitalCommitted), `Sumatoria Capex de ${consol.branchCount || 0} suc+reserva`, 'neutral'),
+      kc('Inv. Requerida', fmt.m(consol.capitalCommitted), `Sumatoria Capex de ${consol.branchCount || 0} suc+reserva`, 'neutral'),
       kc('Libre / Faltante', fmt.m(consol.capitalFree), capStatus === 'good' ? 'Capital Disponible' : '⚠️ Presupuesto Excedido', capStatus),
       kc('Ganancia/mes', fmt.m(consol.avgMonthlyNet), `en ${consol.branchCount || 0} suc.`, consol.avgMonthlyNet >= 0 ? 'good' : 'bad'),
       kc('Recuperación Proy.', consol.paybackMonth ? consol.paybackMonth + ' meses' : '∞', 'Todas las sucursales', consol.paybackMonth && consol.paybackMonth <= 36 ? 'good' : 'warn'),
