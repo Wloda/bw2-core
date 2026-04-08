@@ -842,14 +842,14 @@ function renderEmpresaDashboard(empresa){
   if (editBtn) editBtn.addEventListener('click', () => showBW2Modal('editar-empresa', empresa.id));
 
   // Calculate empresa-wide KPIs across all projects
-  let totalCap=0, totalComm=0, totalBranches=0, totalEBITDA=0, totalScore=0, scoredCount=0;
+  let totalCap = empresa.totalCapital || 0;
+  let totalComm = 0, totalBranches = 0, totalEBITDA = 0, totalScore = 0, scoredCount = 0;
   (empresa.proyectos||[]).forEach(proj => {
-    totalCap += proj.totalCapital||0;
     (proj.branches||[]).forEach(b => {
       if(b.status==='archived') return;
       totalBranches++;
       try {
-        const r = runBranchProjection(b, empresa);
+        const r = runBranchProjection(b, proj, empresa);
         if(r) {
           totalComm += getOOP(r);
           totalEBITDA += r.avgMonthlyEBITDA||0;

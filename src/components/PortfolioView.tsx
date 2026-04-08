@@ -51,7 +51,7 @@ export const PortfolioView: React.FC = () => {
 
   const avgScore = scoredCount ? Math.round(totalScore / scoredCount) : 0;
   // Pseudoconsolidation for Libre / Faltante
-  const totalFree = (activeProj.totalCapital || 0) - totalComm;
+  const totalFree = (activeEmpresa.totalCapital || 0) - totalComm;
 
   const scoreRing = (score: number, size: number = 40) => {
     const r = (size / 2) - 3;
@@ -81,14 +81,14 @@ export const PortfolioView: React.FC = () => {
           <div className="global-summary-title">📁 {activeProj.name} — Resumen (React)</div>
           <div className="global-summary-grid">
             <div className="global-summary-card">
-              <span className="global-summary-label">Capital Total</span>
-              <span className="global-summary-value">{fm(activeProj.totalCapital || 0)}</span>
+              <span className="global-summary-label">Capital Total (Empresa)</span>
+              <span className="global-summary-value">{fm(activeEmpresa.totalCapital || 0)}</span>
             </div>
             <div className="global-summary-card">
               <span className="global-summary-label">Tope Máx. Requerido</span>
               <span className="global-summary-value" style={{ color: 'var(--yellow)' }}>{fm(totalComm)}</span>
               <span className="global-summary-sub">
-                {activeProj.totalCapital ? ((totalComm / activeProj.totalCapital) * 100).toFixed(0) : '0'}%
+                {activeEmpresa.totalCapital ? ((totalComm / activeEmpresa.totalCapital) * 100).toFixed(0) : '0'}%
               </span>
             </div>
             <div className="global-summary-card">

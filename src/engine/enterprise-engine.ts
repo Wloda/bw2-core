@@ -53,22 +53,22 @@ export function runBranchProjection(branch, empresa, activeEmpresa) {
 }
 
 /* ── Enterprise Consolidation ── */
-export function runConsolidation(empresa, activeEmpresa) {
-  const activeBranches = empresa.branches.filter(b => b.status !== 'paused' && b.status !== 'archived');
+export function runConsolidation(proyecto, activeEmpresa) {
+  const activeBranches = proyecto.branches.filter(b => b.status !== 'paused' && b.status !== 'archived');
 
   const branchResults = activeBranches.map(branch => ({
     branch,
-    result: runBranchProjection(branch, empresa, activeEmpresa)
+    result: runBranchProjection(branch, proyecto, activeEmpresa)
   }));
 
   // Totals
   const totalInvestment = branchResults.reduce((s, br) => s + br.result.totalInvestment, 0);
-  const capitalCommitted = totalInvestment + empresa.corporateReserve;
-  const capitalFree = empresa.totalCapital - capitalCommitted;
+  const capitalCommitted = totalInvestment + (activeEmpresa?.corporateReserve || 0);
+  const capitalFree = (activeEmpresa?.totalCapital || 0) - capitalCommitted;
 
   // Monthly consolidation (60 months)
   const horizonMonths = 60;
-  const corpExp = empresa.corporateExpenses || 0;
+  const corpExp = activeEmpresa?.corporateExpenses || 0;
   const months = [];
   let cumCF = -totalInvestment;
 
@@ -103,7 +103,8 @@ export function runConsolidation(empresa, activeEmpresa) {
   const totalNet60 = months.reduce((s, m) => s + m.netIncome, 0);
 
   // Per-partner attribution
-  const perPartner = empresa.partners.map(p => ({
+  const partners = activeEmpresa?.partners || [];
+  const perPartner = partners.map(p => ({
     id: p.id,
     name: p.name,
     equity: p.equity,

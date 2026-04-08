@@ -275,7 +275,7 @@ export function updateEmpresaData(empresaId, updates) {
     if (updates.name !== undefined) emp.name = updates.name;
     if (updates.nombre !== undefined) emp.name = updates.nombre;
     if (updates.logo !== undefined) emp.logo = updates.logo;
-    if (updates.capitalInicial !== undefined) emp.capitalInicial = updates.capitalInicial;
+    if (updates.capitalInicial !== undefined) emp.totalCapital = updates.capitalInicial;
     _save();
   }
 }

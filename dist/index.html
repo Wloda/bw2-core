@@ -55,8 +55,8 @@
     if(!localStorage.getItem('bw2_workspace')){localStorage.removeItem('farmatuya_empresa');console.log('[BW2] clean slate')}
     console.log('[BW2] inline script OK, localStorage keys:', Object.keys(localStorage));
   </script>
-  <script type="module" crossorigin src="/assets/index-DdwntrjB.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DvnQlcVx.css">
+  <script type="module" crossorigin src="/assets/index-Dsm2USDc.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CFIXlXGd.css">
 </head>
 <body>
   <!-- ═══ AUTH SCREEN ═══ -->
@@ -255,33 +255,29 @@
         </div>
       </div>
 
-      <div class="kpi-strip" id="branch-kpi-strip">
-        <div class="kpi-strip-item">
-          <span class="kpi-strip-label">Pto. Equilibrio <span class="kpi-help">?<span class="kpi-tip">Ventas mínimas mensuales para no perder dinero. Si vendes menos que esto, la sucursal opera a pérdida.</span></span></span>
-          <span class="kpi-strip-value" id="branch-kpi-equilibrio">-</span>
-          <span class="kpi-strip-detail" id="kpi-be-pct"></span>
+      <div class="kpi-grid" id="branch-kpi-strip">
+        <div class="kpi-card" id="card-branch-equilibrio">
+          <span class="kpi-label">Pto. Equilibrio <span class="kpi-help">?<span class="kpi-tip">Ventas mínimas mensuales para no perder dinero. Si vendes menos que esto, la sucursal opera a pérdida.</span></span></span>
+          <span class="kpi-value" id="branch-kpi-equilibrio">-</span>
+          <span class="kpi-detail" id="kpi-be-pct"></span>
         </div>
-        <div class="kpi-strip-divider"></div>
-        <div class="kpi-strip-item">
-          <span class="kpi-strip-label">Ganancia / Mes <span class="kpi-help">?<span class="kpi-tip">Lo que gana la sucursal cada mes después de pagar todos los costos operativos (EBITDA). Es tu utilidad real mensual.</span></span></span>
-          <span class="kpi-strip-value" id="branch-kpi-profit">-</span>
+        <div class="kpi-card" id="card-branch-profit">
+          <span class="kpi-label">Ganancia / Mes <span class="kpi-help">?<span class="kpi-tip">Lo que gana la sucursal cada mes después de pagar todos los costos operativos (EBITDA). Es tu utilidad real mensual.</span></span></span>
+          <span class="kpi-value" id="branch-kpi-profit">-</span>
         </div>
-        <div class="kpi-strip-divider"></div>
-        <div class="kpi-strip-item">
-          <span class="kpi-strip-label">Recuperación <span class="kpi-help">?<span class="kpi-tip">Cuántos meses necesitas para recuperar toda tu inversión inicial. Menor es mejor. Óptimo: menos de 24 meses.</span></span></span>
-          <span class="kpi-strip-value" id="branch-kpi-payback">-</span>
-          <span class="kpi-strip-detail" id="kpi-payback-sub"></span>
+        <div class="kpi-card" id="card-branch-payback">
+          <span class="kpi-label">Recuperación <span class="kpi-help">?<span class="kpi-tip">Cuántos meses necesitas para recuperar toda tu inversión inicial. Menor es mejor. Óptimo: menos de 24 meses.</span></span></span>
+          <span class="kpi-value" id="branch-kpi-payback">-</span>
+          <span class="kpi-detail" id="kpi-payback-sub"></span>
         </div>
-        <div class="kpi-strip-divider"></div>
-        <div class="kpi-strip-item">
-          <span class="kpi-strip-label">ROI 12m <span class="kpi-help">?<span class="kpi-tip">Porcentaje de tu dinero que recuperas en el primer año. Si es positivo, ya estás ganando desde el año 1.</span></span></span>
-          <span class="kpi-strip-value" id="kpi-roi-value">-</span>
+        <div class="kpi-card" id="card-branch-roi">
+          <span class="kpi-label">ROI 12m <span class="kpi-help">?<span class="kpi-tip">Porcentaje de tu dinero que recuperas en el primer año. Si es positivo, ya estás ganando desde el año 1.</span></span></span>
+          <span class="kpi-value" id="kpi-roi-value">-</span>
         </div>
-        <div class="kpi-strip-divider"></div>
-        <div class="kpi-strip-item">
-          <span class="kpi-strip-label">Factor Mercado <span class="kpi-help">?<span class="kpi-tip">Multiplicador basado en la ubicación real. Analiza competencia, densidad poblacional y tráfico. 1.0 = sin ajuste.</span></span></span>
-          <span class="kpi-strip-value" id="branch-kpi-factor" style="color:var(--text-2)">—</span>
-          <span class="kpi-strip-detail" id="kpi-factor-label"></span>
+        <div class="kpi-card" id="card-branch-factor">
+          <span class="kpi-label">Factor Mercado <span class="kpi-help">?<span class="kpi-tip">Multiplicador basado en la ubicación real. Analiza competencia, densidad poblacional y tráfico. 1.0 = sin ajuste.</span></span></span>
+          <span class="kpi-value" id="branch-kpi-factor" style="color:var(--text-2)">—</span>
+          <span class="kpi-detail" id="kpi-factor-label"></span>
         </div>
       </div>
 
@@ -526,10 +522,16 @@
 
       <!-- ═══ TAB 3: ESTUDIO SOCIOECONÓMICO ═══ -->
       <div id="btab-socioeconomico" class="branch-tab-panel">
-        <div class="neu-card">
+        
+        <!-- BARRA DE RESULTADOS EN LA PARTE SUPERIOR -->
+        <div id="loc-results-header" style="display:none; margin-bottom: 1rem;">
+          <div class="kpi-grid" id="loc-score-cards"></div>
+        </div>
+
+        <div class="neu-card" style="position:relative; z-index:9999;">
           <h3 class="card-title">Estudio de Ubicación y Entorno <span class="kpi-help">?<span class="kpi-tip">Motor de inteligencia geoespacial. Extrae datos censales del INEGI y comercios del DENUE para predecir tus ventas con base en el tráfico y competencia real.</span></span></h3>
           <p class="section-desc" style="margin-bottom:1rem;color:var(--text-light);font-size:0.875rem">Busca una ubicación para desplegar automáticamente el análisis del mercado y potencial de ventas.</p>
-          <div class="loc-input-row" style="position:relative">
+          <div class="loc-input-row" style="position:relative; z-index:9999;">
             <div class="colonia-autocomplete" style="flex:1;position:relative">
               <input type="text" class="input-text" id="loc-address-input" placeholder="🔍 Escribe una colonia, municipio o código postal..." autocomplete="off" style="width:100%">
               <div id="loc-address-status" class="colonia-status" style="position:absolute;right:8px;top:50%;transform:translateY(-50%)"></div>
@@ -546,8 +548,6 @@
           <p style="max-width:400px;margin:0 auto;line-height:1.4">Busca una ubicación en la barra de arriba para descubrir el potencial de ventas, nivel socioeconómico y saturación de farmacias en la zona.</p>
         </div>
         <div id="loc-results" style="display:none">
-          <div class="kpi-grid" id="loc-score-cards"></div>
-          
           <div id="loc-insights-container" style="display:none; margin-bottom:0.75rem"></div>
 
           <div class="neu-card map-card" style="margin-bottom:0.75rem">
@@ -608,7 +608,7 @@
       </div>
 
       <!-- KPI Strip (compact, like Resultados) -->
-      <div class="kpi-strip" id="consol-kpi-strip"></div>
+      <div class="kpi-grid" id="consol-kpi-strip"></div>
 
       <!-- Row 2: Chart (7col) + Branch Table (5col) — independent heights -->
       <div class="consol-main-row">
@@ -709,65 +709,73 @@
 
     <!-- ═══ EMPRESA SETTINGS VIEW ═══ -->
     <section id="view-empresa" style="display:none">
-      <div class="view-header"><h2>Sociedad y Socios</h2><p>Configuración central — los cambios recalculan automáticamente</p></div>
+      <div class="view-header" style="margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">
+        <div>
+          <h2 style="font-size:1.5rem; letter-spacing:-0.03em;">Sociedad y Socios</h2>
+          <p style="font-size:0.85rem; padding-top:0.25rem;">Configuración maestra de capital, nombres y participación accionaria de tu sociedad holding.</p>
+        </div>
+      </div>
+      
       <!-- KPI summary strip -->
-      <div class="kpi-strip" id="empresa-kpis"></div>
+      <div class="kpi-grid" id="empresa-kpis" style="margin-bottom:2rem;"></div>
 
-      <!-- Two-column layout: empresa + socios -->
+      <!-- Main Layout: Sidebar form + Main table -->
       <div class="empresa-layout">
         <!-- Left: Company data -->
         <div class="neu-card">
-          <h3 class="card-title">Datos de la Sociedad</h3>
-          <div class="form-group">
+          <h3 class="card-title" style="margin-bottom:1.25rem; font-size:1rem;">Datos de la Sociedad</h3>
+          <div class="form-group" style="margin-bottom:1.25rem;">
             <label>Nombre / Razón Social</label>
-            <input type="text" class="input-text" id="emp-name" placeholder="NOJOM">
-            <small class="field-help">El nombre legal de tu sociedad holding</small>
+            <input type="text" class="input-text" id="emp-name" placeholder="NOJOM" style="font-size:1rem; padding:0.6rem 0.75rem;">
+            <small class="field-help" style="margin-top:0.4rem;">El nombre legal de tu sociedad holding</small>
           </div>
-          <div class="form-group" style="margin-top:0.5rem">
+          <div class="form-group" style="margin-bottom:1.25rem;">
             <label>Logo de la Sociedad</label>
-            <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.25rem">
-              <img id="emp-logo-preview" src="/assets/nojom-bird-D4AK4gkJ.png" style="width:40px;height:40px;object-fit:contain;border-radius:var(--r-sm);box-shadow:var(--shadow-neu-sm);padding:4px;background:var(--surface)">
+            <div style="display:flex;align-items:center;gap:1rem;margin-top:0.4rem">
+              <img id="emp-logo-preview" src="/assets/nojom-bird-D4AK4gkJ.png" style="width:48px;height:48px;object-fit:contain;border-radius:var(--r-md);box-shadow:var(--shadow-neu-sm);padding:px;background:var(--surface);border:1px solid var(--border)">
               <input type="file" id="emp-logo-upload" accept="image/*" style="display:none">
-              <label for="emp-logo-upload" style="cursor:pointer;background:var(--surface);border:none;border-radius:var(--r-sm);padding:0.4rem 0.75rem;font-size:0.75rem;font-weight:600;color:var(--text-2);box-shadow:var(--shadow-neu-sm);transition:all 0.2s;font-family:var(--font)">📁 Seleccionar</label>
+              <label for="emp-logo-upload" style="cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:0.5rem 0.85rem;font-size:0.75rem;font-weight:700;color:var(--text-2);box-shadow:var(--shadow-neu-sm);transition:all 0.2s;font-family:var(--font)">📁 Cambiar Imagen</label>
             </div>
-            <small class="field-help" style="display:block;margin-top:0.25rem">Se recomienda imagen cuadrada PNG/JPG</small>
+            <small class="field-help" style="display:block;margin-top:0.4rem">Se recomienda imagen cuadrada PNG/JPG de alta resolución</small>
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom:1.25rem; padding-top:1rem; border-top:1px dashed var(--border);">
             <label>Proyecto Activo</label>
-            <input type="text" class="input-text" id="emp-project-name" placeholder="FarmaTuya" style="font-weight:700;color:var(--accent)">
-            <small class="field-help">Franquicia o negocio que opera la sociedad</small>
+            <input type="text" class="input-text" id="emp-project-name" placeholder="FarmaTuya" style="font-weight:700;color:var(--accent);font-size:1rem;">
+            <small class="field-help" style="margin-top:0.4rem;">Franquicia o negocio que opera la sociedad</small>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Capital Total</label>
-              <input type="number" class="input-text" id="emp-capital" placeholder="3000000" step="100000" disabled title="Este campo se calcula automáticamente a partir del capital de los socios">
-              <small class="field-help">Dinero total invertido entre todos los socios</small>
+          <div class="form-row" style="margin-bottom:1.25rem;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Capital Total (Auto)</label>
+              <input type="number" class="input-text" id="emp-capital" placeholder="3000000" step="100000" disabled style="background:var(--bg); border:1px dashed var(--border); color:var(--text-3); font-weight:700;">
+              <small class="field-help" style="margin-top:0.4rem;">Suma de los socios</small>
             </div>
-            <div class="form-group">
-              <label>Reserva Corporativa</label>
-              <input type="number" class="input-text" id="emp-reserve" placeholder="200000" step="50000">
-              <small class="field-help">Colchón de seguridad que no se invierte</small>
+            <div class="form-group" style="margin-bottom:0;">
+              <label>R. Corporativa</label>
+              <input type="number" class="input-text" id="emp-reserve" placeholder="200000" step="50000" style="font-weight:600;">
+              <small class="field-help" style="margin-top:0.4rem;">Colchón reserva</small>
             </div>
           </div>
-          <div class="form-group">
-            <label>Gastos Corporativos Mensuales</label>
-            <input type="number" class="input-text" id="emp-corp-expenses" placeholder="0" step="1000">
-            <small class="field-help">Gastos fijos de la empresa matriz al mes</small>
+          <div class="form-group" style="margin-bottom:1.25rem;">
+            <label>Gastos Fijos Corporativos (Mensual)</label>
+            <input type="number" class="input-text" id="emp-corp-expenses" placeholder="0" step="1000" style="font-weight:600;">
+            <small class="field-help" style="margin-top:0.4rem;">Nómina o renta base de la holding antes de operar</small>
           </div>
-          <div style="margin-top: 1.5rem;">
-            <button class="btn-sm primary" id="btn-save-empresa" style="width: 100%; padding: 0.75rem; font-size: 0.9rem; justify-content: center;">💾 Guardar Cambios</button>
+          <div style="margin-top: 1.5rem; padding-top:1.5rem; border-top:1px solid var(--border);">
+            <button class="btn-sm primary" id="btn-save-empresa" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; justify-content: center; border-radius:var(--r-md); box-shadow:var(--shadow-neu-sm);">💾 Guardar Configuración</button>
           </div>
         </div>
 
         <!-- Right: Partners -->
-        <div class="neu-card">
-          <h3 class="card-title">Socios <span id="equity-alert" class="equity-alert"></span></h3>
-          <div id="partners-table-container"></div>
-          <div class="partner-add-row" style="display: grid; grid-template-columns: 2fr 1.5fr 1fr 40px; gap: 0.5rem; margin-top: 1rem; align-items: center; padding-top: 1rem; border-top: 1px dashed var(--border);">
-            <input type="text" class="input-text" id="add-partner-name" placeholder="Nombre de nuevo socio..." style="font-size:0.8rem">
-            <input type="number" class="input-text num" id="add-partner-capital" placeholder="Capital ($)" step="100000" style="font-size:0.8rem">
-            <input type="number" class="input-text num" id="add-partner-equity" placeholder="Equidad %" min="0" max="100" step="1" style="font-size:0.8rem">
-            <button class="btn-sm primary" id="btn-add-partner" style="height: 100%; border-radius: var(--r-sm); font-size: 1.2rem; justify-content: center; padding: 0;" title="Agregar socio">＋</button>
+        <div class="neu-card" style="display:flex; flex-direction:column;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border);">
+            <h3 class="card-title" style="margin:0; font-size:1.15rem;">Cap Table Corporativo <span id="equity-alert" class="equity-alert" style="margin-left:0.5rem;"></span></h3>
+          </div>
+          <div id="partners-table-container" style="flex:1;"></div>
+          <div class="partner-add-row" style="display: grid; grid-template-columns: 2fr 1.5fr 1fr 48px; gap: 0.75rem; margin-top: auto; padding-top: 1.25rem; border-top: 1px dashed var(--border);">
+            <input type="text" class="input-text" id="add-partner-name" placeholder="Nombre completo del socio..." style="font-size:0.85rem; padding:0.6rem 0.75rem;">
+            <input type="number" class="input-text num" id="add-partner-capital" placeholder="Aportación ($)" step="100000" style="font-size:0.85rem; padding:0.6rem 0.75rem;">
+            <input type="number" class="input-text num" id="add-partner-equity" placeholder="Equidad %" min="0" max="100" step="1" style="font-size:0.85rem; padding:0.6rem 0.75rem; font-weight:700;">
+            <button class="btn-sm primary" id="btn-add-partner" style="height: 100%; border-radius: var(--r-md); font-size: 1.4rem; justify-content: center; padding: 0; box-shadow:var(--shadow-neu-sm);" title="Agregar socio">＋</button>
           </div>
         </div>
       </div>
@@ -915,7 +923,5 @@
   </div>
 
   <footer id="app-footer"><p>BW² — Dashboard de Inversión · v8.0 · Multi-Empresa</p></footer>
-
-  <!-- React Integration -->
 </body>
 </html>

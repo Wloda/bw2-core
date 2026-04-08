@@ -3,7 +3,7 @@ import { useAppStore } from '../store/useAppStore';
 import { runConsolidation } from '../engine/enterprise-engine';
 
 export const ProjectSettingsView: React.FC = () => {
-  const { empresas, activeEmpresaId, activeProyectoId, updateProyecto, addPartner, removePartner, updatePartner } = useAppStore();
+  const { empresas, activeEmpresaId, activeProyectoId, updateProyecto, updateEmpresa, addPartner, removePartner, updatePartner } = useAppStore();
   
   const activeEmp = empresas.find(e => e.id === activeEmpresaId);
   const activeProj = activeEmp?.proyectos.find(p => p.id === activeProyectoId);
@@ -19,8 +19,8 @@ export const ProjectSettingsView: React.FC = () => {
   const consol = runConsolidation(activeProj, activeEmp);
   const capStatus = consol.capitalFree >= 0 ? 'good' : 'bad';
   
-  const totalEquity = activeProj.partners.reduce((s, p) => s + p.equity, 0);
-  const equityOk = Math.abs(totalEquity - 1) < 0.001;
+  const totalEquity = activeEmp.partners.reduce((s, p) => s + p.equity, 0);
+  const equityOk = Math.abs(totalEquity - 1) < 0.001 || activeEmp.partners.length === 0;
 
   const handleAddPartner = () => {
     if (!newPartnerName) return;
@@ -51,12 +51,12 @@ export const ProjectSettingsView: React.FC = () => {
 
       <div className="kpi-strip" style={{ marginBottom: '2rem' }}>
         <div className={`kpi-card neutral`}>
-          <div className="kpi-title">Capital Total</div>
-          <div className="kpi-val">{fmtM(activeProj.totalCapital)}</div>
-          <div className="kpi-desc">{activeProj.partners.length} socios</div>
+          <div className="kpi-title">Capital Total (Empresa)</div>
+          <div className="kpi-val">{fmtM(activeEmp.totalCapital)}</div>
+          <div className="kpi-desc">{activeEmp.partners.length} socios globales</div>
         </div>
         <div className={`kpi-card neutral`}>
-          <div className="kpi-title">Inv. Requerida</div>
+          <div className="kpi-title">Inv. Requerida (Proyecto)</div>
           <div className="kpi-val">{fmtM(consol.capitalCommitted)}</div>
           <div className="kpi-desc">Capex de {consol.branchCount || 0} suc + reserva</div>
         </div>
@@ -81,27 +81,27 @@ export const ProjectSettingsView: React.FC = () => {
         
         {/* Left: Company Data */}
         <div className="neu-card">
-          <h3 className="card-title">Datos de la Sociedad</h3>
+          <h3 className="card-title">Configuración Corporativa (Nivel Empresa)</h3>
           <div className="form-group">
-            <label>Nombre / Razón Social</label>
+            <label>Nombre del Proyecto Activo</label>
             <input type="text" className="input-text" value={activeProj.name} onChange={e => updateProyecto(activeEmpresaId, activeProyectoId, { name: e.target.value })} />
-            <small className="field-help">El nombre legal de tu sociedad holding</small>
+            <small className="field-help">Solo edita el nombre de este proyecto</small>
           </div>
           
-          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
              <div className="form-group">
-              <label>Capital Total</label>
-              <input type="number" className="input-text" disabled title="Se calcula de socios" value={activeProj.totalCapital} />
+              <label>Capital Total Global</label>
+              <input type="number" className="input-text" disabled title="Se calcula de socios globales" value={activeEmp.totalCapital} />
             </div>
             <div className="form-group">
-              <label>Reserva Corporativa</label>
-              <input type="number" className="input-text" value={activeProj.corporateReserve} onChange={e => updateProyecto(activeEmpresaId, activeProyectoId, { corporateReserve: Number(e.target.value) })}  step="50000" />
+              <label>Reserva Global</label>
+              <input type="number" className="input-text" value={activeEmp.corporateReserve} onChange={e => updateEmpresa(activeEmpresaId, { corporateReserve: Number(e.target.value) })}  step="50000" />
             </div>
           </div>
           <div className="form-group" style={{ marginTop: '1rem' }}>
-            <label>Gastos Corporativos Mensuales</label>
-            <input type="number" className="input-text" value={activeProj.corporateExpenses} onChange={e => updateProyecto(activeEmpresaId, activeProyectoId, { corporateExpenses: Number(e.target.value) })} step="1000" />
-            <small className="field-help">Gastos fijos de la empresa matriz al mes</small>
+            <label>Gastos Corporativos Globales (Mes)</label>
+            <input type="number" className="input-text" value={activeEmp.corporateExpenses} onChange={e => updateEmpresa(activeEmpresaId, { corporateExpenses: Number(e.target.value) })} step="1000" />
+            <small className="field-help">Gastos fijos de la empresa matriz (afecta a todos los proyectos)</small>
           </div>
         </div>
 
@@ -122,7 +122,7 @@ export const ProjectSettingsView: React.FC = () => {
           </h3>
 
           <div style={{ display: 'grid', gap: '0.5rem' }}>
-            {activeProj.partners.map(p => {
+            {activeEmp.partners.map(p => {
                const pData = consol.perPartner?.find((cp: any) => cp.id === p.id);
                return (
                 <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 40px', gap: '0.5rem', alignItems: 'center', padding: '0.5rem', background: 'var(--bg)', borderRadius: 'var(--r-sm)' }}>
@@ -132,9 +132,9 @@ export const ProjectSettingsView: React.FC = () => {
                   <button className="btn-sm warn" onClick={() => removePartner(p.id)} style={{justifyContent: 'center', width: '30px', height: '30px', padding: 0}}>✖</button>
                   {pData && (
                     <div style={{gridColumn: '1 / -1', fontSize: '0.7rem', color: 'var(--text-3)', display: 'flex', gap: '1rem'}}>
-                      <span>Mensual: {fmtM(pData.monthlyReturn)}</span>
-                      <span>Total (5Y): {fmtM(pData.totalReturn60)}</span>
-                      <span>ROI: {pData.roi60 ? pData.roi60.toFixed(1) + '%' : 'N/A'}</span>
+                      <span title="Basado en ganancias de este proyecto">Mensual (Proyecto): {fmtM(pData.monthlyReturn)}</span>
+                      <span title="Basado en ganancias de este proyecto">Total (5Y): {fmtM(pData.totalReturn60)}</span>
+                      <span title="Retorno asumiendo 100% de la inversión dedicada a este proyecto">ROI: {pData.roi60 ? pData.roi60.toFixed(1) + '%' : 'N/A'}</span>
                     </div>
                   )}
                 </div>

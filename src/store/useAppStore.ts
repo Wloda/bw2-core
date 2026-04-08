@@ -36,10 +36,6 @@ export interface Proyecto {
   name: string;
   isFranchise: boolean;
   logo: string | null;
-  totalCapital: number;
-  corporateReserve: number;
-  corporateExpenses: number;
-  partners: Partner[];
   branches: Branch[];
   createdAt: string;
   overrides?: any;
@@ -49,6 +45,10 @@ export interface Empresa {
   id: string;
   name: string;
   logo: string | null;
+  totalCapital: number;
+  corporateReserve: number;
+  corporateExpenses: number;
+  partners: Partner[];
   settings?: any;
   createdAt: string;
   proyectos: Proyecto[];
@@ -91,13 +91,6 @@ function createDefaultWorkspace(): Workspace {
     name: 'FarmaTuya',
     isFranchise: true,
     logo: null,
-    totalCapital: 2000000,
-    corporateReserve: 200000,
-    corporateExpenses: 0,
-    partners: [
-      { id: 'p1', name: 'Socio 1', capital: 1000000, equity: 0.50 },
-      { id: 'p2', name: 'Socio 2', capital: 1000000, equity: 0.50 }
-    ],
     branches: [],
     createdAt: new Date().toISOString()
   };
@@ -105,6 +98,13 @@ function createDefaultWorkspace(): Workspace {
     id: uid('emp'),
     name: 'NOJOM',
     logo: null,
+    totalCapital: 2000000,
+    corporateReserve: 200000,
+    corporateExpenses: 0,
+    partners: [
+      { id: 'p1', name: 'Socio 1', capital: 1000000, equity: 0.50 },
+      { id: 'p2', name: 'Socio 2', capital: 1000000, equity: 0.50 }
+    ],
     createdAt: new Date().toISOString(),
     proyectos: [proj]
   };
@@ -139,6 +139,10 @@ export const useAppStore = create<AppState>()(
           id: uid('emp'),
           name,
           logo: null,
+          totalCapital: 2000000,
+          corporateReserve: 0,
+          corporateExpenses: 0,
+          partners: [],
           createdAt: new Date().toISOString(),
           proyectos: []
         };
@@ -167,10 +171,6 @@ export const useAppStore = create<AppState>()(
           name,
           isFranchise: true,
           logo: null,
-          totalCapital: 2000000,
-          corporateReserve: 200000,
-          corporateExpenses: 0,
-          partners: [],
           branches: [],
           createdAt: new Date().toISOString()
         };
@@ -207,45 +207,34 @@ export const useAppStore = create<AppState>()(
         return { empresas: mapped, activeProyectoId: newProjId };
       }),
 
-      addPartner: (name, capital, equity) => set((state) => {
-        return {
-          empresas: state.empresas.map(e => e.id === state.activeEmpresaId ? {
-            ...e,
-            proyectos: e.proyectos.map(p => {
-              if (p.id === state.activeProyectoId) {
-                const parts = [...p.partners, { id: uid('p'), name, capital, equity }];
-                return { ...p, partners: parts, totalCapital: parts.reduce((sum, pt) => sum + pt.capital, 0) };
-              }
-              return p;
-            })
-          } : e)
-        };
-      }),
+      addPartner: (name, capital, equity) => set((state) => ({
+        empresas: state.empresas.map(e => {
+          if (e.id === state.activeEmpresaId) {
+            const parts = [...e.partners, { id: uid('p'), name, capital, equity }];
+            return { ...e, partners: parts, totalCapital: parts.reduce((sum, pt) => sum + pt.capital, 0) };
+          }
+          return e;
+        })
+      })),
 
       updatePartner: (partnerId, updates) => set((state) => ({
-        empresas: state.empresas.map(e => e.id === state.activeEmpresaId ? {
-          ...e,
-          proyectos: e.proyectos.map(p => {
-            if (p.id === state.activeProyectoId) {
-              const parts = p.partners.map(pt => pt.id === partnerId ? { ...pt, ...updates } : pt);
-              return { ...p, partners: parts, totalCapital: parts.reduce((sum, pt) => sum + pt.capital, 0) };
-            }
-            return p;
-          })
-        } : e)
+        empresas: state.empresas.map(e => {
+          if (e.id === state.activeEmpresaId) {
+            const parts = e.partners.map(pt => pt.id === partnerId ? { ...pt, ...updates } : pt);
+            return { ...e, partners: parts, totalCapital: parts.reduce((sum, pt) => sum + pt.capital, 0) };
+          }
+          return e;
+        })
       })),
 
       removePartner: (partnerId) => set((state) => ({
-        empresas: state.empresas.map(e => e.id === state.activeEmpresaId ? {
-          ...e,
-          proyectos: e.proyectos.map(p => {
-            if (p.id === state.activeProyectoId) {
-              const parts = p.partners.filter(pt => pt.id !== partnerId);
-              return { ...p, partners: parts, totalCapital: parts.reduce((sum, pt) => sum + pt.capital, 0) };
-            }
-            return p;
-          })
-        } : e)
+        empresas: state.empresas.map(e => {
+          if (e.id === state.activeEmpresaId) {
+            const parts = e.partners.filter(pt => pt.id !== partnerId);
+            return { ...e, partners: parts, totalCapital: parts.reduce((sum, pt) => sum + pt.capital, 0) };
+          }
+          return e;
+        })
       })),
 
       addBranch: (format, name = 'Nueva Sucursal', colonia = '') => {
