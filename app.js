@@ -766,7 +766,14 @@ function bindBW2Events(){
   if(createBtn) createBtn.onclick = ()=>WizardManager.open('empresa');
 
   document.querySelectorAll('.btn-edit-empresa').forEach(btn=>{
-    btn.onclick = (e)=>{ e.stopPropagation(); showBW2Modal('editar-empresa', btn.dataset.empId); };
+    btn.onclick = (e)=>{ 
+      e.stopPropagation(); 
+      setActiveEmpresa(btn.dataset.empId);
+      state.activeLevel = 2;
+      state.view = 'empresa';
+      state.activeBranchId = null;
+      renderCurrentView();
+    };
   });
   document.querySelectorAll('.btn-delete-empresa').forEach(btn=>{
     btn.onclick = (e)=>{
@@ -779,6 +786,7 @@ function bindBW2Events(){
   document.querySelectorAll('.btn-open-empresa').forEach(btn=>{
     btn.onclick = ()=>{
       setActiveEmpresa(btn.dataset.empId);
+      state.activeLevel = 2;
       state.view = 'empresa-dashboard';
       state.activeBranchId = null;
       renderCurrentView();
@@ -1376,7 +1384,7 @@ function updateNav() {
   if (!nav) return;
 
   const isHome = state.view === 'bw2home';
-  const isEmpresaDash = state.view === 'empresa-dashboard';
+  const isEmpresaDash = state.activeLevel === 2;
   const isBranch = state.view === 'branch' && state.activeBranchId;
   const branch = isBranch ? getBranch(state.activeBranchId) : null;
   const activeEmp = getActiveEmpresa();
@@ -1597,11 +1605,11 @@ function updateBreadcrumb() {
     btn.addEventListener('click', () => {
       const action = btn.dataset.bcAction;
       if (action === 'bw2home') {
-        state.view = 'bw2home'; state.activeEmpresaId = null; state.activeProyectoId = null; state.activeBranchId = null;
+        state.view = 'bw2home'; state.activeLevel = 1; state.activeEmpresaId = null; state.activeProyectoId = null; state.activeBranchId = null;
       } else if (action === 'empresa-dashboard') {
-        state.view = 'empresa-dashboard'; state.activeBranchId = null;
+        state.view = 'empresa-dashboard'; state.activeLevel = 2; state.activeBranchId = null;
       } else if (action === 'portfolio') {
-        state.view = 'portfolio'; state.activeBranchId = null;
+        state.view = 'portfolio'; state.activeLevel = 3; state.activeBranchId = null;
       }
       renderCurrentView();
     });
