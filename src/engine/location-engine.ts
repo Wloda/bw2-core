@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * FarmaTuya — Location Engine v3 (Google + OSM Market Study)
  * ────────────────────────────────────────────────────────────

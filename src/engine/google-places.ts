@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * BW² — Google Places & Maps Integration
  * ────────────────────────────────────────

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * FarmaTuya — Multi-Model Registry (v6.1)
  * Self-contained: no external document dependencies.

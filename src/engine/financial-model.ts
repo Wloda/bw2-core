@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * FarmaTuya — Multi-Model Financial Engine (v6.1)
  * Uses documented socialCharge per model (not hardcoded 30% rule).

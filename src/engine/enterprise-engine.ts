@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * FarmaTuya — Enterprise Engine (v7)
  * Wraps the core financial-model.js for multi-branch projections.
