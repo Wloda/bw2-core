@@ -49,7 +49,7 @@ export const MODELS = {
     summary: {
       profitRange: [43000, 51000],
       profit5Y: 2035623.40,
-      invRange: [650000, 709655],
+      invRange: [346621, 399607],
       fixedCosts: 51529.68,
       documentedClaimPayback: 36, beMonths: [6, 8]
     },
@@ -58,7 +58,8 @@ export const MODELS = {
     franchise: null,
     royaltyPromo: null,
     taxRate: 0.30,  // ISR estándar
-    totalInitialInvestment: { min: 650000, max: 709655, default: 709655 },
+    // Recopilación Financiera FarmaTuya 2026: Total Limit $650,000 - $711,464
+    totalInitialInvestment: { min: 346621, max: 399607, default: 399607 },
     sourceNotes: {
       capex_documented: 'recopilacion_financiera_farmatuya_2026',
       franchise_fees_documented: null,
@@ -104,7 +105,7 @@ export const MODELS = {
     summary: {
       profitRange: [52000, 61000],
       profit5Y: 2745781.34,
-      invRange: [800000, 861796],
+      invRange: [757719, 861796],
       fixedCosts: 60364.68,
       documentedClaimPayback: 36, beMonths: [6, 8]
     },
@@ -116,7 +117,7 @@ export const MODELS = {
     // base coincida con la corrida documentada de la franquicia (36m).
     taxRate: 0.03,
     // Recopilación Financiera FarmaTuya 2026: $1,161,729 - $1,282,459
-    totalInitialInvestment: { min: 800000, max: 861796, default: 861796 },
+    totalInitialInvestment: { min: 757719, max: 861796, default: 861796 },
     sourceNotes: {
       capex_documented: 'recopilacion_financiera_farmatuya_2026',
       franchise_fees_documented: 'cotizacion_f1_super',
@@ -162,7 +163,7 @@ export const MODELS = {
     summary: {
       profitRange: [66000, 79000],
       profit5Y: 3145672.38,
-      invRange: [950000, 1017637],
+      invRange: [867189, 1017637],
       fixedCosts: 87259.68,
       documentedClaimPayback: 36, beMonths: [6, 8]
     },
@@ -172,7 +173,7 @@ export const MODELS = {
     royaltyPromo: null,
     taxRate: 0.30,  // ISR estándar
     // Recopilación Financiera FarmaTuya 2026: $1,437,519 - $1,612,039
-    totalInitialInvestment: { min: 950000, max: 1017637, default: 1017637 },
+    totalInitialInvestment: { min: 867189, max: 1017637, default: 1017637 },
     sourceNotes: {
       capex_documented: 'recopilacion_financiera_farmatuya_2026',
       franchise_fees_documented: null,
