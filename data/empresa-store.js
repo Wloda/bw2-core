@@ -242,6 +242,13 @@ function _save() {
   _listeners.forEach(fn => fn(_workspace));
 }
 
+window.updateEmpresasFromReact = function(newEmpresas) {
+  if (_workspace) {
+    _workspace.empresas = newEmpresas;
+    _save();
+  }
+};
+
 export function onEmpresaChange(fn) {
   _listeners.push(fn);
   return () => { _listeners = _listeners.filter(f => f !== fn); };

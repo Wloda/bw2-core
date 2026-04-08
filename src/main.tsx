@@ -12,6 +12,15 @@ window.addEventListener('storage', (e) => {
   }
 });
 
+let isSyncingFromVanilla = false;
+
+// Watch React state changes and sync back to Vanilla JS
+useAppStore.subscribe((state, prevState) => {
+  if (!isSyncingFromVanilla && state.empresas !== prevState.empresas && (window as any).updateEmpresasFromReact) {
+    (window as any).updateEmpresasFromReact(state.empresas);
+  }
+});
+
 // A small test component to mount somewhere to prove React works
 import { ProjectSettingsView } from './components/ProjectSettingsView';
 import { PortfolioView } from './components/PortfolioView';
@@ -24,11 +33,13 @@ const ReactIntegration = () => {
       if (e.detail) {
         // Hydrate Zustand with the legacy state from Vanilla so React Portfolio uses real data
         if (e.detail.empresas) {
+          isSyncingFromVanilla = true;
           useAppStore.setState({ 
             empresas: e.detail.empresas,
             activeEmpresaId: e.detail.activeEmpresaId || null,
             activeProyectoId: e.detail.activeProyectoId || null
           });
+          setTimeout(() => { isSyncingFromVanilla = false; }, 50);
         }
         setViewState({ view: e.detail.view });
       }
