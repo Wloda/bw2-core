@@ -1566,7 +1566,7 @@ function updateBreadcrumb() {
 
   // Level 2.5: Empresa-level settings (Sociedad y Socios)
   if (state.view === 'empresa' && state.activeLevel === 2) {
-    crumbs.push({ label: 'Configuración de Sociedad', action: null });
+    crumbs.push({ label: 'Sociedad y Socios', action: null });
   }
 
   // Level 3: Proyecto (only if NOT at empresa-level views)
@@ -4014,35 +4014,51 @@ function renderEmpresaSettings(empresa){
       ${kc('Capital Total', fmt.m(totalCap), `${partners.length} socios`, 'neutral')}
       ${kc('Inv. Requerida', fmt.oop(totalComm), `${allBranches.length} sucursales en ${(empresa.proyectos||[]).length} proyecto(s)`, totalComm > totalCap ? 'bad' : 'neutral')}
       ${kc('Libre / Faltante', fmt.m(totalFree), totalFree >= 0 ? 'Capital Disponible' : '⚠️ Presupuesto Excedido', totalFree >= 0 ? 'good' : 'bad')}
+      ${kc('Proyectos', (empresa.proyectos||[]).length.toString(), '', 'neutral')}
       ${kc('EBITDA/mes', fmt.m(totalEBITDA), `en ${allBranches.length} suc.`, totalEBITDA >= 0 ? 'good' : 'bad')}
-      ${kc('Score Prom.', avgScore + '/100', 'Todas las sucursales', avgScore >= 70 ? 'good' : avgScore >= 50 ? 'warn' : 'bad')}
+      ${kc('Score', avgScore + '/100', 'Todas las sucursales', avgScore >= 70 ? 'good' : avgScore >= 50 ? 'warn' : 'bad')}
     </div>`;
 
   // Build partners table
   let partnersHTML = '';
   if (partners.length) {
     partnersHTML = `
-    <div class="socios-table-wrap"><table class="data-table socios-table"><thead><tr>
-      <th>Nombre</th><th class="num">Capital</th><th class="num">%</th><th></th>
-    </tr></thead><tbody>${partners.map(p => `<tr>
-      <td><input class="input-text inline" value="${esc(p.name)}" data-pid="${p.id}" data-field="name"></td>
-      <td class="num"><input class="input-text inline num" type="number" value="${p.capital}" data-pid="${p.id}" data-field="capital" step="100000"></td>
-      <td class="num calc" style="font-weight:600">${(p.equity*100).toFixed(1)}%</td>
-      <td><button class="btn-sm warn btn-rm-partner-emp" data-pid="${p.id}">🗑</button></td>
-    </tr>`).join('')}</tbody>
-    <tfoot><tr>
-      <td><strong>Total</strong></td>
-      <td class="num"><strong>${fmt.m(totalPartnerCap)}</strong></td>
-      <td class="num"><strong>100%</strong></td>
-      <td></td>
-    </tr></tfoot></table></div>`;
+    <div class="socios-table-wrap">
+      <table class="data-table socios-table" style="width:100%; border-collapse: separate; border-spacing: 0 0.5rem;">
+        <thead>
+          <tr>
+            <th style="padding-bottom: 0.5rem; text-align: left; color: var(--text-2); font-size: 0.75rem;">NOMBRE</th>
+            <th class="num" style="padding-bottom: 0.5rem; text-align: right; color: var(--text-2); font-size: 0.75rem;">CAPITAL</th>
+            <th class="num" style="padding-bottom: 0.5rem; text-align: right; color: var(--text-2); font-size: 0.75rem;">%</th>
+            <th style="padding-bottom: 0.5rem;"></th>
+          </tr>
+        </thead>
+        <tbody>${partners.map(p => `<tr>
+          <td style="padding: 0 0.25rem;"><input class="input-text w-full" value="${esc(p.name)}" data-pid="${p.id}" data-field="name" style="width:100%; font-size: 0.85rem;"></td>
+          <td class="num" style="padding: 0 0.25rem;"><input class="input-text w-full num" type="number" value="${p.capital}" data-pid="${p.id}" data-field="capital" step="100000" style="width:100%; text-align: right; font-size: 0.85rem;"></td>
+          <td class="num calc" style="padding: 0 0.25rem; font-weight:600; text-align: right; font-size: 0.85rem;">${(p.equity*100).toFixed(1)}%</td>
+          <td style="padding: 0 0.25rem; text-align:right;"><button class="btn-sm warn btn-rm-partner-emp" data-pid="${p.id}" style="padding: 0.4rem 0.6rem;">🗑</button></td>
+        </tr>`).join('')}</tbody>
+        <tfoot>
+          <tr>
+            <td style="padding-top: 1rem;"><strong>Total</strong></td>
+            <td class="num" style="padding-top: 1rem; text-align:right;"><strong>${fmt.m(totalPartnerCap)}</strong></td>
+            <td class="num" style="padding-top: 1rem; text-align:right;"><strong>100%</strong></td>
+            <td style="padding-top: 1rem;"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
   } else {
     partnersHTML = '<p style="color:var(--text-3);font-size:0.85rem">Sin socios registrados. Agrega el primer socio abajo.</p>';
   }
 
   container.innerHTML = `
-    <div class="view-header"><h2>Sociedad y Socios</h2><p>Configuración a nivel empresa — ${esc(empresa.name)}</p></div>
     ${kpis}
+    <div class="view-header" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+      <h2>Sociedad y Socios</h2>
+      <p>Configuración a nivel empresa — ${esc(empresa.name)}</p>
+    </div>
     <div class="neu-card" style="margin-bottom:0.75rem">
       <div class="card-title">🏢 Datos de la Empresa</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
@@ -4064,14 +4080,14 @@ function renderEmpresaSettings(empresa){
         <span>👥 Socios / Accionistas</span>
       </div>
       ${partnersHTML}
-      <div style="display:flex;gap:0.5rem;align-items:flex-end;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border)">
-        <div class="bw2-form-group" style="flex:2;margin:0"><label style="font-size:0.65rem">Nombre</label><input type="text" id="es-add-name" class="input-text" placeholder="Nombre del socio"></div>
-        <div class="bw2-form-group" style="flex:1;margin:0"><label style="font-size:0.65rem">Capital ($)</label><input type="number" id="es-add-capital" class="input-text" placeholder="500000" step="100000"></div>
-        <button class="btn-primary btn-sm" id="es-btn-add-partner" style="white-space:nowrap;height:fit-content">+ Agregar</button>
+      <div style="display:flex;gap:0.75rem;align-items:flex-end;margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border)">
+        <div class="bw2-form-group" style="flex:2;margin:0"><label style="font-size:0.65rem">NOMBRE</label><input type="text" id="es-add-name" class="input-text" placeholder="Nombre del socio"></div>
+        <div class="bw2-form-group" style="flex:1;margin:0"><label style="font-size:0.65rem">CAPITAL ($)</label><input type="number" id="es-add-capital" class="input-text" placeholder="500000" step="100000"></div>
+        <button class="btn-primary" id="es-btn-add-partner" style="white-space:nowrap;height:38px">+ Agregar</button>
       </div>
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:0.5rem">
-      <button class="btn-primary" id="es-btn-save">Guardar Cambios</button>
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1.5rem;margin-bottom:2rem;">
+      <button class="btn-primary" id="es-btn-save" style="padding: 0.75rem 2rem; font-size: 1rem;">Guardar Cambios</button>
     </div>
   `;
 
