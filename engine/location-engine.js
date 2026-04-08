@@ -221,9 +221,10 @@ export async function queryMultiRadius(lat, lng) {
     const name = el.tags?.name || 'Sin nombre';
     const elLat = el.lat || el.center?.lat;
     const elLng = el.lon || el.center?.lon;
-    const dist = elLat ? haversine(lat, lng, elLat, elLng) : null;
-    const band = dist ? (dist <= 500 ? '500m' : dist <= 1000 ? '1km' : '2km') : '2km';
-    const item = { name, lat: elLat, lng: elLng, distance: dist ? Math.round(dist) : null, band };
+    const dist = (elLat != null && elLng != null) ? haversine(lat, lng, elLat, elLng) : null;
+    const distRounded = dist !== null ? Math.round(dist) : null;
+    const band = distRounded !== null ? (distRounded <= 500 ? '500m' : distRounded <= 1000 ? '1km' : '2km') : '2km';
+    const item = { name, lat: elLat, lng: elLng, distance: distRounded, band };
 
     const amenity = el.tags?.amenity;
     const shop = el.tags?.shop;

@@ -3935,16 +3935,68 @@ function renderProyectoSettings(proyecto){
   }
 
   // ── Form fields ──
-  $('emp-name').value = proyecto.name || '';
+  const nameEl = $('emp-name');
+  if (nameEl) nameEl.value = proyecto.name || '';
   
   const logoPreview = $('emp-logo-preview');
   if (logoPreview) logoPreview.src = proyecto.logo || 'assets/nojom-bird.png';
+  
   const projNameEl = $('emp-project-name');
   if (projNameEl) projNameEl.value = proyecto.name || 'Proyecto'; // used to be projectName, now they use name
-  $('emp-capital').value = proyecto.totalCapital || 0;
-  $('emp-reserve').value = proyecto.corporateReserve || 0;
+  
+  const capEl = $('emp-capital');
+  if (capEl) capEl.value = proyecto.totalCapital || 0;
+  
+  const resEl = $('emp-reserve');
+  if (resEl) resEl.value = proyecto.corporateReserve || 0;
+  
   const corpExpEl = $('emp-corp-expenses');
   if (corpExpEl) corpExpEl.value = proyecto.corporateExpenses || 0;
+
+  // Auto-save logic
+  const autoSave = () => {
+    updateEmpresa({
+      projectName: projNameEl?.value || 'Proyecto',
+      totalCapital: parseFloat(capEl?.value) || 0,
+      corporateReserve: parseFloat(resEl?.value) || 0,
+      corporateExpenses: parseFloat(corpExpEl?.value) || 0
+    });
+    // For emp-name (which is actually Empresa Name in this view historically, though here it might be project.name)
+    // Wait, the new logic uses `proyecto.name`. If it's `updateEmpresa`, maybe it has been changed in `empresa-store.js`.
+    // I'll keep the `updateEmpresa` which is backwards compatible in `data/empresa-store.js` or `updateProyecto`.
+    updateEmpresa({
+      name: nameEl?.value || '', // this updates Empresa Name if applicable
+      projectName: projNameEl?.value || 'Proyecto',
+      totalCapital: parseFloat(capEl?.value) || 0,
+      corporateReserve: parseFloat(resEl?.value) || 0,
+      corporateExpenses: parseFloat(corpExpEl?.value) || 0
+    });
+    // Partial re-render (KPIs only) to preserve focus
+    renderProyectoSettings(getActiveProyecto());
+  };
+
+  [nameEl, projNameEl, capEl, resEl, corpExpEl].forEach(inp => {
+    if (inp) {
+      // Remove old listeners to avoid duplicates
+      const newInp = inp.cloneNode(true);
+      inp.parentNode.replaceChild(newInp, inp);
+      newInp.addEventListener('change', autoSave);
+    }
+  });
+
+  // Re-fetch elements after cloning to preserve reference locally if needed below
+  // but since we only setup the view, we don't need them below.
+  // Actually, setting values again just to be safe.
+  const newNameEl = $('emp-name');
+  if (newNameEl) newNameEl.value = proyecto.name || '';
+  const newProjNameEl = $('emp-project-name');
+  if (newProjNameEl) newProjNameEl.value = proyecto.name || 'Proyecto';
+  const newCapEl = $('emp-capital');
+  if (newCapEl) newCapEl.value = proyecto.totalCapital || 0;
+  const newResEl = $('emp-reserve');
+  if (newResEl) newResEl.value = proyecto.corporateReserve || 0;
+  const newCorpExpEl = $('emp-corp-expenses');
+  if (newCorpExpEl) newCorpExpEl.value = proyecto.corporateExpenses || 0;
 
   // ── Partners table with calculated metrics ──
   renderPartnersTable(proyecto.partners, consol);
