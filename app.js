@@ -617,11 +617,7 @@ function esc(str) {
 }
 
 /* ═══ HOME — Uses same design language as Level 2 ═══ */
-function renderBW2Home() {
-  // Migrated to React (src/components/BW2HomeView.tsx)
-}
-
-function __old_renderBW2Home() {
+function renderBW2Home(){
   const container=$('bw2-home-container');if(!container)return;
   const empresas = getEmpresas();
 
@@ -823,12 +819,153 @@ function renderPortfolioSummary(empresa){
 }
 
 /* ═══ EMPRESA DASHBOARD (Level 2) ═══ */
-function renderEmpresaDashboard(empresa) {
-  // Migrated to React
-}
+function renderEmpresaDashboard(empresa){
+  const titleEl=$('empresa-dash-title');
+  const summaryEl=$('empresa-dash-summary');
+  const gridEl=$('empresa-dash-proyectos');
+  if(!titleEl||!gridEl) return;
 
-function __old_renderEmpresaDashboard(empresa){
-  // Migrated to React (src/components/EmpresaDashboardView.tsx)
+  titleEl.innerHTML = `🏢 ${empresa.name || 'Empresa'} <button id="btn-edit-active-empresa" class="icon-btn" style="margin-left:8px;font-size:1.1rem;background:none;border:none;cursor:pointer;opacity:0.5;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5" title="Editar Información de Empresa">✏️</button>`;
+  const editBtn = $('btn-edit-active-empresa');
+  if (editBtn) editBtn.addEventListener('click', () => {
+    state.activeLevel = 2; // Stay at level 2
+    state.view = 'empresa';
+    renderCurrentView();
+  });
+
+  // Calculate empresa-wide KPIs across all projects
+  let totalCap = empresa.totalCapital || 0;
+  let totalComm = 0, totalBranches = 0, totalEBITDA = 0, totalScore = 0, scoredCount = 0;
+  (empresa.proyectos||[]).forEach(proj => {
+    (proj.branches||[]).forEach(b => {
+      if(b.status==='archived') return;
+      totalBranches++;
+      try {
+        const r = runBranchProjection(b, proj, empresa);
+        if(r) {
+          totalComm += getOOP(r);
+          totalEBITDA += r.avgMonthlyEBITDA||0;
+          if(r.viabilityScore){ totalScore += r.viabilityScore; scoredCount++; }
+        }
+      } catch(e){}
+    });
+  });
+  const avgScore = scoredCount ? Math.round(totalScore/scoredCount) : 0;
+  const totalFree = totalCap - totalComm;
+
+  if(summaryEl){
+    summaryEl.innerHTML=`
+      <div class="kpi-grid">
+        <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital Total</div><div class="kpi-value">${fmt.m(totalCap)}</div></div>
+        <div class="kpi-card" data-status="${totalComm>totalCap?'danger':'warn'}"><div class="kpi-label">Inv. Requerida</div><div class="kpi-value" style="color:${totalComm>totalCap?'var(--red)':'var(--yellow)'}">${fmt.oop(totalComm)}</div><div class="kpi-detail">${totalCap?((totalComm/totalCap)*100).toFixed(0):'0'}% del cap.</div></div>
+        <div class="kpi-card" data-status="${totalFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${totalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(totalFree)}</div></div>
+        <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${totalBranches}</div><div class="kpi-detail">${empresa.proyectos.length} proyecto${empresa.proyectos.length!==1?'s':''}</div></div>
+        <div class="kpi-card" data-status="${totalEBITDA>=0?'success':'danger'}"><div class="kpi-label">EBITDA/mes</div><div class="kpi-value" style="color:${totalEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(totalEBITDA)}</div></div>
+        <div class="kpi-card" data-status="${avgScore >= 70 ? 'success' : avgScore >= 50 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value" style="display:flex;align-items:center;">${scoreRing(avgScore, 40)}</div></div>
+      </div>`;
+  }
+
+  // Sync empresa dinamismo selects
+  const ov = empresa.overrides || {};
+  const erSel=$('empresa-royalty-select'); if(erSel) erSel.value = ov.royaltyMode || 'variable_2_5';
+  const ewSel=$('empresa-waiver-select');  if(ewSel) ewSel.value = (ov.waiverFromOpening||false).toString();
+  const epSel=$('empresa-preopen-select'); if(epSel) epSel.value = (ov.preOpenMonths||0).toString();
+  const emSel=$('empresa-market-toggle');  if(emSel) emSel.checked = ov.applyMarketFactor!==false;
+  const esSel=$('empresa-scenario-select');if(esSel) esSel.value = (ov.baseScenarioFactor||1).toString();
+
+  // Render project cards
+  let html = '';
+  (empresa.proyectos||[]).forEach(proj => {
+    const activeBranches = (proj.branches||[]).filter(b=>b.status!=='archived');
+    let projEBITDA=0, projScore=0, projScored=0, projPayback=0;
+    let sparkData = [];
+    activeBranches.forEach(b => {
+      try {
+        const r = runBranchProjection(b, empresa);
+        if(r) {
+          projEBITDA += r.avgMonthlyEBITDA||0;
+          if(r.paybackMonth > projPayback) projPayback = r.paybackMonth;
+          if(r.viabilityScore){ projScore += r.viabilityScore; projScored++; }
+          if(r.months) {
+            const last12 = r.months.slice(-12);
+            last12.forEach((m,i) => { sparkData[i] = (sparkData[i]||0) + (m.ebitda||0); });
+          }
+        }
+      } catch(e){}
+    });
+    const pScore = projScored ? Math.round(projScore/projScored) : 0;
+    const scoreCol = pScore>=80?'var(--green)':pScore>=60?'var(--yellow)':'var(--red)';
+    const projLogoHtml = proj.logo
+      ? `<img src="${proj.logo}" alt="${esc(proj.name)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover">`
+      : '<span style="font-size:1.25rem">📁</span>';
+
+    html += `<div class="emp-dash-proj-card" data-emp-id="${empresa.id}" data-proj-id="${proj.id}">
+      <div class="emp-dash-proj-header">
+        <div style="display:flex;align-items:center;gap:0.5rem">
+          ${projLogoHtml}
+          <div>
+            <div class="emp-dash-proj-name">${esc(proj.name)}</div>
+            <div class="emp-dash-proj-meta">Capital: ${fmt.m(proj.totalCapital)} · ${activeBranches.length} sucursal${activeBranches.length!==1?'es':''}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.25rem">
+          <button class="btn-icon btn-edit-proyecto" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" title="Editar">✏️</button>
+          <button class="btn-icon btn-delete-proyecto" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" title="Eliminar">🗑️</button>
+        </div>
+      </div>
+      <div class="emp-dash-proj-kpis">
+        <div class="emp-dash-kpi"><span class="emp-dash-kpi-label">Ganancia/mes</span><span class="emp-dash-kpi-value" style="color:${projEBITDA>=0?'var(--accent)':'var(--red)'}">${fmt.m(projEBITDA)}</span></div>
+        <div class="emp-dash-kpi"><span class="emp-dash-kpi-label">Recuperación</span><span class="emp-dash-kpi-value">${projPayback?projPayback+' m':'—'}</span></div>
+        <div class="emp-dash-kpi" style="display:flex;align-items:center;gap:0.4rem"><span class="emp-dash-kpi-label">Score</span>${scoreRing(pScore, 36)}</div>
+      </div>
+      ${sparkData.length >= 2 ? sparklineSVG(sparkData) : ''}
+      <div class="emp-dash-proj-footer">
+        <div class="emp-dash-proj-meta-foot">${activeBranches.length} sucursal${activeBranches.length!==1?'es':''} activas</div>
+        <button class="btn-open-proyecto-dash btn-compact-open" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" style="width:auto;margin-top:0;display:inline-block;">Abrir →</button>
+      </div>
+    </div>`;
+  });
+
+  // Add "new project" card
+  html += `<div class="emp-dash-proj-card emp-dash-add-card">
+    <button class="btn-add-proyecto-dash" data-emp-id="${empresa.id}">+ Nuevo Proyecto</button>
+  </div>`;
+
+  gridEl.innerHTML = html;
+
+  // Wire events
+  gridEl.querySelectorAll('.btn-open-proyecto-dash').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setActiveProyecto(btn.dataset.empId, btn.dataset.projId);
+      state.view = 'portfolio';
+      state.activeBranchId = null;
+      renderCurrentView();
+    });
+  });
+  gridEl.querySelectorAll('.btn-add-proyecto-dash').forEach(btn => {
+    btn.addEventListener('click', () => {
+      WizardManager.open('proyecto', btn.dataset.empId);
+    });
+  });
+  gridEl.querySelectorAll('.btn-edit-proyecto').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showBW2Modal('editar-proyecto', btn.dataset.empId, btn.dataset.projId);
+    });
+  });
+  gridEl.querySelectorAll('.btn-delete-proyecto').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const proj = getProyectoById(btn.dataset.empId, btn.dataset.projId);
+      if(!proj) return;
+      showConfirm(
+        `🗑️ ¿Eliminar "${proj.name}"?`,
+        `<p>Se eliminarán todas las sucursales de este proyecto.</p>`,
+        '🗑️ Eliminar',
+        ()=>{ removeProyecto(btn.dataset.empId, btn.dataset.projId); renderEmpresaDashboard(getActiveEmpresa()); }
+      );
+    });
+  });
 }
 
 

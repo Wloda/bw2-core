@@ -23,7 +23,7 @@ export interface Branch {
   zona: string;
   ciudad: string;
   estimatedOpenDate: string | null;
-  status: 'planned' | 'active' | 'closed' | 'archived';
+  status: 'planned' | 'active' | 'closed';
   scenarioId: 'base' | 'conservative' | 'upside';
   overrides: any;
   locationStudy: any;

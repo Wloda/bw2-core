@@ -24,8 +24,6 @@ useAppStore.subscribe((state, prevState) => {
 // A small test component to mount somewhere to prove React works
 import { ProjectSettingsView } from './components/ProjectSettingsView';
 import { PortfolioView } from './components/PortfolioView';
-import { BW2HomeView } from './components/BW2HomeView';
-import { EmpresaDashboardView } from './components/EmpresaDashboardView';
 
 const ReactIntegration = () => {
   const [viewState, setViewState] = React.useState({ view: 'bw2home' });
@@ -52,8 +50,6 @@ const ReactIntegration = () => {
 
   return (
     <>
-      {viewState.view === 'bw2home' && <BW2HomeView />}
-      {viewState.view === 'empresa-dashboard' && <EmpresaDashboardView />}
       {viewState.view === 'empresa' && <ProjectSettingsView />}
       {viewState.view === 'portfolio' && <PortfolioView />}
     </>
