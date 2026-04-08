@@ -548,7 +548,7 @@ function renderCurrentView() {
     }
     else if(state.view==='consolidated') { $('view-consolidated').style.display='block'; renderConsolidated(activeProj); }
     else if(state.view==='comparador') { $('view-comparador').style.display='block'; renderComparador(activeProj); }
-    else if(state.view==='empresa') { $('view-empresa').style.display='block'; renderProyectoSettings(activeProj); }
+    else if(state.view==='empresa') { $('view-empresa').style.display='block'; }
     else if(state.view==='glosario') { $('view-glosario').style.display='block'; renderGlosario(); }
     else { $('view-portfolio').style.display='block'; renderPortfolio(activeProj); }
   }
@@ -621,13 +621,13 @@ function renderBW2Home(){
   let gCap=0,gComm=0,gBranches=0,gEBITDA=0,gScore=0,gScored=0;
   let gTangible=0,gWorkingCapital=0;
   empresas.forEach(emp => {
+    gCap += emp.totalCapital || 0;
     (emp.proyectos||[]).forEach(proj => {
-      gCap += proj.totalCapital||0;
       (proj.branches||[]).forEach(b => {
         if(b.status==='archived') return;
         gBranches++;
         try {
-          const r = runBranchProjection(b, emp);
+          const r = runBranchProjection(b, proj, emp);
           if(r){
             gComm += getOOP(r);
             gTangible += r.totalInvestment * _getf();
@@ -839,7 +839,11 @@ function renderEmpresaDashboard(empresa){
 
   titleEl.innerHTML = `🏢 ${empresa.name || 'Empresa'} <button id="btn-edit-active-empresa" class="icon-btn" style="margin-left:8px;font-size:1.1rem;background:none;border:none;cursor:pointer;opacity:0.5;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5" title="Editar Información de Empresa">✏️</button>`;
   const editBtn = $('btn-edit-active-empresa');
-  if (editBtn) editBtn.addEventListener('click', () => showBW2Modal('editar-empresa', empresa.id));
+  if (editBtn) editBtn.addEventListener('click', () => {
+    state.activeLevel = 3;
+    state.view = 'empresa';
+    renderCurrentView();
+  });
 
   // Calculate empresa-wide KPIs across all projects
   let totalCap = empresa.totalCapital || 0;

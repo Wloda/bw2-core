@@ -55,7 +55,7 @@
     if(!localStorage.getItem('bw2_workspace')){localStorage.removeItem('farmatuya_empresa');console.log('[BW2] clean slate')}
     console.log('[BW2] inline script OK, localStorage keys:', Object.keys(localStorage));
   </script>
-  <script type="module" crossorigin src="/assets/index-Dsm2USDc.js"></script>
+  <script type="module" crossorigin src="/assets/index-Dx3sZx98.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/index-CFIXlXGd.css">
 </head>
 <body>
@@ -709,83 +709,6 @@
 
     <!-- ═══ EMPRESA SETTINGS VIEW ═══ -->
     <section id="view-empresa" style="display:none">
-      <div class="view-header" style="margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">
-        <div>
-          <h2 style="font-size:1.5rem; letter-spacing:-0.03em;">Sociedad y Socios</h2>
-          <p style="font-size:0.85rem; padding-top:0.25rem;">Configuración maestra de capital, nombres y participación accionaria de tu sociedad holding.</p>
-        </div>
-      </div>
-      
-      <!-- KPI summary strip -->
-      <div class="kpi-grid" id="empresa-kpis" style="margin-bottom:2rem;"></div>
-
-      <!-- Main Layout: Sidebar form + Main table -->
-      <div class="empresa-layout">
-        <!-- Left: Company data -->
-        <div class="neu-card">
-          <h3 class="card-title" style="margin-bottom:1.25rem; font-size:1rem;">Datos de la Sociedad</h3>
-          <div class="form-group" style="margin-bottom:1.25rem;">
-            <label>Nombre / Razón Social</label>
-            <input type="text" class="input-text" id="emp-name" placeholder="NOJOM" style="font-size:1rem; padding:0.6rem 0.75rem;">
-            <small class="field-help" style="margin-top:0.4rem;">El nombre legal de tu sociedad holding</small>
-          </div>
-          <div class="form-group" style="margin-bottom:1.25rem;">
-            <label>Logo de la Sociedad</label>
-            <div style="display:flex;align-items:center;gap:1rem;margin-top:0.4rem">
-              <img id="emp-logo-preview" src="/assets/nojom-bird-D4AK4gkJ.png" style="width:48px;height:48px;object-fit:contain;border-radius:var(--r-md);box-shadow:var(--shadow-neu-sm);padding:px;background:var(--surface);border:1px solid var(--border)">
-              <input type="file" id="emp-logo-upload" accept="image/*" style="display:none">
-              <label for="emp-logo-upload" style="cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:0.5rem 0.85rem;font-size:0.75rem;font-weight:700;color:var(--text-2);box-shadow:var(--shadow-neu-sm);transition:all 0.2s;font-family:var(--font)">📁 Cambiar Imagen</label>
-            </div>
-            <small class="field-help" style="display:block;margin-top:0.4rem">Se recomienda imagen cuadrada PNG/JPG de alta resolución</small>
-          </div>
-          <div class="form-group" style="margin-bottom:1.25rem; padding-top:1rem; border-top:1px dashed var(--border);">
-            <label>Proyecto Activo</label>
-            <input type="text" class="input-text" id="emp-project-name" placeholder="FarmaTuya" style="font-weight:700;color:var(--accent);font-size:1rem;">
-            <small class="field-help" style="margin-top:0.4rem;">Franquicia o negocio que opera la sociedad</small>
-          </div>
-          <div class="form-row" style="margin-bottom:1.25rem;">
-            <div class="form-group" style="margin-bottom:0;">
-              <label>Capital Total (Auto)</label>
-              <input type="number" class="input-text" id="emp-capital" placeholder="3000000" step="100000" disabled style="background:var(--bg); border:1px dashed var(--border); color:var(--text-3); font-weight:700;">
-              <small class="field-help" style="margin-top:0.4rem;">Suma de los socios</small>
-            </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label>R. Corporativa</label>
-              <input type="number" class="input-text" id="emp-reserve" placeholder="200000" step="50000" style="font-weight:600;">
-              <small class="field-help" style="margin-top:0.4rem;">Colchón reserva</small>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom:1.25rem;">
-            <label>Gastos Fijos Corporativos (Mensual)</label>
-            <input type="number" class="input-text" id="emp-corp-expenses" placeholder="0" step="1000" style="font-weight:600;">
-            <small class="field-help" style="margin-top:0.4rem;">Nómina o renta base de la holding antes de operar</small>
-          </div>
-          <div style="margin-top: 1.5rem; padding-top:1.5rem; border-top:1px solid var(--border);">
-            <button class="btn-sm primary" id="btn-save-empresa" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; justify-content: center; border-radius:var(--r-md); box-shadow:var(--shadow-neu-sm);">💾 Guardar Configuración</button>
-          </div>
-        </div>
-
-        <!-- Right: Partners -->
-        <div class="neu-card" style="display:flex; flex-direction:column;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border);">
-            <h3 class="card-title" style="margin:0; font-size:1.15rem;">Cap Table Corporativo <span id="equity-alert" class="equity-alert" style="margin-left:0.5rem;"></span></h3>
-          </div>
-          <div id="partners-table-container" style="flex:1;"></div>
-          <div class="partner-add-row" style="display: grid; grid-template-columns: 2fr 1.5fr 1fr 48px; gap: 0.75rem; margin-top: auto; padding-top: 1.25rem; border-top: 1px dashed var(--border);">
-            <input type="text" class="input-text" id="add-partner-name" placeholder="Nombre completo del socio..." style="font-size:0.85rem; padding:0.6rem 0.75rem;">
-            <input type="number" class="input-text num" id="add-partner-capital" placeholder="Aportación ($)" step="100000" style="font-size:0.85rem; padding:0.6rem 0.75rem;">
-            <input type="number" class="input-text num" id="add-partner-equity" placeholder="Equidad %" min="0" max="100" step="1" style="font-size:0.85rem; padding:0.6rem 0.75rem; font-weight:700;">
-            <button class="btn-sm primary" id="btn-add-partner" style="height: 100%; border-radius: var(--r-md); font-size: 1.4rem; justify-content: center; padding: 0; box-shadow:var(--shadow-neu-sm);" title="Agregar socio">＋</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Danger Zone -->
-      <div class="neu-card danger-zone">
-        <h3 class="card-title">Zona de Peligro</h3>
-        <p style="color:var(--text-3);margin-bottom:0.75rem">Reinicia todos los datos a los valores por defecto.</p>
-        <button class="btn-sm warn" id="btn-reset-empresa">Reiniciar Todo</button>
-      </div>
     </section>
 
     <!-- ═══ GLOSARIO VIEW ═══ -->

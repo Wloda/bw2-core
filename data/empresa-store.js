@@ -166,6 +166,22 @@ function _load() {
     try {
       _workspace = JSON.parse(saved);
       if (!_workspace || !_workspace.empresas) throw new Error('Invalid workspace');
+      
+      // Auto-migrate structure if user's local workspace is pre-Empresa level capital
+      _workspace.empresas.forEach(emp => {
+        if (emp.totalCapital === undefined && emp.proyectos && emp.proyectos.length > 0) {
+          const p = emp.proyectos[0];
+          emp.totalCapital = p.totalCapital || 2000000;
+          emp.corporateReserve = p.corporateReserve || 0;
+          emp.corporateExpenses = p.corporateExpenses || 0;
+          emp.partners = p.partners || [];
+        } else if (emp.totalCapital === undefined) {
+          emp.totalCapital = 2000000;
+          emp.corporateReserve = 0;
+          emp.corporateExpenses = 0;
+          emp.partners = [];
+        }
+      });
     } catch(e) {
       _workspace = null;
     }
