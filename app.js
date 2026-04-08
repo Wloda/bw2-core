@@ -837,7 +837,9 @@ function renderEmpresaDashboard(empresa){
   const gridEl=$('empresa-dash-proyectos');
   if(!titleEl||!gridEl) return;
 
-  titleEl.textContent = '🏢 ' + (empresa.name || 'Empresa');
+  titleEl.innerHTML = `🏢 ${empresa.name || 'Empresa'} <button id="btn-edit-active-empresa" class="icon-btn" style="margin-left:8px;font-size:1.1rem;background:none;border:none;cursor:pointer;opacity:0.5;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5" title="Editar Información de Empresa">✏️</button>`;
+  const editBtn = $('btn-edit-active-empresa');
+  if (editBtn) editBtn.addEventListener('click', () => showBW2Modal('editar-empresa', empresa.id));
 
   // Calculate empresa-wide KPIs across all projects
   let totalCap=0, totalComm=0, totalBranches=0, totalEBITDA=0, totalScore=0, scoredCount=0;
