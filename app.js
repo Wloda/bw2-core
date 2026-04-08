@@ -147,7 +147,9 @@ window.ensureChartJS = async function() { await _origEnsureChartJS(); _configure
 
 const $=id=>document.getElementById(id);
 const _getf = () => document.getElementById('toggle-iva')?.checked ? 1.16 : 1;
-const fmt={m:v=>'$'+Math.round(v).toLocaleString('es-MX'),mk:v=>'$'+(v/1000).toFixed(0)+'K',iva:v=>'$'+Math.round(v*_getf()).toLocaleString('es-MX'),mkIva:v=>'$'+(v*_getf()/1000).toFixed(0)+'K',p:v=>(v*100).toFixed(1)+'%',pi:v=>Math.round(v*100)+'%',mo:v=>v?v+' m':'∞'};
+const getOOP = (r) => (r.totalInvestment * _getf()) + (r.workingCapitalRequired || 0);
+const getOOPConsol = (c) => (c.totalInvestment * _getf()) + (c.totalWorkingCapital || 0);
+const fmt={m:v=>'$'+Math.round(v).toLocaleString('es-MX'),mk:v=>'$'+(v/1000).toFixed(0)+'K',iva:v=>'$'+Math.round(v*_getf()).toLocaleString('es-MX'),mkIva:v=>'$'+(v*_getf()/1000).toFixed(0)+'K',p:v=>(v*100).toFixed(1)+'%',pi:v=>Math.round(v*100)+'%',mo:v=>v?v+' m':'∞',oop:v=>'$'+Math.round(v).toLocaleString('es-MX')};
 
 /* ── Projection Cache (cleared each render cycle) ── */
 const _projCache = new Map();
@@ -227,7 +229,7 @@ function computeAggregate(branches, empresa) {
     try {
       const r = runBranchProjection(b, getActiveEmpresa());
       if (r) {
-        totalInv += r.totalInvestment || 0;
+        totalInv += getOOP(r);
         ebitda += r.avgMonthlyEBITDA || 0;
         if (r.paybackMonth > payback) payback = r.paybackMonth;
         if (r.viabilityScore) { score += r.viabilityScore; scored++; }
@@ -543,7 +545,7 @@ function renderCurrentView() {
     }
     else if(state.view==='consolidated') { $('view-consolidated').style.display='block'; renderConsolidated(activeProj); }
     else if(state.view==='comparador') { $('view-comparador').style.display='block'; renderComparador(activeProj); }
-    else if(state.view==='empresa') { /* Handled entirely by React (ProjectSettingsView) */ }
+    else if(state.view==='empresa') { $('view-empresa').style.display='block'; renderProyectoSettings(activeProj); }
     else if(state.view==='glosario') { $('view-glosario').style.display='block'; renderGlosario(); }
     else { $('view-portfolio').style.display='block'; renderPortfolioSummary(activeProj); renderPortfolio(activeProj); }
   }
@@ -623,7 +625,7 @@ function renderBW2Home(){
         try {
           const r = runBranchProjection(b, emp);
           if(r){
-            gComm += r.totalInvestment||0;
+            gComm += getOOP(r);
             gEBITDA += r.avgMonthlyEBITDA||0;
             if(r.viabilityScore){ gScore += r.viabilityScore; gScored++; }
           }
@@ -641,7 +643,7 @@ function renderBW2Home(){
   h += `<div class="bw2-global-summary">
     <div class="global-summary-grid">
       <div class="global-summary-card"><span class="global-summary-label">Capital Total</span><span class="global-summary-value">${fmt.m(gCap)}</span></div>
-      <div class="global-summary-card"><span class="global-summary-label">Inv. Requerida</span><span class="global-summary-value" style="color:var(--yellow)">${fmt.iva(gComm)}</span><span class="global-summary-sub">${gCap?((gComm/gCap)*100).toFixed(0):'0'}%</span></div>
+      <div class="global-summary-card"><span class="global-summary-label">Inv. Requerida</span><span class="global-summary-value" style="color:var(--yellow)">${fmt.oop(gComm)}</span><span class="global-summary-sub">${gCap?((gComm/gCap)*100).toFixed(0):'0'}%</span></div>
       <div class="global-summary-card"><span class="global-summary-label">Libre / Faltante</span><span class="global-summary-value" style="color:${gFree>=0?'var(--green)':'var(--red)'}">${fmt.m(gFree)}</span></div>
       <div class="global-summary-card"><span class="global-summary-label">Sucursales</span><span class="global-summary-value">${gBranches}</span><span class="global-summary-sub">${empresas.length} empresa${empresas.length!==1?'s':''}</span></div>
       <div class="global-summary-card"><span class="global-summary-label">EBITDA/mes</span><span class="global-summary-value" style="color:${gEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(gEBITDA)}</span></div>
@@ -840,7 +842,7 @@ function renderEmpresaDashboard(empresa){
       try {
         const r = runBranchProjection(b, empresa);
         if(r) {
-          totalComm += r.totalInvestment||0;
+          totalComm += getOOP(r);
           totalEBITDA += r.avgMonthlyEBITDA||0;
           if(r.viabilityScore){ totalScore += r.viabilityScore; scoredCount++; }
         }
@@ -855,7 +857,7 @@ function renderEmpresaDashboard(empresa){
       <div class="global-summary-title">🏢 ${esc(empresa.name)} — Resumen General</div>
       <div class="global-summary-grid">
         <div class="global-summary-card"><span class="global-summary-label">Capital Total</span><span class="global-summary-value">${fmt.m(totalCap)}</span></div>
-        <div class="global-summary-card"><span class="global-summary-label">Inv. Requerida</span><span class="global-summary-value" style="color:var(--yellow)">${fmt.iva(totalComm)}</span><span class="global-summary-sub">${totalCap?((totalComm/totalCap)*100).toFixed(0):'0'}%</span></div>
+        <div class="global-summary-card"><span class="global-summary-label">Inv. Requerida</span><span class="global-summary-value" style="color:var(--yellow)">${fmt.oop(totalComm)}</span><span class="global-summary-sub">${totalCap?((totalComm/totalCap)*100).toFixed(0):'0'}%</span></div>
         <div class="global-summary-card"><span class="global-summary-label">Libre / Faltante</span><span class="global-summary-value" style="color:${totalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(totalFree)}</span></div>
         <div class="global-summary-card"><span class="global-summary-label">Sucursales</span><span class="global-summary-value">${totalBranches}</span><span class="global-summary-sub">${empresa.proyectos.length} proyecto${empresa.proyectos.length!==1?'s':''}</span></div>
         <div class="global-summary-card"><span class="global-summary-label">EBITDA/mes</span><span class="global-summary-value" style="color:${totalEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(totalEBITDA)}</span></div>
@@ -2888,7 +2890,7 @@ window._exportComparison = function() {
   const rows = branches.map(b => {
     try {
       const r = runBranchProjection(b, getActiveEmpresa());
-      return [b.name, b.format, Math.round(r?.avgMonthlyEBITDA||0), Math.round((r?.totalInvestment||0) * _getf()),
+      return [b.name, b.format, Math.round(r?.avgMonthlyEBITDA||0), Math.round(getOOP(r)),
               r?.paybackMonth||'∞', r?.viabilityScore||0, (r?.roi12||0).toFixed(1)+'%', Math.round(r?.npv||0)];
     } catch(e) { return [b.name, b.format, 0, 0, '∞', 0, '0%', 0]; }
   });
@@ -2923,7 +2925,9 @@ function renderBranchScenarios(branch, empresa) {
   });
 
   const metrics = [
-    { l: 'Inversión Total', f: r => fmt.iva(r.totalInvestment) },
+    { l: 'Capex Equipamiento', f: r => fmt.iva(r.totalInvestment) },
+    { l: 'Capital Trabajo', f: r => fmt.m(r.workingCapitalRequired) },
+    { l: 'Tope Máx. Requerido', f: r => fmt.oop(getOOP(r)) },
     { l: 'EBITDA / mes', f: r => fmt.m(r.avgMonthlyEBITDA), color: r => r.avgMonthlyEBITDA > 0 ? 'positive' : 'negative' },
     { l: 'Venta Prom. / mes', f: r => fmt.m(r.avgMonthlyRevenue) },
     { l: 'Margen EBITDA', f: r => fmt.p(r.ebitdaMarginStabilized) },
@@ -3013,7 +3017,7 @@ function renderBranchEditPanel(branch, model) {
     const invMax = ov.totalInitialInvestmentMax ?? model.totalInitialInvestment?.max ?? 0;
     const invCurrent = ov.totalInitialInvestment ?? model.totalInitialInvestment?.default ?? invMax;
     invEl.innerHTML = [
-      editField('Inversión Total', 'totalInitialInvestment', invCurrent, invMax, 1000, '$', invMin, invMax * 2, 'Monto total requerido para abrir (equipo, adecuación, inventario)'),
+      editField('Capex Base', 'totalInitialInvestment', invCurrent, invMax, 1000, '$', invMin, invMax * 2, 'Equipamiento, adecuación e inventario (sin capital de trabajo)'),
       editField('Ajuste de Ventas', 'scenarioFactor', (ov.scenarioFactor ?? 1) * 100, 100, 5, '%', 50, 200, 'Sube o baja este % para simular que vendes más o menos de lo proyectado')
     ].join('');
   }
@@ -3813,7 +3817,7 @@ async function renderConsolidated(empresa){
     const profitColor = consol.avgMonthlyEBITDA > 0 ? 'var(--sem-positive)' : 'var(--sem-negative)';
     const scoreColor = consol.avgScore >= 60 ? 'var(--sem-positive)' : consol.avgScore >= 40 ? 'var(--text-1)' : 'var(--sem-negative)';
     const kpis = [
-      { label: 'INVERSIÓN TOTAL', value: fmt.iva(consol.totalInvestment), detail: consol.branchCount+' sucursales' },
+      { label: 'TOPE MÁX REQUERIDO', value: fmt.oop(getOOPConsol(consol)), detail: consol.branchCount+' sucursales' },
       { label: 'CAPITAL LIBRE', value: fm(consol.capitalFree), color: freeColor, detail: consol.capitalFree < 0 ? '⚠ sobrepasado' : 'disponible' },
       { label: 'EBITDA MENSUAL', value: fm(consol.avgMonthlyEBITDA), color: profitColor, detail: 'agregado' },
       { label: 'SCORE', value: consol.avgScore+'/100', color: scoreColor, detail: 'portafolio' }
@@ -3843,7 +3847,7 @@ async function renderConsolidated(empresa){
     const locScore = ls?.scores?.total;
     const locLabel = ls ? (locScore != null ? locScore + '/100' : 'Sin dato') : 'Sin estudio';
     const locColor = locScore >= 60 ? 'var(--green)' : locScore >= 40 ? 'var(--yellow)' : locScore != null ? 'var(--red)' : 'var(--text-3)';
-    return `<tr><td>${b.name}</td><td>${MODELS[b.format]?.emoji||''} ${MODELS[b.format]?.label||b.format}</td><td>${b.colonia||'—'}</td><td class="num">${fmt.iva(r.totalInvestment)}</td><td class="num ${r.avgMonthlyEBITDA>=0?'positive':'negative'}">${fm(r.avgMonthlyEBITDA)}</td><td class="num">${r.paybackSimple?Math.round(r.paybackSimple)+'m':'∞'}</td><td class="num">${r.viabilityScore}</td><td style="color:${locColor}">${locLabel}</td><td><button class="btn-sm primary consol-study-btn" data-bid="${b.id}" title="Actualizar estudio de ubicación">📍 Estudio</button> <button class="btn-sm consol-view-btn" data-bid="${b.id}" title="Ver detalle">👁</button></td></tr>`;
+    return `<tr><td>${b.name}</td><td>${MODELS[b.format]?.emoji||''} ${MODELS[b.format]?.label||b.format}</td><td>${b.colonia||'—'}</td><td class="num">${fmt.oop(getOOP(r))}</td><td class="num ${r.avgMonthlyEBITDA>=0?'positive':'negative'}">${fm(r.avgMonthlyEBITDA)}</td><td class="num">${r.paybackSimple?Math.round(r.paybackSimple)+'m':'∞'}</td><td class="num">${r.viabilityScore}</td><td style="color:${locColor}">${locLabel}</td><td><button class="btn-sm primary consol-study-btn" data-bid="${b.id}" title="Actualizar estudio de ubicación">📍 Estudio</button> <button class="btn-sm consol-view-btn" data-bid="${b.id}" title="Ver detalle">👁</button></td></tr>`;
   }).join('')}</tbody></table>`;
 
   // Wire consolidado action buttons — prompt for address

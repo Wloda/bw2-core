@@ -62,7 +62,8 @@ export function runConsolidation(empresa, activeEmpresa) {
 
   // Totals
   const totalInvestment = branchResults.reduce((s, br) => s + br.result.totalInvestment, 0);
-  const capitalCommitted = totalInvestment + empresa.corporateReserve;
+  const totalWorkingCapital = branchResults.reduce((s, br) => s + (br.result.workingCapitalRequired || 0), 0);
+  const capitalCommitted = totalInvestment + totalWorkingCapital + empresa.corporateReserve;
   const capitalFree = empresa.totalCapital - capitalCommitted;
 
   // Monthly consolidation (60 months)
@@ -122,6 +123,7 @@ export function runConsolidation(empresa, activeEmpresa) {
   return {
     branchResults,
     totalInvestment,
+    totalWorkingCapital,
     capitalCommitted,
     capitalFree,
     months,

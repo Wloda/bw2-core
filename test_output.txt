@@ -1,0 +1,721 @@
+
+> bw2-core@1.0.0 test
+> node validate_engine.mjs
+
+═══════════════════════════════════════════════════
+  BW² FINANCIAL ENGINE — NUMERICAL VALIDATION
+═══════════════════════════════════════════════════
+
+
+════════════════════════════════════════════════════════════
+  MODEL: Express (express)
+════════════════════════════════════════════════════════════
+
+── Fixed Costs Reconciliation ──
+  M1: Engine=$49,664, Doc=$49,172, Δ=$492
+  M2: Engine=$51,322, Doc=$50,814, Δ=$508
+  M3: Engine=$52,980, Doc=$52,455, Δ=$525
+  Summary CF: $51,530
+  Engine M3 vs Summary: Δ$1,450
+
+── Variable Costs ──
+  COGS: 65.00%
+  Total VC Rate: 71.40% (doc: 71.40%)
+  MC: 28.60% (doc: 28.60%)
+  VC Rate Δ: 0.00%
+
+── Revenue Ramp (first 12 months) ──
+  M 1: Rev=$60,466      Doc=$67,184      Δ$-6,718
+        Net=$-32,371     Doc=$-30,379     ΔNet=$-1,992
+  M 2: Rev=$98,928      Doc=$104,135     Δ$-5,207
+        Net=$-23,028     Doc=$-21,430     ΔNet=$-1,598
+  M 3: Rev=$118,714     Doc=$118,714     Δ$0
+        Net=$-19,028     Doc=$-18,903     ΔNet=$-125
+  M 4: Rev=$135,334     Doc=$135,334     Δ$0
+        Net=$-14,274     Doc=$-14,132     ΔNet=$-142
+  M 5: Rev=$154,281     Doc=$154,281     Δ$0
+        Net=$-8,855      Doc=$-8,693      ΔNet=$-162
+  M 6: Rev=$175,880     Doc=$175,880     Δ$0
+        Net=$-2,678      Doc=$-2,493      ΔNet=$-185
+  M 7: Rev=$188,192     Doc=$188,192     Δ$0
+        Net=$843         Doc=$1,041       ΔNet=$-198
+  M 8: Rev=$201,365     Doc=$201,365     Δ$0
+        Net=$4,611       Doc=$4,822       ΔNet=$-211
+  M12: Rev=$258,984     Doc=$235,440     Δ$23,544
+        Net=$21,090      Doc=$14,603      ΔNet=$6,486
+
+── Milestone Months ──
+  m12: Rev=$258,984 (doc=$235,440, Δ$23,544)
+       Net=$21,090 (doc=$14,603, Δ$6,486)
+  m24: Rev=$369,249 (doc=$335,681, Δ$33,568)
+       Net=$36,838 (doc=$43,377, Δ$-6,540)
+  m36: Rev=$380,480 (doc=$345,891, Δ$34,589)
+       Net=$39,086 (doc=$46,308, Δ$-7,222)
+  m48: Rev=$392,053 (doc=$356,412, Δ$35,641)
+       Net=$41,403 (doc=$49,328, Δ$-7,925)
+  m60: Rev=$403,977 (doc=$367,252, Δ$36,725)
+       Net=$43,790 (doc=$52,440, Δ$-8,650)
+
+── Key Metrics ──
+  Total Investment: $711,464
+  Break-Even Revenue: $185,244 (49.51% of capacity)
+  Rent % Revenue: 4.81%
+  Tax Rate: NaN%
+  Avg Monthly EBITDA (stab): $54,025
+  Avg Monthly Revenue (stab): $374,144
+  EBITDA Margin (stab): 14.44%
+  NPV: $259,513
+  IRR: 1.75%
+  ROI 12m: -6.0%
+  ROI 24m: 30.5%
+  ROI 36m: 83.2%
+  ROI Anual (roi36/3): 27.7%
+  ROI Anual (CAGR): 22.4%
+
+── Payback Metrics ──
+  Documented Claim: 36 meses
+  PB Simple: 14.0 – 16.5 meses
+  PB Promedio 5Y: 21.0 – 21.0 meses
+  PB Rampa: 40 meses
+  BE Operativo: 7 meses
+  Legacy paybackMonth: 40
+  PB Simple (motor, netStab): 18.8 meses
+  Audit: REVIEW — Claim 36m se acerca a payback rampa (Δ4.0m) pero no es exacto.
+  PB from netStab: ∞ meses
+  ⚠️ PB Simple uses summary.profitRange, NOT engine netStab
+
+── Viability Score: 75/100 ──
+
+── Checklist ──
+  ✅ Cap. Libre ≥ Reserva: $2,288,536 vs $247,919
+  ✅ VPN positivo: $259,513
+  ✅ PB Simple ≤ 24m: 15m (14–17)
+  ✅ PB Rampa ≤ 48m: 40m
+  ✅ ROI anual > 20%: 27.7%
+  ✅ Renta < 15% venta: 4.8%
+  ✅ BE < 70% cap.: 50%
+  ✅ BE Oper. ≤ 12m: 7 m
+
+── Alerts ──
+  📉 [warning] Payback > 18m: Faltan $657,034 por recuperar
+
+── Edge Case Tests ──
+  Factor=0: EBITDA=$54,025, PB=40, Score=75
+  Rent=100K: EBITDA=$-27,975, BE=$471,957, Score=10
+  COGS=95%: EBITDA=$-58,218, BE=$∞, Score=25
+
+── Scenario Spread ──
+  🔴 Conservador   : EBITDA=$24,071    PB=∞    NPV=$-507,855      Score=40
+  🟡 Base          : EBITDA=$54,025    PB=40   NPV=$259,513       Score=75
+  🟢 Upside        : EBITDA=$81,244    PB=29   NPV=$937,987       Score=85
+
+── Cash Flow Trajectory ──
+  M 6: CumCF=$-811,698      NetIncome=$-2,678    Rev=$175,880
+  M12: CumCF=$-753,943      NetIncome=$21,090    Rev=$258,984
+  M18: CumCF=$-657,034      NetIncome=$19,196    Rev=$281,127
+  M24: CumCF=$-494,591      NetIncome=$36,838    Rev=$369,249
+  M36: CumCF=$-119,691      NetIncome=$39,086    Rev=$380,480
+  M48: CumCF=$280,147       NetIncome=$41,403    Rev=$392,053
+  M60: CumCF=$705,684       NetIncome=$43,790    Rev=$403,977
+
+── Sensitivity (±20%) ──
+  COGS %          : EBITDA Δ ↑$-48,639   ↓$48,639    Impact=$97,277
+  Factor Ventas   : EBITDA Δ ↑$21,401    ↓$-21,401   Impact=$42,802
+  Nómina          : EBITDA Δ ↑$-3,702    ↓$3,702     Impact=$7,404
+  Renta           : EBITDA Δ ↑$-3,600    ↓$3,600     Impact=$7,200
+  Merma           : EBITDA Δ ↑$-224      ↓$224       Impact=$449
+  [FATAL] Missing math values for express: Tax=NaN%, NPV=259513.46290761358, PB=40
+
+════════════════════════════════════════════════════════════
+  MODEL: Súper (super)
+════════════════════════════════════════════════════════════
+
+── Fixed Costs Reconciliation ──
+  M1: Engine=$53,961, Doc=$53,433, Δ=$529
+  M2: Engine=$55,844, Doc=$55,283, Δ=$561
+  M3: Engine=$57,694, Doc=$60,365, Δ=$-2,671
+  Summary CF: $60,365
+  Engine M3 vs Summary: Δ$-2,671
+
+── Variable Costs ──
+  COGS: 65.00%
+  Total VC Rate: 71.37% (doc: 71.37%)
+  MC: 28.63% (doc: 28.63%)
+  VC Rate Δ: 0.00%
+
+── Revenue Ramp (first 12 months) ──
+  M 1: Rev=$78,250      Doc=$86,944      Δ$-8,694
+        Net=$-31,558     Doc=$-28,940     ΔNet=$-2,618
+  M 2: Rev=$132,155     Doc=$139,110     Δ$-6,956
+        Net=$-18,008     Doc=$-15,819     ΔNet=$-2,189
+  M 3: Rev=$157,195     Doc=$157,195     Δ$0
+        Net=$-12,689     Doc=$-12,491     ΔNet=$-198
+  M 4: Rev=$177,630     Doc=$177,630     Δ$0
+        Net=$-6,838      Doc=$-6,619      ΔNet=$-219
+  M 5: Rev=$200,722     Doc=$200,722     Δ$0
+        Net=$-227        Doc=$16          ΔNet=$-244
+  M 6: Rev=$226,816     Doc=$226,816     Δ$0
+        Net=$7,244       Doc=$7,514       ΔNet=$-271
+  M 7: Rev=$249,497     Doc=$249,497     Δ$0
+        Net=$13,737      Doc=$14,032      ΔNet=$-295
+  M 8: Rev=$274,447     Doc=$274,447     Δ$0
+        Net=$20,880      Doc=$21,201      ΔNet=$-321
+  M12: Rev=$373,546     Doc=$339,587     Δ$33,959
+        Net=$47,775      Doc=$39,919      ΔNet=$7,856
+
+── Milestone Months ──
+  m12: Rev=$373,546 (doc=$339,587, Δ$33,959)
+       Net=$47,775 (doc=$39,919, Δ$7,856)
+  m24: Rev=$420,921 (doc=$382,655, Δ$38,266)
+       Net=$60,931 (doc=$52,295, Δ$8,636)
+  m36: Rev=$433,724 (doc=$394,294, Δ$39,429)
+       Net=$64,487 (doc=$55,639, Δ$8,847)
+  m48: Rev=$446,916 (doc=$406,287, Δ$40,629)
+       Net=$68,150 (doc=$59,086, Δ$9,065)
+  m60: Rev=$460,509 (doc=$418,645, Δ$41,864)
+       Net=$71,925 (doc=$62,636, Δ$9,289)
+
+── Key Metrics ──
+  Total Investment: $863,878
+  Break-Even Revenue: $201,515 (47.25% of capacity)
+  Rent % Revenue: 6.10%
+  Tax Rate: 3.00%
+  Avg Monthly EBITDA (stab): $64,413
+  Avg Monthly Revenue (stab): $426,501
+  EBITDA Margin (stab): 15.10%
+  NPV: $1,014,401
+  IRR: 3.34%
+  ROI 12m: 13.0%
+  ROI 24m: 75.3%
+  ROI 36m: 147.6%
+  ROI Anual (roi36/3): 49.2%
+  ROI Anual (CAGR): 35.3%
+
+── Payback Metrics ──
+  Documented Claim: 36 meses
+  PB Simple: 14.2 – 16.6 meses
+  PB Promedio 5Y: 18.9 – 18.9 meses
+  PB Rampa: 29 meses
+  BE Operativo: 6 meses
+  Legacy paybackMonth: 29
+  PB Simple (motor, netStab): 13.8 meses
+  Audit: REVIEW — Claim 36m no coincide con simple (15.4m), promedio 5Y (18.9m), ni rampa (29m). Δ mín. 7.0m.
+  PB from netStab: 13.8 meses
+  ⚠️ PB Simple uses summary.profitRange, NOT engine netStab
+
+── Viability Score: 85/100 ──
+
+── Checklist ──
+  ✅ Cap. Libre ≥ Reserva: $2,136,122 vs $282,775
+  ✅ VPN positivo: $1,014,401
+  ✅ PB Simple ≤ 24m: 15m (14–17)
+  ✅ PB Rampa ≤ 48m: 29m
+  ✅ ROI anual > 20%: 49.2%
+  ✅ Renta < 15% venta: 6.1%
+  ✅ BE < 70% cap.: 47%
+  ✅ BE Oper. ≤ 12m: 6 m
+
+── Alerts ──
+  📉 [warning] Payback > 18m: Faltan $515,707 por recuperar
+
+── Edge Case Tests ──
+  Factor=0: EBITDA=$64,413, PB=29, Score=85
+  Rent=100K: EBITDA=$-9,587, BE=$459,986, Score=10
+  COGS=95%: EBITDA=$-63,537, BE=$∞, Score=25
+
+── Scenario Spread ──
+  🔴 Conservador   : EBITDA=$29,687    PB=59   NPV=$-265,025      Score=45
+  🟡 Base          : EBITDA=$64,413    PB=29   NPV=$1,014,401     Score=85
+  🟢 Upside        : EBITDA=$95,473    PB=21   NPV=$2,139,862     Score=95
+
+── Cash Flow Trajectory ──
+  M 6: CumCF=$-925,955      NetIncome=$7,244     Rev=$226,816
+  M12: CumCF=$-751,574      NetIncome=$47,775    Rev=$373,546
+  M18: CumCF=$-515,707      NetIncome=$44,146    Rev=$360,479
+  M24: CumCF=$-213,567      NetIncome=$60,931    Rev=$420,921
+  M36: CumCF=$411,420       NetIncome=$64,487    Rev=$433,724
+  M48: CumCF=$1,075,842     NetIncome=$68,150    Rev=$446,916
+  M60: CumCF=$1,780,899     NetIncome=$71,925    Rev=$460,509
+
+── Sensitivity (±20%) ──
+  COGS %          : EBITDA Δ ↑$-55,445   ↓$55,445    Impact=$110,890
+  Factor Ventas   : EBITDA Δ ↑$24,421    ↓$-24,421   Impact=$48,843
+  Renta           : EBITDA Δ ↑$-5,200    ↓$5,200     Impact=$10,400
+  Nómina          : EBITDA Δ ↑$-3,702    ↓$3,702     Impact=$7,404
+  Merma           : EBITDA Δ ↑$-256      ↓$256       Impact=$512
+
+════════════════════════════════════════════════════════════
+  MODEL: Integral (integral)
+════════════════════════════════════════════════════════════
+
+── Fixed Costs Reconciliation ──
+  M1: Engine=$87,706, Doc=$86,837, Δ=$868
+  M2: Engine=$89,800, Doc=$88,911, Δ=$889
+  M3: Engine=$91,895, Doc=$90,985, Δ=$910
+  Summary CF: $87,260
+  Engine M3 vs Summary: Δ$4,635
+
+── Variable Costs ──
+  COGS: 59.00%
+  Total VC Rate: 65.37% (doc: 65.37%)
+  MC: 34.63% (doc: 34.63%)
+  VC Rate Δ: 0.00%
+
+── Revenue Ramp (first 12 months) ──
+  M 1: Rev=$93,161      Doc=$103,512     Δ$-10,351
+        Net=$-55,444     Doc=$-51,436     ΔNet=$-4,008
+  M 2: Rev=$144,479     Doc=$152,084     Δ$-7,604
+        Net=$-39,767     Doc=$-36,651     ΔNet=$-3,116
+  M 3: Rev=$163,034     Doc=$163,034     Δ$0
+        Net=$-35,436     Doc=$-34,940     ΔNet=$-496
+  M 4: Rev=$197,661     Doc=$197,661     Δ$0
+        Net=$-23,445     Doc=$-22,462     ΔNet=$-983
+  M 5: Rev=$210,434     Doc=$210,434     Δ$0
+        Net=$-19,022     Doc=$-18,023     ΔNet=$-999
+  M 6: Rev=$224,229     Doc=$224,229     Δ$0
+        Net=$-14,245     Doc=$-13,229     ΔNet=$-1,016
+  M 7: Rev=$263,789     Doc=$263,789     Δ$0
+        Net=$-545        Doc=$-963        ΔNet=$418
+  M 8: Rev=$282,058     Doc=$282,058     Δ$0
+        Net=$5,782       Doc=$7,312       ΔNet=$-1,530
+  M12: Rev=$373,985     Doc=$339,986     Δ$33,999
+        Net=$37,616      Doc=$27,444      ΔNet=$10,172
+
+── Milestone Months ──
+  m12: Rev=$373,985 (doc=$339,986, Δ$33,999)
+       Net=$37,616 (doc=$27,444, Δ$10,172)
+  m24: Rev=$500,487 (doc=$454,988, Δ$45,499)
+       Net=$56,996 (doc=$67,410, Δ$-10,414)
+  m36: Rev=$513,675 (doc=$466,978, Δ$46,698)
+       Net=$60,194 (doc=$71,577, Δ$-11,384)
+  m48: Rev=$527,265 (doc=$479,332, Δ$47,933)
+       Net=$63,488 (doc=$75,871, Δ$-12,383)
+  m60: Rev=$541,268 (doc=$492,062, Δ$49,206)
+       Net=$66,882 (doc=$80,295, Δ$-13,413)
+
+── Key Metrics ──
+  Total Investment: $1,020,775
+  Break-Even Revenue: $265,363 (52.89% of capacity)
+  Rent % Revenue: 6.38%
+  Tax Rate: 30.00%
+  Avg Monthly EBITDA (stab): $81,836
+  Avg Monthly Revenue (stab): $501,678
+  EBITDA Margin (stab): 16.31%
+  NPV: $447,978
+  IRR: 1.88%
+  ROI 12m: -9.1%
+  ROI 24m: 32.2%
+  ROI 36m: 88.2%
+  ROI Anual (roi36/3): 29.4%
+  ROI Anual (CAGR): 23.5%
+
+── Payback Metrics ──
+  Documented Claim: 36 meses
+  PB Simple: 12.9 – 15.5 meses
+  PB Promedio 5Y: 19.5 – 19.5 meses
+  PB Rampa: 39 meses
+  BE Operativo: 8 meses
+  Legacy paybackMonth: 39
+  PB Simple (motor, netStab): 17.8 meses
+  Audit: PASS — Claim 36m coincide con payback rampa (Δ3.0m).
+  PB from netStab: 17.8 meses
+  ⚠️ PB Simple uses summary.profitRange, NOT engine netStab
+
+── Viability Score: 70/100 ──
+
+── Checklist ──
+  ✅ Cap. Libre ≥ Reserva: $1,979,225 vs $431,580
+  ✅ VPN positivo: $447,978
+  ✅ PB Simple ≤ 24m: 14m (13–15)
+  ✅ PB Rampa ≤ 48m: 39m
+  ✅ ROI anual > 20%: 29.4%
+  ✅ Renta < 15% venta: 6.4%
+  ✅ BE < 70% cap.: 53%
+  ✅ BE Oper. ≤ 12m: 8 m
+
+── Alerts ──
+  📉 [warning] Payback > 18m: Faltan $945,520 por recuperar
+
+── Edge Case Tests ──
+  Factor=0: EBITDA=$81,836, PB=39, Score=70
+  Rent=100K: EBITDA=$13,836, BE=$461,724, Score=15
+  COGS=95%: EBITDA=$-98,768, BE=$∞, Score=25
+
+── Scenario Spread ──
+  🔴 Conservador   : EBITDA=$33,322    PB=∞    NPV=$-821,670      Score=30
+  🟡 Base          : EBITDA=$81,836    PB=39   NPV=$447,978       Score=70
+  🟢 Upside        : EBITDA=$125,896   PB=28   NPV=$1,567,478     Score=85
+
+── Cash Flow Trajectory ──
+  M 6: CumCF=$-1,208,134    NetIncome=$-14,245   Rev=$224,229
+  M12: CumCF=$-1,113,397    NetIncome=$37,616    Rev=$373,985
+  M18: CumCF=$-945,520      NetIncome=$31,015    Rev=$393,306
+  M24: CumCF=$-691,745      NetIncome=$56,996    Rev=$500,487
+  M36: CumCF=$-120,947      NetIncome=$60,194    Rev=$513,675
+  M48: CumCF=$485,311       NetIncome=$63,488    Rev=$527,265
+  M60: CumCF=$1,128,108     NetIncome=$66,882    Rev=$541,268
+
+── Sensitivity (±20%) ──
+  COGS %          : EBITDA Δ ↑$-59,198   ↓$59,198    Impact=$118,396
+  Factor Ventas   : EBITDA Δ ↑$34,746    ↓$-34,746   Impact=$69,492
+  Nómina          : EBITDA Δ ↑$-7,702    ↓$7,702     Impact=$15,404
+  Renta           : EBITDA Δ ↑$-6,400    ↓$6,400     Impact=$12,800
+  Merma           : EBITDA Δ ↑$-301      ↓$301       Impact=$602
+
+════════════════════════════════════════════════════════════
+  MODEL: CoolPet Estética (coolpet_estetica)
+════════════════════════════════════════════════════════════
+
+── Fixed Costs Reconciliation ──
+  M1: Engine=$39,350, Doc=$39,350, Δ=$0
+  M2: Engine=$39,350, Doc=$39,350, Δ=$0
+  M3: Engine=$39,350, Doc=$39,350, Δ=$0
+  Summary CF: $39,350
+  Engine M3 vs Summary: Δ$0
+
+── Variable Costs ──
+  COGS: 20.90%
+  Total VC Rate: 27.80% (doc: 27.80%)
+  MC: 72.20% (doc: 72.20%)
+  VC Rate Δ: 0.00%
+
+── Revenue Ramp (first 12 months) ──
+  M 1: Rev=$11,952      Doc=$13,280      Δ$-1,328
+        Net=$-30,721     Doc=$-27,654     ΔNet=$-3,067
+  M 2: Rev=$17,961      Doc=$18,906      Δ$-945
+        Net=$-26,382     Doc=$-24,738     ΔNet=$-1,644
+  M 3: Rev=$25,020      Doc=$25,020      Δ$0
+        Net=$-21,286     Doc=$-20,198     ΔNet=$-1,088
+  M 4: Rev=$31,285      Doc=$31,285      Δ$0
+        Net=$-16,762     Doc=$-18,042     ΔNet=$1,280
+  M 5: Rev=$39,288      Doc=$39,288      Δ$0
+  M 6: Rev=$44,378      Doc=$44,378      Δ$0
+        Net=$-7,309      Doc=$-8,003      ΔNet=$694
+  M 7: Rev=$49,359      
+  M 8: Rev=$54,898      
+  M12: Rev=$92,413      Doc=$84,012      Δ$8,401
+        Net=$27,372      Doc=$28,759      ΔNet=$-1,387
+
+── Milestone Months ──
+  m12: Rev=$92,413 (doc=$84,012, Δ$8,401)
+       Net=$27,372 (doc=$28,759, Δ$-1,387)
+  m24: Rev=$141,010 (doc=$128,191, Δ$12,819)
+       Net=$43,722 (doc=$75,458, Δ$-31,736)
+  m36: Rev=$230,119 (doc=$209,199, Δ$20,920)
+       Net=$88,757 (doc=$108,125, Δ$-19,368)
+  m48: Rev=$232,663 (doc=$211,512, Δ$21,151)
+       Net=$90,043 (doc=$118,797, Δ$-28,754)
+  m60: Rev=$232,663 (doc=$211,512, Δ$21,151)
+       Net=$90,043 (doc=$118,797, Δ$-28,754)
+
+── Key Metrics ──
+  Total Investment: $599,000
+  Break-Even Revenue: $54,501 (25.14% of capacity)
+  Rent % Revenue: 6.92%
+  Tax Rate: 30.00%
+  Avg Monthly EBITDA (stab): $117,179
+  Avg Monthly Revenue (stab): $216,800
+  EBITDA Margin (stab): 54.05%
+  NPV: $1,340,624
+  IRR: 3.96%
+  ROI 12m: -9.5%
+  ROI 24m: 46.4%
+  ROI 36m: 163.0%
+  ROI Anual (roi36/3): 54.3%
+  ROI Anual (CAGR): 38.0%
+
+── Payback Metrics ──
+  Documented Claim: 36 meses
+  PB Simple: 5.0 – 8.0 meses
+  PB Promedio 5Y: ∞ – ∞ meses
+  PB Rampa: 31 meses
+  BE Operativo: 8 meses
+  Legacy paybackMonth: 31
+  PB Simple (motor, netStab): 7.3 meses
+  Audit: REVIEW — Claim 36m se acerca a payback rampa (Δ5.0m) pero no es exacto.
+  PB from netStab: 7.3 meses
+  ⚠️ PB Simple uses summary.profitRange, NOT engine netStab
+
+── Viability Score: 85/100 ──
+
+── Checklist ──
+  ✅ Cap. Libre ≥ Reserva: $2,401,000 vs $187,400
+  ✅ VPN positivo: $1,340,624
+  ✅ PB Simple ≤ 24m: 7m (5–8)
+  ✅ PB Rampa ≤ 48m: 31m
+  ✅ ROI anual > 20%: 54.3%
+  ✅ Renta < 15% venta: 6.9%
+  ✅ BE < 70% cap.: 25%
+  ✅ BE Oper. ≤ 12m: 8 m
+
+── Alerts ──
+  📉 [warning] Payback > 18m: Faltan $522,269 por recuperar
+
+── Edge Case Tests ──
+  Factor=0: EBITDA=$117,179, PB=31, Score=85
+  Rent=100K: EBITDA=$32,179, BE=$172,230, Score=15
+  COGS=95%: EBITDA=$-43,469, BE=$∞, Score=25
+
+── Scenario Spread ──
+  🔴 Conservador   : EBITDA=$75,734    PB=40   NPV=$472,019       Score=70
+  🟡 Base          : EBITDA=$117,179   PB=31   NPV=$1,340,624     Score=85
+  🟢 Upside        : EBITDA=$156,583   PB=26   NPV=$2,147,057     Score=85
+
+── Cash Flow Trajectory ──
+  M 6: CumCF=$-712,444      NetIncome=$-7,309    Rev=$44,378
+  M12: CumCF=$-656,167      NetIncome=$27,372    Rev=$92,413
+  M18: CumCF=$-522,269      NetIncome=$24,904    Rev=$103,777
+  M24: CumCF=$-321,320      NetIncome=$43,722    Rev=$141,010
+  M36: CumCF=$377,264       NetIncome=$88,757    Rev=$230,119
+  M48: CumCF=$1,323,210     NetIncome=$90,043    Rev=$232,663
+  M60: CumCF=$2,275,448     NetIncome=$90,043    Rev=$232,663
+
+── Sensitivity (±20%) ──
+  Factor Ventas   : EBITDA Δ ↑$31,306    ↓$-31,306   Impact=$62,612
+  COGS %          : EBITDA Δ ↑$-9,062    ↓$9,062     Impact=$18,124
+  Nómina          : EBITDA Δ ↑$-3,230    ↓$3,230     Impact=$6,460
+  Renta           : EBITDA Δ ↑$-3,000    ↓$3,000     Impact=$6,000
+  Merma           : EBITDA Δ ↑$-130      ↓$130       Impact=$260
+
+════════════════════════════════════════════════════════════
+  MODEL: CoolPet Farma Spot (coolpet_farmaspot)
+════════════════════════════════════════════════════════════
+
+── Fixed Costs Reconciliation ──
+  M1: Engine=$49,864, Doc=$49,864, Δ=$0
+  M2: Engine=$51,134, Doc=$51,634, Δ=$-500
+  M3: Engine=$52,404, Doc=$52,404, Δ=$0
+  Summary CF: $52,404
+  Engine M3 vs Summary: Δ$0
+
+── Variable Costs ──
+  COGS: 55.00%
+  Total VC Rate: 61.40% (doc: 61.40%)
+  MC: 38.60% (doc: 38.60%)
+  VC Rate Δ: 0.00%
+
+── Revenue Ramp (first 12 months) ──
+  M 1: Rev=$54,000      Doc=$60,000      Δ$-6,000
+  M 2: Rev=$85,500      Doc=$90,000      Δ$-4,500
+  M 3: Rev=$105,000     Doc=$105,000     Δ$0
+  M 4: Rev=$120,000     Doc=$120,000     Δ$0
+  M 5: Rev=$135,000     Doc=$135,000     Δ$0
+  M 6: Rev=$155,000     Doc=$155,000     Δ$0
+  M 7: Rev=$164,316     
+  M 8: Rev=$174,192     
+  M12: Rev=$242,000     Doc=$220,000     Δ$22,000
+
+── Milestone Months ──
+  m12: Rev=$242,000 (doc=$220,000, Δ$22,000)
+  m24: Rev=$319,000 (doc=$290,000, Δ$29,000)
+  m36: Rev=$341,000 (doc=$310,000, Δ$31,000)
+  m48: Rev=$352,000 (doc=$320,000, Δ$32,000)
+  m60: Rev=$363,000 (doc=$330,000, Δ$33,000)
+
+── Key Metrics ──
+  Total Investment: $799,000
+  Break-Even Revenue: $135,761 (40.39% of capacity)
+  Rent % Revenue: 5.95%
+  Tax Rate: 30.00%
+  Avg Monthly EBITDA (stab): $77,345
+  Avg Monthly Revenue (stab): $336,137
+  EBITDA Margin (stab): 23.01%
+  NPV: $733,654
+  IRR: 2.84%
+  ROI 12m: 7.2%
+  ROI 24m: 56.5%
+  ROI 36m: 123.5%
+  ROI Anual (roi36/3): 41.2%
+  ROI Anual (CAGR): 30.7%
+
+── Payback Metrics ──
+  Documented Claim: 36 meses
+  PB Simple: 13.3 – 20.0 meses
+  PB Promedio 5Y: ∞ – ∞ meses
+  PB Rampa: 33 meses
+  BE Operativo: 6 meses
+  Legacy paybackMonth: 33
+  PB Simple (motor, netStab): 14.8 meses
+  Audit: PASS — Claim 36m coincide con payback rampa (Δ3.0m).
+  PB from netStab: 14.8 meses
+  ⚠️ PB Simple uses summary.profitRange, NOT engine netStab
+
+── Viability Score: 85/100 ──
+
+── Checklist ──
+  ✅ Cap. Libre ≥ Reserva: $2,201,000 vs $249,615
+  ✅ VPN positivo: $733,654
+  ✅ PB Simple ≤ 24m: 17m (13–20)
+  ✅ PB Rampa ≤ 48m: 33m
+  ✅ ROI anual > 20%: 41.2%
+  ✅ Renta < 15% venta: 5.9%
+  ✅ BE < 70% cap.: 40%
+  ✅ BE Oper. ≤ 12m: 6 m
+
+── Alerts ──
+  📉 [warning] Payback > 18m: Faltan $583,557 por recuperar
+
+── Edge Case Tests ──
+  Factor=0: EBITDA=$77,345, PB=33, Score=85
+  Rent=100K: EBITDA=$-2,655, BE=$343,015, Score=10
+  COGS=95%: EBITDA=$-57,110, BE=$∞, Score=25
+
+── Scenario Spread ──
+  🔴 Conservador   : EBITDA=$41,648    PB=55   NPV=$-166,181      Score=45
+  🟡 Base          : EBITDA=$77,345    PB=33   NPV=$733,654       Score=85
+  🟢 Upside        : EBITDA=$110,203   PB=25   NPV=$1,545,626     Score=85
+
+── Cash Flow Trajectory ──
+  M 6: CumCF=$-856,975      NetIncome=$7,426     Rev=$155,000
+  M12: CumCF=$-741,157      NetIncome=$28,706    Rev=$242,000
+  M18: CumCF=$-583,557      NetIncome=$31,566    Rev=$252,587
+  M24: CumCF=$-347,792      NetIncome=$49,511    Rev=$319,000
+  M36: CumCF=$187,782       NetIncome=$55,456    Rev=$341,000
+  M48: CumCF=$770,562       NetIncome=$58,428    Rev=$352,000
+  M60: CumCF=$1,385,769     NetIncome=$61,400    Rev=$363,000
+
+── Sensitivity (±20%) ──
+  COGS %          : EBITDA Δ ↑$-36,975   ↓$36,975    Impact=$73,950
+  Factor Ventas   : EBITDA Δ ↑$25,950    ↓$-25,950   Impact=$51,900
+  Renta           : EBITDA Δ ↑$-4,000    ↓$4,000     Impact=$8,000
+  Nómina          : EBITDA Δ ↑$-3,702    ↓$3,702     Impact=$7,404
+  Merma           : EBITDA Δ ↑$-202      ↓$202       Impact=$403
+
+════════════════════════════════════════════════════════════
+  MODEL: CoolPet Farma Vet (coolpet_farmavet)
+════════════════════════════════════════════════════════════
+
+── Fixed Costs Reconciliation ──
+  M1: Engine=$74,000, Doc=$75,000, Δ=$-1,000
+  M2: Engine=$75,800, Doc=$77,800, Δ=$-2,000
+  M3: Engine=$77,600, Doc=$79,600, Δ=$-2,000
+  Summary CF: $79,600
+  Engine M3 vs Summary: Δ$-2,000
+
+── Variable Costs ──
+  COGS: 50.00%
+  Total VC Rate: 56.90% (doc: 56.90%)
+  MC: 43.10% (doc: 43.10%)
+  VC Rate Δ: 0.00%
+
+── Revenue Ramp (first 12 months) ──
+  M 1: Rev=$72,000      Doc=$80,000      Δ$-8,000
+  M 2: Rev=$114,000     Doc=$120,000     Δ$-6,000
+  M 3: Rev=$140,000     Doc=$140,000     Δ$0
+  M 4: Rev=$165,000     Doc=$165,000     Δ$0
+  M 5: Rev=$185,000     Doc=$185,000     Δ$0
+  M 6: Rev=$210,000     Doc=$210,000     Δ$0
+  M 7: Rev=$224,083     
+  M 8: Rev=$239,111     
+  M12: Rev=$341,000     Doc=$310,000     Δ$31,000
+
+── Milestone Months ──
+  m12: Rev=$341,000 (doc=$310,000, Δ$31,000)
+  m24: Rev=$462,000 (doc=$420,000, Δ$42,000)
+  m36: Rev=$495,000 (doc=$450,000, Δ$45,000)
+  m48: Rev=$517,000 (doc=$470,000, Δ$47,000)
+  m60: Rev=$533,500 (doc=$485,000, Δ$48,500)
+
+── Key Metrics ──
+  Total Investment: $999,000
+  Break-Even Revenue: $180,046 (36.45% of capacity)
+  Rent % Revenue: 5.67%
+  Tax Rate: 30.00%
+  Avg Monthly EBITDA (stab): $135,295
+  Avg Monthly Revenue (stab): $493,955
+  EBITDA Margin (stab): 27.39%
+  NPV: $1,682,285
+  IRR: 3.92%
+  ROI 12m: 11.3%
+  ROI 24m: 79.4%
+  ROI 36m: 172.3%
+  ROI Anual (roi36/3): 57.4%
+  ROI Anual (CAGR): 39.6%
+
+── Payback Metrics ──
+  Documented Claim: 36 meses
+  PB Simple: 11.8 – 18.2 meses
+  PB Promedio 5Y: ∞ – ∞ meses
+  PB Rampa: 28 meses
+  BE Operativo: 5 meses
+  Legacy paybackMonth: 28
+  PB Simple (motor, netStab): 10.5 meses
+  Audit: REVIEW — Claim 36m no coincide con simple (15.0m), promedio 5Y (?m), ni rampa (28m). Δ mín. 8.0m.
+  PB from netStab: 10.5 meses
+  ⚠️ PB Simple uses summary.profitRange, NOT engine netStab
+
+── Viability Score: 85/100 ──
+
+── Checklist ──
+  ✅ Cap. Libre ≥ Reserva: $2,001,000 vs $366,400
+  ✅ VPN positivo: $1,682,285
+  ✅ PB Simple ≤ 24m: 15m (12–18)
+  ✅ PB Rampa ≤ 48m: 28m
+  ✅ ROI anual > 20%: 57.4%
+  ✅ Renta < 15% venta: 5.7%
+  ✅ BE < 70% cap.: 36%
+  ✅ BE Oper. ≤ 12m: 5 m
+
+── Alerts ──
+  📉 [warning] Payback > 18m: Faltan $612,703 por recuperar
+
+── Edge Case Tests ──
+  Factor=0: EBITDA=$135,295, PB=28, Score=85
+  Rent=100K: EBITDA=$63,295, BE=$347,100, Score=15
+  COGS=95%: EBITDA=$-86,985, BE=$∞, Score=25
+
+── Scenario Spread ──
+  🔴 Conservador   : EBITDA=$77,419    PB=43   NPV=$254,404       Score=70
+  🟡 Base          : EBITDA=$135,295   PB=28   NPV=$1,682,285     Score=85
+  🟢 Upside        : EBITDA=$189,136   PB=22   NPV=$2,987,060     Score=95
+
+── Cash Flow Trajectory ──
+  M 6: CumCF=$-1,077,334    NetIncome=$12,910    Rev=$210,000
+  M12: CumCF=$-885,979      NetIncome=$48,560    Rev=$341,000
+  M18: CumCF=$-612,703      NetIncome=$54,543    Rev=$360,832
+  M24: CumCF=$-205,435      NetIncome=$85,065    Rev=$462,000
+  M36: CumCF=$722,677       NetIncome=$95,022    Rev=$495,000
+  M48: CumCF=$1,739,758     NetIncome=$101,659   Rev=$517,000
+  M60: CumCF=$2,819,366     NetIncome=$106,637   Rev=$533,500
+
+── Sensitivity (±20%) ──
+  COGS %          : EBITDA Δ ↑$-49,396   ↓$49,396    Impact=$98,791
+  Factor Ventas   : EBITDA Δ ↑$42,579    ↓$-42,579   Impact=$85,158
+  Nómina          : EBITDA Δ ↑$-6,000    ↓$6,000     Impact=$12,000
+  Renta           : EBITDA Δ ↑$-5,600    ↓$5,600     Impact=$11,200
+  Merma           : EBITDA Δ ↑$-296      ↓$296       Impact=$593
+
+
+════════════════════════════════════════════════════════════
+  CROSS-MODEL CONSISTENCY CHECKS
+════════════════════════════════════════════════════════════
+
+── Margin Comparison ──
+  Express             : GM=35.00%   MC=28.60%   EBITDA%=14.44%   Tax=NaN%
+  Súper               : GM=35.00%   MC=28.63%   EBITDA%=15.10%   Tax=3.00%
+  Integral            : GM=41.00%   MC=34.63%   EBITDA%=16.31%   Tax=30.00%
+  CoolPet Estética    : GM=79.10%   MC=72.20%   EBITDA%=54.05%   Tax=30.00%
+  CoolPet Farma Spot  : GM=45.00%   MC=38.60%   EBITDA%=23.01%   Tax=30.00%
+  CoolPet Farma Vet   : GM=50.00%   MC=43.10%   EBITDA%=27.39%   Tax=30.00%
+
+── Investment Efficiency ──
+  Express             : Inv=$711,464       EBITDA/Inv=7.59%/mo  NPV/Inv=36.5%
+  Súper               : Inv=$863,878       EBITDA/Inv=7.46%/mo  NPV/Inv=117.4%
+  Integral            : Inv=$1,020,775     EBITDA/Inv=8.02%/mo  NPV/Inv=43.9%
+  CoolPet Estética    : Inv=$599,000       EBITDA/Inv=19.56%/mo  NPV/Inv=223.8%
+  CoolPet Farma Spot  : Inv=$799,000       EBITDA/Inv=9.68%/mo  NPV/Inv=91.8%
+  CoolPet Farma Vet   : Inv=$999,000       EBITDA/Inv=13.54%/mo  NPV/Inv=168.4%
+
+── Seasonality Sum Check ──
+  Sum of 12 months: 12.0000 (should be ~12.00)
+  Average: 1.0000 (should be ~1.00)
+
+── Tax Loss Carryforward Verification (Súper model) ──
+  Total tax paid (60m): $81,797
+  Effective tax rate: 2.93%
+  Final loss pool: $0
+
+
+✅ Validation checks finished.
+
+💥 FAIL: Se detectaron 1 errores fatales en el motor matemático. PUSH DENEGADO.

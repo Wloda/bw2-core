@@ -153,7 +153,10 @@ export function runProjection(modelId, overrides={}) {
   const be = mc>0 ? totalFixed/mc : Infinity;
   const bePct = avgRev>0 ? be/avgRev : Infinity;
   const rentPct = avgRev>0 ? rentOverride/avgRev : 0;
-  const reserve = totalFixed * 3;
+  // Exact working capital definition for initial out of pocket limitation:
+  // 4 months of fixed expenditures, 1 month rent, 1 month deposit
+  const workingCapitalRequired = (4 * totalFixed) + rentOverride + rentOverride;
+  const reserve = workingCapitalRequired; // Replaces old totalFixed * 3
 
   // NPV
   const mDisc = Math.pow(1+discountRate,1/12)-1;
@@ -185,6 +188,7 @@ export function runProjection(modelId, overrides={}) {
   return {
     modelId, totalInvestment:totalInv, totalPartnerCapital:totalCapital,
     capitalRemaining:totalCapital-totalInv, recommendedReserve:reserve,
+    workingCapitalRequired: workingCapitalRequired,
     grossMargin:1-vc.cogs, varCostRate:varRateStab, mc,
     totalFixedMonthly:totalFixed, fixedCostBreakdown:calcFixedCostBreakdown(fcWithRent),
     breakEvenRevenue:be, breakEvenPctCapacity:bePct, costPerSqm:0,

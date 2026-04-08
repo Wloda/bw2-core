@@ -163,8 +163,15 @@ function _load() {
   // Try new format first
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
-    _workspace = JSON.parse(saved);
-  } else {
+    try {
+      _workspace = JSON.parse(saved);
+      if (!_workspace || !_workspace.empresas) throw new Error('Invalid workspace');
+    } catch(e) {
+      _workspace = null;
+    }
+  }
+  
+  if (!_workspace) {
     // Try legacy format and migrate
     const legacy = localStorage.getItem(LEGACY_KEY);
     if (legacy) {

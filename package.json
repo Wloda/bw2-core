@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vite-node validate_engine.ts",
+    "test": "node validate_engine.mjs",
     "prepare": "husky"
   },
   "devDependencies": {
