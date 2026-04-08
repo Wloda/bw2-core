@@ -24,6 +24,7 @@ useAppStore.subscribe((state, prevState) => {
 // A small test component to mount somewhere to prove React works
 import { ProjectSettingsView } from './components/ProjectSettingsView';
 import { PortfolioView } from './components/PortfolioView';
+import { ModalManager } from './components/modals/ModalManager';
 
 const ReactIntegration = () => {
   const [viewState, setViewState] = React.useState({ view: 'bw2home' });
@@ -50,6 +51,7 @@ const ReactIntegration = () => {
 
   return (
     <>
+      <ModalManager />
       {viewState.view === 'empresa' && <ProjectSettingsView />}
       {viewState.view === 'portfolio' && <PortfolioView />}
     </>

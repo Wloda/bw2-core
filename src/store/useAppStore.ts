@@ -62,7 +62,13 @@ export interface Workspace {
 }
 
 interface AppState extends Workspace {
+  activeModalType: string | null;
+  activeModalPayload: any;
+
   // Actions
+  openModal: (type: string, payload?: any) => void;
+  closeModal: () => void;
+
   setActiveEmpresa: (id: string) => void;
   setActiveProyecto: (empresaId: string, proyectoId: string) => void;
   
@@ -120,6 +126,11 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       ...createDefaultWorkspace(),
+      activeModalType: null,
+      activeModalPayload: null,
+
+      openModal: (type, payload = null) => set({ activeModalType: type, activeModalPayload: payload }),
+      closeModal: () => set({ activeModalType: null, activeModalPayload: null }),
 
       setActiveEmpresa: (id) => set((state) => {
         const emp = state.empresas.find(e => e.id === id);
