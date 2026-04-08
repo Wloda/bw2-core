@@ -1652,7 +1652,7 @@ async function setupGeocodingAutocomplete(inputId, suggestionsId, statusId, onSe
         ci.value = name;
         if (sugBox) sugBox.classList.remove('open');
         if (statusEl) statusEl.innerHTML = `<span class="validated">✅ ${name} <small style="opacity:0.6">(Google)</small></span>`;
-        if (onSelectCallback) onSelectCallback(name, place.formattedAddress, place.lat, place.lng);
+        if (onSelectCallback) onSelectCallback(name, place.formattedAddress, place.lat, place.lng, place);
       }
     });
     if (statusEl) statusEl.innerHTML = '<span class="validated" style="opacity:0.5">🔍 Google Places activo</span>';
@@ -1688,7 +1688,7 @@ async function setupGeocodingAutocomplete(inputId, suggestionsId, statusId, onSe
             const rawName = prop.name || [prop.street, prop.housenumber].filter(Boolean).join(' ') || 'Sin nombre';
             const detail = [prop.city || prop.county, prop.state].filter(Boolean).join(', ');
             const fullName = [rawName, detail].filter(Boolean).join(', ');
-            return `<div class="colonia-suggestion" data-name="${esc(rawName)}" data-full="${esc(fullName)}" data-lat="${f.geometry.coordinates[1]}" data-lon="${f.geometry.coordinates[0]}">
+            return `<div class="colonia-suggestion" data-name="${esc(rawName)}" data-full="${esc(fullName)}" data-lat="${f.geometry.coordinates[1]}" data-lon="${f.geometry.coordinates[0]}" data-mun="${esc(prop.city || prop.county || prop.town || '')}" data-est="${esc(prop.state || '')}">
               <div class="sug-main">${esc(rawName)} <small style="opacity:0.5;font-weight:400;margin-left:4px">${prop.osm_value ? '('+prop.osm_value+')' : ''}</small></div>
               <div class="sug-detail">${esc(detail)}</div>
             </div>`;
@@ -1700,7 +1700,10 @@ async function setupGeocodingAutocomplete(inputId, suggestionsId, statusId, onSe
               ci.value = s.dataset.name;
               if (sugBox) sugBox.classList.remove('open');
               if (statusEl) statusEl.innerHTML = `<span class="validated">✅ ${s.dataset.name}</span>`;
-              if (onSelectCallback) onSelectCallback(s.dataset.name, s.dataset.full, s.dataset.lat, s.dataset.lon);
+              if (onSelectCallback) onSelectCallback(s.dataset.name, s.dataset.full, s.dataset.lat, s.dataset.lon, {
+                lat: s.dataset.lat, lng: s.dataset.lon, name: s.dataset.name, formattedAddress: s.dataset.full,
+                municipio: s.dataset.mun, estado: s.dataset.est, source: 'Nominatim/OSM Autocomplete'
+              });
             });
           });
         }
@@ -3256,7 +3259,7 @@ function renderBranchLocation(branch) {
   if (statusEl) statusEl.innerHTML = '';
 
   // Setup Geocoding Autocomplete
-  setupGeocodingAutocomplete('loc-address-input', 'loc-address-suggestions', 'loc-address-status', (name, full, lat, lng) => {
+  setupGeocodingAutocomplete('loc-address-input', 'loc-address-suggestions', 'loc-address-status', (name, full, lat, lng, place) => {
     // Suppress re-render while we update colonia + run study
     _suppressFullRender = true;
     // Clear stale study since location changed
@@ -3271,6 +3274,11 @@ function renderBranchLocation(branch) {
         btn.dataset.lat = lat;
         btn.dataset.lng = lng;
         btn.dataset.full = full || name;
+        if (place) {
+          btn.dataset.municipio = place.municipio || '';
+          btn.dataset.estado = place.estado || '';
+          btn.dataset.source = place.source || '';
+        }
       }
       btn.click();
     }
@@ -3298,12 +3306,17 @@ function renderBranchLocation(branch) {
           lng: parseFloat(btn.dataset.lng),
           displayName: btn.dataset.full || query,
           colonia: query,
-          source: 'Autocomplete (Places/Nominatim)',
+          municipio: btn.dataset.municipio || null,
+          estado: btn.dataset.estado || null,
+          source: btn.dataset.source || 'Autocomplete (Places/Nominatim)',
           importance: 1
         };
         delete btn.dataset.lat;
         delete btn.dataset.lng;
         delete btn.dataset.full;
+        delete btn.dataset.municipio;
+        delete btn.dataset.estado;
+        delete btn.dataset.source;
       }
 
       try {
