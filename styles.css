@@ -238,7 +238,7 @@ body:has(#app-header){padding-top:50px}
 .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
 
 /* ═══ MAIN ═══ */
-#main-content{padding:0.5rem 0.75rem;width:100%;max-width:1600px;margin:0 auto;margin-left:calc(var(--sidebar-width) + auto);transition:margin-left 0.3s; flex:1;}
+#main-content{padding:0.5rem 0.75rem;max-width:none;margin:0;margin-left:var(--sidebar-width);transition:margin-left 0.3s; flex:1;}
 .tab-panel{display:none}.tab-panel.active{display:block}
 .view-header{margin-bottom:0.5rem}
 .view-header h2{font-size:1rem;font-weight:800;color:var(--text-1);letter-spacing:-0.01em}
