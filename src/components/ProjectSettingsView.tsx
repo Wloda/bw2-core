@@ -22,9 +22,8 @@ export const ProjectSettingsView: React.FC = () => {
   const consol = runConsolidation(pseudoProj, activeEmp);
   const capStatus = consol.capitalFree >= 0 ? 'good' : 'bad';
   
-  const partnersList = activeEmp.partners || [];
-  const totalEquity = partnersList.reduce((s, p) => s + p.equity, 0);
-  const equityOk = Math.abs(totalEquity - 1) < 0.001 || partnersList.length === 0;
+  const totalEquity = activeEmp.partners.reduce((s, p) => s + p.equity, 0);
+  const equityOk = Math.abs(totalEquity - 1) < 0.001 || activeEmp.partners.length === 0;
 
   const handleAddPartner = () => {
     if (!newPartnerName) return;
@@ -57,7 +56,7 @@ export const ProjectSettingsView: React.FC = () => {
         <div className={`kpi-card neutral`}>
           <div className="kpi-title">Capital Total (Empresa)</div>
           <div className="kpi-val">{fmtM(activeEmp.totalCapital)}</div>
-          <div className="kpi-desc">{partnersList.length} socios globales</div>
+          <div className="kpi-desc">{activeEmp.partners.length} socios globales</div>
         </div>
         <div className={`kpi-card neutral`}>
           <div className="kpi-title">Inv. Requerida ({activeProj ? 'Proyecto' : 'Global'})</div>
@@ -126,7 +125,7 @@ export const ProjectSettingsView: React.FC = () => {
           </h3>
 
           <div style={{ display: 'grid', gap: '0.5rem' }}>
-            {partnersList.map(p => {
+            {activeEmp.partners.map(p => {
                const pData = consol.perPartner?.find((cp: any) => cp.id === p.id);
                return (
                 <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 40px', gap: '0.5rem', alignItems: 'center', padding: '0.5rem', background: 'var(--bg)', borderRadius: 'var(--r-sm)' }}>

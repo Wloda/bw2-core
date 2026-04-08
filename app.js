@@ -52,7 +52,7 @@ if (GOOGLE_API_KEY) {
 
 /* ═══ GLOBALS & STATE ═══ */
 // State view: dashboard, bw2home, comparador, etc.
-const defaultState = { view: 'bw2home', activeBranchId: null, showInactive: false, activeTab: 'resultados' };
+const defaultState = { view: 'bw2home', activeLevel: 1, activeBranchId: null, showInactive: false, activeTab: 'resultados' };
 const savedState = JSON.parse(localStorage.getItem('bw2_ui_state') || 'null') || defaultState;
 let state = new Proxy(savedState, {
   set(target, prop, value) {
@@ -345,7 +345,7 @@ function openCommandPalette() {
     (emp.proyectos||[]).forEach(proj => {
       items.push({ icon: '📁', label: proj.name || proj.projectName || 'Proyecto', path: emp.name, action: () => { setActiveEmpresa(emp.id); setActiveProyecto(emp.id, proj.id); state.view = 'proyecto'; renderCurrentView(); }});
       (proj.branches||[]).forEach(b => {
-        items.push({ icon: '📍', label: b.name, path: `${emp.name} › ${proj.name||'Proyecto'}`, action: () => { setActiveEmpresa(emp.id); setActiveProyecto(emp.id, proj.id); state.view = 'branch'; state.activeBranchId = b.id; state.activeTab = 'resultados'; renderCurrentView(); }});
+        items.push({ icon: '📍', label: b.name, path: `${emp.name} › ${proj.name||'Proyecto'}`, action: () => { setActiveEmpresa(emp.id); setActiveProyecto(emp.id, proj.id); state.activeLevel = 3; state.view = 'branch'; state.activeBranchId = b.id; state.activeTab = 'resultados'; renderCurrentView(); }});
       });
     });
   });
@@ -523,8 +523,14 @@ function renderCurrentView() {
   } else if(isEmpresaDash) {
     // Level 2: Empresa Dashboard / Config
     if (state.view === 'empresa') {
+      // Show empresa-level settings (Sociedad y Socios)
       const db = $('view-empresa-dashboard');
       if (db) db.style.display = 'none';
+      const empView = $('view-empresa');
+      if (empView) {
+        empView.style.display = 'block';
+        if (activeEmp) renderEmpresaSettings(activeEmp);
+      }
     } else {
       $('view-empresa-dashboard').style.display='block';
       if(activeEmp) {
@@ -937,6 +943,7 @@ function renderEmpresaDashboard(empresa){
   gridEl.querySelectorAll('.btn-open-proyecto-dash').forEach(btn => {
     btn.addEventListener('click', () => {
       setActiveProyecto(btn.dataset.empId, btn.dataset.projId);
+      state.activeLevel = 3;
       state.view = 'portfolio';
       state.activeBranchId = null;
       renderCurrentView();
@@ -1251,7 +1258,7 @@ function renderPortfolio(empresa){
 }
 
 // Global action handlers
-window._openBranch = (id)=>{ const b=getBranch(id); state.view='branch'; state.activeBranchId=id; state.activeTab='resultados'; state.branchOverrides={}; renderCurrentView(); };
+window._openBranch = (id)=>{ const b=getBranch(id); state.activeLevel=3; state.view='branch'; state.activeBranchId=id; state.activeTab='resultados'; state.branchOverrides={}; renderCurrentView(); };
 window._activateBranch = (id)=>{ activateBranch(id); };
 window._restoreBranch = (id)=>{ restoreBranch(id); };
 window._renameBranch = (id)=>{
@@ -1335,7 +1342,8 @@ window._deleteBranch = (id)=>{
     () => {
       removeBranch(id);
       if (state.activeBranchId === id) { 
-        state.view = 'empresa-dashboard'; 
+        state.activeLevel = 3;
+        state.view = 'portfolio'; 
         state.activeBranchId = null; 
       }
       renderCurrentView();
@@ -1377,7 +1385,7 @@ function updateNav() {
     nav.innerHTML = html;
     
     const navEmpBtn = nav.querySelector('#btn-nav-crear-empresa');
-    if (navEmpBtn) navEmpBtn.addEventListener('click', () => showBW2Modal('config-empresa'));
+    if (navEmpBtn) navEmpBtn.addEventListener('click', () => WizardManager.open('empresa'));
 
 
     return;
@@ -1431,7 +1439,16 @@ function updateNav() {
   // Wire up generic view buttons (applies to ALL levels)
   nav.querySelectorAll('[data-view]').forEach(btn => {
     btn.addEventListener('click', () => {
-      state.view = btn.dataset.view;
+      const targetView = btn.dataset.view;
+      // "Sociedad y Socios" is empresa-level config — keep activeLevel at 2
+      if (targetView === 'empresa') {
+        state.activeLevel = 2;
+      }
+      // "Proyectos" button from empresa sidebar — keep at Level 2
+      if (targetView === 'empresa-dashboard') {
+        state.activeLevel = 2;
+      }
+      state.view = targetView;
       state.activeBranchId = null;
       renderCurrentView();
     });
@@ -1547,17 +1564,22 @@ function updateBreadcrumb() {
     crumbs.push({ label: emp.name || 'Empresa', action: 'empresa-dashboard' });
   }
 
-  // Level 3: Proyecto
-  if (state.view !== 'empresa-dashboard' && proy) {
+  // Level 2.5: Empresa-level settings (Sociedad y Socios)
+  if (state.view === 'empresa' && state.activeLevel === 2) {
+    crumbs.push({ label: 'Configuración de Sociedad', action: null });
+  }
+
+  // Level 3: Proyecto (only if NOT at empresa-level views)
+  if (state.view !== 'empresa-dashboard' && state.view !== 'empresa' && proy) {
     crumbs.push({ label: proy.name || 'Proyecto', action: 'portfolio' });
   }
 
   // Level 4: Current Entity (Branch or Settings view)
   if (isBranch && branch) {
     crumbs.push({ label: branch.name || 'Sucursal', action: null });
-  } else if (state.view !== 'empresa-dashboard' && state.view !== 'portfolio' && proy) {
+  } else if (state.view !== 'empresa-dashboard' && state.view !== 'empresa' && state.view !== 'portfolio' && proy) {
     const viewLabels = {
-      consolidated: 'Consolidado', comparador: 'Comparar', empresa: 'Configuración de Sociedad'
+      consolidated: 'Consolidado', comparador: 'Comparar'
     };
     if (viewLabels[state.view]) {
       crumbs.push({ label: viewLabels[state.view], action: null });
@@ -1798,6 +1820,7 @@ const WizardManager = {
           const gastos = parseFloat($('wiz-proj-gastos').value) || 0;
           if (gastos) updateProyecto(activeEmp.id, p.id, { corporateExpenses: gastos });
           setActiveProyecto(activeEmp.id, p.id);
+          state.activeLevel = 3;
           state.view = 'portfolio';
           state.activeBranchId = null;
           renderCurrentView();
@@ -3947,6 +3970,180 @@ async function renderComparador(empresa){
     const colors=['#4d7cfe','#34d399','#f87171','#fbbf24','#818cf8'];
     charts['comparador-cf']=new Chart(ctx,{type:'line',data:{labels:results[0].result.months.map(m=>'M'+m.month),datasets:results.map(({branch:b,result:r},i)=>({label:b.name,data:r.months.map(m=>m.cumulativeCashFlow),borderColor:colors[i%colors.length],fill:false,tension:0.3,pointRadius:0,borderWidth:2}))},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt.m(c.parsed.y)}`}}},scales:{y:{ticks:{callback:v=>fmt.mk(v)}}}}});
   }
+}
+
+/* ═══ EMPRESA SETTINGS VIEW (Sociedad y Socios — Level 2) ═══ */
+function renderEmpresaSettings(empresa){
+  const container = $('view-empresa');
+  if (!container || !empresa) return;
+
+  // Aggregate all branches across all projects for empresa-level consolidation
+  const allBranches = [];
+  // totalCapital is updated by partner CRUD at the proyecto level, so aggregate from there
+  let totalCap = (empresa.proyectos || []).reduce((s, p) => s + (p.totalCapital || 0), 0) || empresa.totalCapital || 0;
+  (empresa.proyectos || []).forEach(proj => {
+    (proj.branches || []).forEach(b => {
+      if (b.status !== 'archived') allBranches.push(b);
+    });
+  });
+
+  // Empresa-level pseudo-consolidation
+  let totalComm = 0, totalEBITDA = 0, totalScore = 0, scoredCount = 0;
+  allBranches.forEach(b => {
+    try {
+      const r = runBranchProjection(b, empresa);
+      if (r) {
+        totalComm += getOOP(r);
+        totalEBITDA += r.avgMonthlyEBITDA || 0;
+        if (r.viabilityScore) { totalScore += r.viabilityScore; scoredCount++; }
+      }
+    } catch(e){}
+  });
+  const avgScore = scoredCount ? Math.round(totalScore / scoredCount) : 0;
+  const totalFree = totalCap - totalComm;
+  // Partners live on the proyecto level — use first proyecto (matches getActiveProyecto fallback)
+  const firstProj = (empresa.proyectos || [])[0];
+  const partners = firstProj ? (firstProj.partners || []) : (empresa.partners || []);
+  const totalPartnerCap = partners.reduce((s, p) => s + (p.capital || 0), 0);
+  const totalEquity = partners.reduce((s, p) => s + (p.equity || 0), 0);
+  const equityOk = Math.abs(totalEquity - 1) < 0.001;
+
+  // Build KPIs
+  const kpis = `
+    <div class="kpi-grid" style="margin-bottom:1rem">
+      ${kc('Capital Total', fmt.m(totalCap), `${partners.length} socios`, 'neutral')}
+      ${kc('Inv. Requerida', fmt.oop(totalComm), `${allBranches.length} sucursales en ${(empresa.proyectos||[]).length} proyecto(s)`, totalComm > totalCap ? 'bad' : 'neutral')}
+      ${kc('Libre / Faltante', fmt.m(totalFree), totalFree >= 0 ? 'Capital Disponible' : '⚠️ Presupuesto Excedido', totalFree >= 0 ? 'good' : 'bad')}
+      ${kc('EBITDA/mes', fmt.m(totalEBITDA), `en ${allBranches.length} suc.`, totalEBITDA >= 0 ? 'good' : 'bad')}
+      ${kc('Score Prom.', avgScore + '/100', 'Todas las sucursales', avgScore >= 70 ? 'good' : avgScore >= 50 ? 'warn' : 'bad')}
+    </div>`;
+
+  // Build partners table
+  let partnersHTML = '';
+  if (partners.length) {
+    partnersHTML = `
+    <div class="socios-table-wrap"><table class="data-table socios-table"><thead><tr>
+      <th>Nombre</th><th class="num">Capital</th><th class="num">%</th><th></th>
+    </tr></thead><tbody>${partners.map(p => `<tr>
+      <td><input class="input-text inline" value="${esc(p.name)}" data-pid="${p.id}" data-field="name"></td>
+      <td class="num"><input class="input-text inline num" type="number" value="${p.capital}" data-pid="${p.id}" data-field="capital" step="100000"></td>
+      <td class="num calc" style="font-weight:600">${(p.equity*100).toFixed(1)}%</td>
+      <td><button class="btn-sm warn btn-rm-partner-emp" data-pid="${p.id}">🗑</button></td>
+    </tr>`).join('')}</tbody>
+    <tfoot><tr>
+      <td><strong>Total</strong></td>
+      <td class="num"><strong>${fmt.m(totalPartnerCap)}</strong></td>
+      <td class="num"><strong>100%</strong></td>
+      <td></td>
+    </tr></tfoot></table></div>`;
+  } else {
+    partnersHTML = '<p style="color:var(--text-3);font-size:0.85rem">Sin socios registrados. Agrega el primer socio abajo.</p>';
+  }
+
+  container.innerHTML = `
+    <div class="view-header"><h2>Sociedad y Socios</h2><p>Configuración a nivel empresa — ${esc(empresa.name)}</p></div>
+    ${kpis}
+    <div class="neu-card" style="margin-bottom:0.75rem">
+      <div class="card-title">🏢 Datos de la Empresa</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+        <div class="bw2-form-group">
+          <label>Nombre Legal / Sociedad</label>
+          <input type="text" id="es-emp-name" class="input-text" value="${esc(empresa.name || '')}">
+        </div>
+        <div class="bw2-form-group">
+          <label>Logo de la Empresa</label>
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            ${empresa.logo ? `<img src="${empresa.logo}" style="height:32px;border-radius:var(--r-sm)" alt="Logo">` : '<span style="color:var(--text-3);font-size:0.8rem">Sin logo</span>'}
+            <label class="btn-sm" style="cursor:pointer">📷 Cambiar<input type="file" id="es-logo-upload" accept="image/jpeg,image/png,image/webp" style="display:none"></label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="neu-card" style="margin-bottom:0.75rem">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>👥 Socios / Accionistas</span>
+      </div>
+      ${partnersHTML}
+      <div style="display:flex;gap:0.5rem;align-items:flex-end;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border)">
+        <div class="bw2-form-group" style="flex:2;margin:0"><label style="font-size:0.65rem">Nombre</label><input type="text" id="es-add-name" class="input-text" placeholder="Nombre del socio"></div>
+        <div class="bw2-form-group" style="flex:1;margin:0"><label style="font-size:0.65rem">Capital ($)</label><input type="number" id="es-add-capital" class="input-text" placeholder="500000" step="100000"></div>
+        <button class="btn-primary btn-sm" id="es-btn-add-partner" style="white-space:nowrap;height:fit-content">+ Agregar</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:0.5rem">
+      <button class="btn-primary" id="es-btn-save">Guardar Cambios</button>
+    </div>
+  `;
+
+  // ── Wire events ──
+
+  // Partner inline edits
+  container.querySelectorAll('input[data-pid]').forEach(inp => {
+    inp.addEventListener('change', e => {
+      const pid = e.target.dataset.pid, field = e.target.dataset.field;
+      let val = e.target.value;
+      if (field === 'capital') { val = Math.max(0, parseFloat(val) || 0); }
+      else if (field === 'equity') { val = Math.max(0, Math.min(100, parseFloat(val) || 0)) / 100; }
+      else if (field === 'name') { val = val.trim().slice(0, 100); if (!val) return; }
+      updatePartner(pid, { [field]: val });
+      renderEmpresaSettings(getActiveEmpresa()); // refresh KPIs
+    });
+  });
+
+  // Remove partner
+  container.querySelectorAll('.btn-rm-partner-emp').forEach(btn => {
+    btn.addEventListener('click', () => {
+      showConfirm('🗑 ¿Eliminar este socio?','<p>Se eliminará y se recalcularán las métricas.</p>','🗑 Eliminar',() => {
+        removePartner(btn.dataset.pid);
+        renderEmpresaSettings(getActiveEmpresa());
+      });
+    });
+  });
+
+  // Add partner
+  const addBtn = container.querySelector('#es-btn-add-partner');
+  if (addBtn) addBtn.addEventListener('click', () => {
+    const n = container.querySelector('#es-add-name')?.value?.trim();
+    const c = parseFloat(container.querySelector('#es-add-capital')?.value);
+    if (!n || isNaN(c) || c <= 0) return;
+    addPartner(n, c, 0); // equity auto-calculated by _recalcEquity
+    renderEmpresaSettings(getActiveEmpresa());
+  });
+
+  // Save
+  const saveBtn = container.querySelector('#es-btn-save');
+  if (saveBtn) saveBtn.addEventListener('click', () => {
+    const name = container.querySelector('#es-emp-name')?.value?.trim();
+    if (name) updateEmpresaData(empresa.id, { name });
+    renderEmpresaSettings(getActiveEmpresa());
+    saveBtn.textContent = '✅ Guardado';
+    setTimeout(() => saveBtn.textContent = 'Guardar Cambios', 1500);
+    updateBreadcrumb();
+  });
+
+  // Logo upload
+  const logoInput = container.querySelector('#es-logo-upload');
+  if (logoInput) logoInput.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > 200 || h > 200) {
+          if (w > h) { h = Math.round((h * 200) / w); w = 200; }
+          else { w = Math.round((w * 200) / h); h = 200; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img, 0, 0, w, h);
+        updateEmpresaData(empresa.id, { logo: canvas.toDataURL('image/jpeg', 0.8) });
+        renderEmpresaSettings(getActiveEmpresa());
+      };
+      img.src = URL.createObjectURL(e.target.files[0]);
+    }
+  });
 }
 
 /* ═══ PROYECTO SETTINGS VIEW ═══ */

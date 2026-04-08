@@ -410,6 +410,13 @@ export function resetEmpresa() {
 }
 
 /* ── Partners (on active proyecto) ── */
+function _recalcEquity(proj) {
+  proj.totalCapital = proj.partners.reduce((sum, p) => sum + Number(p.capital || 0), 0);
+  proj.partners.forEach(p => {
+    p.equity = proj.totalCapital > 0 ? Number(p.capital || 0) / proj.totalCapital : 0;
+  });
+}
+
 export function addPartner(name, capital, equity) {
   const proj = getActiveProyecto();
   if (!proj) return;
@@ -417,7 +424,7 @@ export function addPartner(name, capital, equity) {
     id: uid('p'),
     name, capital, equity
   });
-  proj.totalCapital = proj.partners.reduce((sum, p) => sum + Number(p.capital || 0), 0);
+  _recalcEquity(proj);
   _save();
 }
 
@@ -427,7 +434,7 @@ export function updatePartner(partnerId, updates) {
   const p = proj.partners.find(p => p.id === partnerId);
   if (p) { 
     Object.assign(p, updates); 
-    proj.totalCapital = proj.partners.reduce((sum, part) => sum + Number(part.capital || 0), 0);
+    _recalcEquity(proj);
     _save(); 
   }
 }
@@ -436,7 +443,7 @@ export function removePartner(partnerId) {
   const proj = getActiveProyecto();
   if (!proj) return;
   proj.partners = proj.partners.filter(p => p.id !== partnerId);
-  proj.totalCapital = proj.partners.reduce((sum, p) => sum + Number(p.capital || 0), 0);
+  _recalcEquity(proj);
   _save();
 }
 

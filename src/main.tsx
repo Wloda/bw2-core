@@ -50,7 +50,6 @@ const ReactIntegration = () => {
 
   return (
     <>
-      {viewState.view === 'empresa' && <ProjectSettingsView />}
       {viewState.view === 'portfolio' && <PortfolioView />}
     </>
   );
