@@ -808,33 +808,13 @@ function renderPortfolioSummary(empresa){
   
   el.style.display='';
   el.innerHTML=`
-    <div class="global-summary-title">📁 ${esc(proj.name)} — Resumen</div>
-    <div class="global-summary-grid">
-      <div class="global-summary-card">
-        <span class="global-summary-label">Capital</span>
-        <span class="global-summary-value">${fmt.m(pseudoEmpresa.totalCapital)}</span>
-      </div>
-      <div class="global-summary-card">
-        <span class="global-summary-label">Inv. Requerida</span>
-        <span class="global-summary-value" style="color:var(--yellow)">${fmt.iva(consol.capitalCommitted)}</span>
-        <span class="global-summary-sub">${pseudoEmpresa.totalCapital?((consol.capitalCommitted/pseudoEmpresa.totalCapital)*100).toFixed(0):'0'}%</span>
-      </div>
-      <div class="global-summary-card">
-        <span class="global-summary-label">Libre / Faltante</span>
-        <span class="global-summary-value" style="color:${consol.capitalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(consol.capitalFree)}</span>
-      </div>
-      <div class="global-summary-card">
-        <span class="global-summary-label">Ganancia/mes</span>
-        <span class="global-summary-value" style="color:${consol.avgMonthlyEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(consol.avgMonthlyEBITDA)}</span>
-      </div>
-      <div class="global-summary-card">
-        <span class="global-summary-label">Sucursales</span>
-        <span class="global-summary-value">${consol.branchCount}</span>
-      </div>
-      <div class="global-summary-card">
-        <span class="global-summary-label">Score</span>
-        <span class="global-summary-value">${scoreRing(consol.avgScore, 40)}</span>
-      </div>
+    <div class="kpi-grid">
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital</div><div class="kpi-value">${fmt.m(pseudoEmpresa.totalCapital)}</div></div>
+      <div class="kpi-card" data-status="${consol.capitalCommitted>pseudoEmpresa.totalCapital?'danger':'warn'}"><div class="kpi-label">Inv. Requerida</div><div class="kpi-value" style="color:${consol.capitalCommitted>pseudoEmpresa.totalCapital?'var(--red)':'var(--yellow)'}">${fmt.iva(consol.capitalCommitted)}</div><div class="kpi-detail">${pseudoEmpresa.totalCapital?((consol.capitalCommitted/pseudoEmpresa.totalCapital)*100).toFixed(0):'0'}% del cap.</div></div>
+      <div class="kpi-card" data-status="${consol.capitalFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${consol.capitalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(consol.capitalFree)}</div></div>
+      <div class="kpi-card" data-status="${consol.avgMonthlyEBITDA>=0?'success':'danger'}"><div class="kpi-label">Ganancia/mes</div><div class="kpi-value" style="color:${consol.avgMonthlyEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(consol.avgMonthlyEBITDA)}</div></div>
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${consol.branchCount}</div></div>
+      <div class="kpi-card" data-status="${consol.avgScore>=70?'success':consol.avgScore>=50?'warn':'danger'}"><div class="kpi-label">Score</div><div class="kpi-value" style="display:flex;align-items:center;">${scoreRing(consol.avgScore,40)}</div></div>
     </div>`;
 }
 
@@ -1195,6 +1175,7 @@ function showBW2Modal(type, empId, projId){
 
 /* ═══ PORTFOLIO VIEW ═══ */
 function renderPortfolio(empresa){
+  renderPortfolioSummary(empresa);
   const container=$('portfolio-grid');if(!container)return;
   // In the compatibility wrapper, `empresa` IS the active proyecto natively
   const proj = empresa;
@@ -1447,7 +1428,16 @@ function updateNav() {
     }
   }));
 
-  // Wire up events
+  // Wire up generic view buttons (applies to ALL levels)
+  nav.querySelectorAll('[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.view = btn.dataset.view;
+      state.activeBranchId = null;
+      renderCurrentView();
+    });
+  });
+
+  // Wire up specific events
   if (isEmpresaDash) {
     const addProjBtn = nav.querySelector('#btn-add-proyecto-nav');
     if (addProjBtn && activeEmp) {
@@ -1528,15 +1518,7 @@ function updateNav() {
       }
     });
   } else {
-    // Project-level nav buttons
-    nav.querySelectorAll('[data-view]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        state.view = btn.dataset.view;
-        state.activeBranchId = null;
-        renderCurrentView();
-      });
-    });
-    // Add branch
+    // Add branch (Level 3 specific)
     const addBtn = nav.querySelector('#btn-add-branch');
     if (addBtn) addBtn.addEventListener('click', showAddBranchModal);
   }
