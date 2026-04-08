@@ -146,7 +146,10 @@ const _origEnsureChartJS = window.ensureChartJS;
 window.ensureChartJS = async function() { await _origEnsureChartJS(); _configureChartDefaults(); };
 
 const $=id=>document.getElementById(id);
-const _getf = () => document.getElementById('toggle-iva')?.checked ? 1.16 : 1;
+const _getf = () => {
+  const el = document.getElementById('toggle-iva');
+  return el ? (el.checked ? 1.16 : 1) : 1.16; // Asume IVA default si no hay toggle global
+};
 const getOOP = (r) => (r.totalInvestment * _getf()) + (r.workingCapitalRequired || 0);
 const getOOPConsol = (c) => (c.totalInvestment * _getf()) + (c.totalWorkingCapital || 0);
 const fmt={m:v=>'$'+Math.round(v).toLocaleString('es-MX'),mk:v=>'$'+(v/1000).toFixed(0)+'K',iva:v=>'$'+Math.round(v*_getf()).toLocaleString('es-MX'),mkIva:v=>'$'+(v*_getf()/1000).toFixed(0)+'K',p:v=>(v*100).toFixed(1)+'%',pi:v=>Math.round(v*100)+'%',mo:v=>v?v+' m':'∞',oop:v=>'$'+Math.round(v).toLocaleString('es-MX')};
@@ -646,7 +649,7 @@ function renderBW2Home(){
   h += `<div class="bw2-global-summary" style="margin-bottom:0.75rem;">
     <div class="kpi-grid">
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital Total</div><div class="kpi-value">${fmt.m(gCap)}</div></div>
-      <div class="kpi-card" data-status="${gTangible>gCap?'danger':'warn'}"><div class="kpi-label">CAPEX + Inv.</div><div class="kpi-value" style="color:${gTangible>gCap?'var(--red)':'var(--yellow)'}">${fmt.m(gTangible)}</div><div class="kpi-detail">${gCap>0?((gTangible/gCap)*100).toFixed(0):'0'}% de cap.</div></div>
+      <div class="kpi-card" data-status="${gComm>gCap?'danger':'warn'}"><div class="kpi-label">Tope Máx. Requerido</div><div class="kpi-value" style="color:${gComm>gCap?'var(--red)':'var(--yellow)'}">${fmt.oop(gComm)}</div><div class="kpi-detail">${gCap>0?((gComm/gCap)*100).toFixed(0):'0'}% de cap.</div></div>
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Reserva Opex</div><div class="kpi-value">${fmt.m(gWorkingCapital)}</div><div class="kpi-detail">Capital de Trabajo</div></div>
       <div class="kpi-card" data-status="${gFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${gFree>=0?'var(--green)':'var(--red)'}">${fmt.m(gFree)}</div></div>
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${gBranches}</div><div class="kpi-detail">${empresas.length} empresa${empresas.length!==1?'s':''}</div></div>
