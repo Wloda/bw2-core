@@ -493,7 +493,8 @@ function renderCurrentView() {
 
   if(colorLegend) colorLegend.remove();
 
-  const empresa=getEmpresa();
+  const activeEmp = getActiveEmpresa();
+  const activeProj = getActiveProyecto();
 
   // Hide all views
   ['view-bw2-home','view-empresa-dashboard','view-portfolio','view-branch','view-consolidated','view-comparador','view-empresa','view-glosario'].forEach(id=>{
@@ -506,7 +507,7 @@ function renderCurrentView() {
 
   const isEmpresaDash = state.view === 'empresa-dashboard';
 
-  if(isBW2Home || (!empresa && !isEmpresaDash)) {
+  if(isBW2Home || (!activeEmp && !isEmpresaDash)) {
     $('view-bw2-home').style.display='block';
     renderBW2Home();
     if(hInfo) hInfo.innerHTML='';
@@ -517,9 +518,8 @@ function renderCurrentView() {
   } else if(isEmpresaDash) {
     // Level 2: Empresa Dashboard
     $('view-empresa-dashboard').style.display='block';
-    const emp = getActiveEmpresa();
-    if(emp) {
-      renderEmpresaDashboard(emp);
+    if(activeEmp) {
+      renderEmpresaDashboard(activeEmp);
     }
     if(hInfo) hInfo.innerHTML=''; // breadcrumb already shows empresa name
     if(headerLogo) headerLogo.style.display = '';
@@ -529,23 +529,23 @@ function renderCurrentView() {
   } else {
     if(headerLogo) headerLogo.style.display = '';
     if(headerBrand) headerBrand.style.display = '';
-    updateEnterpriseHeader(empresa);
+    updateEnterpriseHeader(activeProj);
     // Restore sidebar spacing
     if(mainContent) mainContent.style.marginLeft = '';
     if(appFooter) appFooter.style.marginLeft = '';
 
-    if(state.view==='portfolio') { $('view-portfolio').style.display='block'; renderPortfolioSummary(empresa); renderPortfolio(empresa); }
+    if(state.view==='portfolio') { $('view-portfolio').style.display='block'; renderPortfolioSummary(activeProj); renderPortfolio(activeProj); }
     else if(state.view==='branch'&&state.activeBranchId) {
       $('view-branch').style.display='block';
       // Ensure active tab is shown
       switchBranchTab(state.activeTab || 'resultados');
-      renderBranchDetail(empresa);
+      renderBranchDetail(activeProj);
     }
-    else if(state.view==='consolidated') { $('view-consolidated').style.display='block'; renderConsolidated(empresa); }
-    else if(state.view==='comparador') { $('view-comparador').style.display='block'; renderComparador(empresa); }
-    else if(state.view==='empresa') { $('view-empresa').style.display='block'; renderEmpresaSettings(empresa); }
+    else if(state.view==='consolidated') { $('view-consolidated').style.display='block'; renderConsolidated(activeProj); }
+    else if(state.view==='comparador') { $('view-comparador').style.display='block'; renderComparador(activeProj); }
+    else if(state.view==='empresa') { /* Handled entirely by React (ProjectSettingsView) */ }
     else if(state.view==='glosario') { $('view-glosario').style.display='block'; renderGlosario(); }
-    else { $('view-portfolio').style.display='block'; renderPortfolioSummary(empresa); renderPortfolio(empresa); }
+    else { $('view-portfolio').style.display='block'; renderPortfolioSummary(activeProj); renderPortfolio(activeProj); }
   }
 
   // Update contextual sidebar and breadcrumb
@@ -1389,9 +1389,6 @@ function updateNav() {
     // Level 2: Empresa
     html += `<div class="nav-section">Portafolio</div>`;
     html += `<button class="nav-btn active"><span class="nav-icon">${ico('folder')}</span><span class="nav-text">Proyectos</span></button>`;
-    html += `<div class="nav-divider"></div>`;
-    html += `<div class="nav-section">Corporativo</div>`;
-    html += `<button class="nav-btn" data-action="empresa-settings"><span class="nav-icon">${ico('scale')}</span><span class="nav-text">Sociedad y Configuración</span></button>`;
     html += `<div style="margin-top:1.5rem">`;
     html += `<button class="btn-add" id="btn-add-proyecto-nav"><span class="nav-icon">+</span> <span class="nav-text">Nuevo Proyecto</span></button>`;
     html += `</div>`;
@@ -1412,25 +1409,21 @@ function updateNav() {
     html += `<button class="nav-btn ${state.view === 'portfolio' ? 'active' : ''}" data-view="portfolio"><span class="nav-icon">${ico('mapPin')}</span><span class="nav-text">Sucursales</span></button>`;
     html += `<button class="nav-btn ${state.view === 'consolidated' ? 'active' : ''}" data-view="consolidated"><span class="nav-icon">${ico('chart')}</span><span class="nav-text">P&L Consolidado</span></button>`;
     html += `<button class="nav-btn ${state.view === 'comparador' ? 'active' : ''}" data-view="comparador"><span class="nav-icon">${ico('scale')}</span><span class="nav-text">Comparar Red</span></button>`;
+    html += `<div class="nav-divider"></div>`;
+    html += `<div class="nav-section">Configuración de Proyecto</div>`;
+    html += `<button class="nav-btn ${state.view === 'empresa' ? 'active' : ''}" data-view="empresa"><span class="nav-icon">${ico('shield')}</span><span class="nav-text">Sociedad y Socios</span></button>`;
     html += `<div style="margin-top:1.5rem">`;
     html += `<button class="btn-add" id="btn-add-branch"><span class="nav-icon">+</span> <span class="nav-text">Nueva Unidad</span></button>`;
     html += `</div>`;
   }
 
   nav.innerHTML = html;
+  window.dispatchEvent(new CustomEvent('bw2:sync-state', {
+    detail: { view: state.view, activeTab: state.activeTab, activeBranchId: state.activeBranchId }
+  }));
 
   // Wire up events
   if (isEmpresaDash) {
-    const settingsBtn = nav.querySelector('[data-action="empresa-settings"]');
-    if (settingsBtn && activeEmp) {
-      settingsBtn.addEventListener('click', () => {
-        if(activeEmp.proyectos.length) {
-          setActiveProyecto(activeEmp.id, activeEmp.proyectos[0].id);
-        }
-        state.view = 'empresa'; // the UI view for society settings
-        renderCurrentView();
-      });
-    }
     const addProjBtn = nav.querySelector('#btn-add-proyecto-nav');
     if (addProjBtn && activeEmp) {
       addProjBtn.addEventListener('click', () => WizardManager.open('proyecto', activeEmp.id));
@@ -1557,7 +1550,7 @@ function updateBreadcrumb() {
     crumbs.push({ label: branch.name || 'Sucursal', action: null });
   } else if (state.view !== 'empresa-dashboard' && state.view !== 'portfolio' && proy) {
     const viewLabels = {
-      consolidated: 'Consolidado', comparador: 'Comparar', empresa: 'Sociedad y Socios'
+      consolidated: 'Consolidado', comparador: 'Comparar', empresa: 'Configuración de Sociedad'
     };
     if (viewLabels[state.view]) {
       crumbs.push({ label: viewLabels[state.view], action: null });
@@ -3912,38 +3905,38 @@ async function renderComparador(empresa){
   }
 }
 
-/* ═══ EMPRESA SETTINGS VIEW ═══ */
-function renderEmpresaSettings(empresa){
-  const consol = runConsolidation(empresa, getActiveEmpresa());
+/* ═══ PROYECTO SETTINGS VIEW ═══ */
+function renderProyectoSettings(proyecto){
+  const consol = runConsolidation(proyecto, getActiveEmpresa());
 
   // ── KPI strip at top ──
   const kpiEl = $('empresa-kpis');
   if (kpiEl) {
     const capStatus = consol.capitalFree >= 0 ? 'good' : 'bad';
     kpiEl.innerHTML = [
-      kc('Capital Total', fmt.m(empresa.totalCapital), `${empresa.partners.length} socios`, 'neutral'),
-      kc('Inv. Requerida', fmt.iva(consol.capitalCommitted), `Sumatoria Capex de ${consol.branchCount || activeBranches?.length || 0} suc+reserva`, 'neutral'),
+      kc('Capital Total', fmt.m(proyecto.totalCapital), `${proyecto.partners.length} socios`, 'neutral'),
+      kc('Inv. Requerida', fmt.iva(consol.capitalCommitted), `Sumatoria Capex de ${consol.branchCount || 0} suc+reserva`, 'neutral'),
       kc('Libre / Faltante', fmt.m(consol.capitalFree), capStatus === 'good' ? 'Capital Disponible' : '⚠️ Presupuesto Excedido', capStatus),
-      kc('Ganancia/mes', fmt.m(consol.avgMonthlyNet), `en ${consol.branchCount || activeBranches?.length || 0} suc.`, consol.avgMonthlyNet >= 0 ? 'good' : 'bad'),
-      kc('Recuperación Emp.', consol.paybackMonth ? consol.paybackMonth + ' meses' : '∞', 'Todas las sucursales', consol.paybackMonth && consol.paybackMonth <= 36 ? 'good' : 'warn'),
+      kc('Ganancia/mes', fmt.m(consol.avgMonthlyNet), `en ${consol.branchCount || 0} suc.`, consol.avgMonthlyNet >= 0 ? 'good' : 'bad'),
+      kc('Recuperación Proy.', consol.paybackMonth ? consol.paybackMonth + ' meses' : '∞', 'Todas las sucursales', consol.paybackMonth && consol.paybackMonth <= 36 ? 'good' : 'warn'),
       kc('Calificación', consol.avgScore + '/100', 'Promedio portafolio', consol.avgScore >= 70 ? 'good' : consol.avgScore >= 50 ? 'warn' : 'bad')
     ].join('');
   }
 
   // ── Form fields ──
-  $('emp-name').value = empresa.name || '';
+  $('emp-name').value = proyecto.name || '';
   
   const logoPreview = $('emp-logo-preview');
-  if (logoPreview) logoPreview.src = empresa.logo || 'assets/nojom-bird.png';
+  if (logoPreview) logoPreview.src = proyecto.logo || 'assets/nojom-bird.png';
   const projNameEl = $('emp-project-name');
-  if (projNameEl) projNameEl.value = empresa.projectName || 'FarmaTuya';
-  $('emp-capital').value = empresa.totalCapital || 0;
-  $('emp-reserve').value = empresa.corporateReserve || 0;
+  if (projNameEl) projNameEl.value = proyecto.name || 'Proyecto'; // used to be projectName, now they use name
+  $('emp-capital').value = proyecto.totalCapital || 0;
+  $('emp-reserve').value = proyecto.corporateReserve || 0;
   const corpExpEl = $('emp-corp-expenses');
-  if (corpExpEl) corpExpEl.value = empresa.corporateExpenses || 0;
+  if (corpExpEl) corpExpEl.value = proyecto.corporateExpenses || 0;
 
   // ── Partners table with calculated metrics ──
-  renderPartnersTable(empresa.partners, consol);
+  renderPartnersTable(proyecto.partners, consol);
 }
 
 function renderPartnersTable(partners, consol){

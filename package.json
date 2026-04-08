@@ -4,10 +4,24 @@
   "description": "FarmaTuya Financial Dashboard",
   "main": "app.js",
   "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
     "test": "node validate_engine.mjs",
     "prepare": "husky"
   },
   "devDependencies": {
-    "husky": "^9.0.11"
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "husky": "^9.0.11",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.7",
+    "vite-node": "^6.0.0"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "zustand": "^5.0.12"
   }
 }
