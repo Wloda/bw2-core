@@ -768,11 +768,7 @@ function bindBW2Events(){
   document.querySelectorAll('.btn-edit-empresa').forEach(btn=>{
     btn.onclick = (e)=>{ 
       e.stopPropagation(); 
-      setActiveEmpresa(btn.dataset.empId);
-      state.activeLevel = 2;
-      state.view = 'empresa';
-      state.activeBranchId = null;
-      renderCurrentView();
+      showBW2Modal('editar-empresa', btn.dataset.empId);
     };
   });
   document.querySelectorAll('.btn-delete-empresa').forEach(btn=>{
@@ -1041,10 +1037,6 @@ function showBW2Modal(type, empId, projId){
       <label>Nombre de la Empresa</label>
       <input type="text" id="bw2-input-name" class="input-text" value="${emp?.nombre||emp?.name||''}" autofocus>
     </div>
-    <div class="bw2-form-group">
-      <label>Capital Inicial ($)</label>
-      <input type="number" id="bw2-input-capital" class="input-text" value="${emp?.capitalInicial||2000000}" step="100000">
-    </div>
     ${logoField('Logo de la Empresa', emp?.logo || null)}`;
   } else if(type==='crear-proyecto'){
     title='Nuevo Proyecto';
@@ -1173,8 +1165,7 @@ function showBW2Modal(type, empId, projId){
       if(pendingLogoDataURL || cap !== 2000000) updateEmpresaData(newEmp.id, {logo: pendingLogoDataURL, capitalInicial: cap});
       showToast(`Empresa "${nameVal}" creada`,'success');
     } else if(type==='editar-empresa'){
-      const cap = parseFloat($('bw2-input-capital')?.value)||2000000;
-      updateEmpresaData(empId, {nombre:nameVal, logo: pendingLogoDataURL, capitalInicial: cap});
+      updateEmpresaData(empId, {nombre:nameVal, logo: pendingLogoDataURL});
       showToast('Empresa actualizada','success');
     } else if(type==='crear-proyecto'){
       const cap = parseFloat($('bw2-input-capital')?.value)||2000000;
