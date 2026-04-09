@@ -3988,12 +3988,13 @@ function renderEmpresaSettings(empresa){
   });
 
   // Empresa-level pseudo-consolidation
-  let totalComm = 0, totalEBITDA = 0, totalScore = 0, scoredCount = 0;
+  let totalComm = 0, totalEBITDA = 0, totalScore = 0, scoredCount = 0, totalWorkingCapital = 0;
   allBranches.forEach(b => {
     try {
       const r = runBranchProjection(b, empresa);
       if (r) {
         totalComm += getOOP(r);
+        totalWorkingCapital += r.workingCapitalRequired || 0;
         totalEBITDA += r.avgMonthlyEBITDA || 0;
         if (r.viabilityScore) { totalScore += r.viabilityScore; scoredCount++; }
       }
@@ -4008,15 +4009,16 @@ function renderEmpresaSettings(empresa){
   const totalEquity = partners.reduce((s, p) => s + (p.equity || 0), 0);
   const equityOk = Math.abs(totalEquity - 1) < 0.001;
 
-  // Build KPIs
+  // Build KPIs (Matching renderBW2Home design strictly)
   const kpis = `
     <div class="kpi-grid" style="margin-bottom:1rem">
-      ${kc('Capital Total', fmt.m(totalCap), `${partners.length} socios`, 'neutral')}
-      ${kc('Inv. Requerida', fmt.oop(totalComm), `${allBranches.length} sucursales en ${(empresa.proyectos||[]).length} proyecto(s)`, totalComm > totalCap ? 'bad' : 'neutral')}
-      ${kc('Libre / Faltante', fmt.m(totalFree), totalFree >= 0 ? 'Capital Disponible' : '⚠️ Presupuesto Excedido', totalFree >= 0 ? 'good' : 'bad')}
-      ${kc('Proyectos', (empresa.proyectos||[]).length.toString(), '', 'neutral')}
-      ${kc('EBITDA/mes', fmt.m(totalEBITDA), `en ${allBranches.length} suc.`, totalEBITDA >= 0 ? 'good' : 'bad')}
-      ${kc('Score', avgScore + '/100', 'Todas las sucursales', avgScore >= 70 ? 'good' : avgScore >= 50 ? 'warn' : 'bad')}
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital Total</div><div class="kpi-value">${fmt.m(totalCap)}</div><div class="kpi-detail">${partners.length} socios</div></div>
+      <div class="kpi-card" data-status="${totalComm>totalCap?'danger':'warn'}"><div class="kpi-label">Tope Máx. Requerido</div><div class="kpi-value" style="color:${totalComm>totalCap?'var(--red)':'var(--yellow)'}">${fmt.oop(totalComm)}</div><div class="kpi-detail">${totalCap>0?((totalComm/totalCap)*100).toFixed(0):'0'}% de cap.</div></div>
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Reserva Opex</div><div class="kpi-value">${fmt.m(totalWorkingCapital)}</div><div class="kpi-detail">Capital de Trabajo</div></div>
+      <div class="kpi-card" data-status="${totalFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${totalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(totalFree)}</div><div class="kpi-detail">${totalFree>=0?'Capital Disponible':'⚠️ Presupuesto Excedido'}</div></div>
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${allBranches.length}</div><div class="kpi-detail">${(empresa.proyectos||[]).length} proyecto(s)</div></div>
+      <div class="kpi-card" data-status="${totalEBITDA>=0?'success':'danger'}"><div class="kpi-label">EBITDA/mes</div><div class="kpi-value" style="color:${totalEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(totalEBITDA)}</div><div class="kpi-detail">agregado</div></div>
+      <div class="kpi-card" data-status="${avgScore >= 80 ? 'success' : avgScore >= 60 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value" style="display:flex;align-items:center;">${scoreRing(avgScore, 40)}</div><div class="kpi-detail">portafolio</div></div>
     </div>`;
 
   // Build partners table
