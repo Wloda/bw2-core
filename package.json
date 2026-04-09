@@ -1,6 +1,6 @@
 {
   "name": "bw2-core",
-  "version": "1.0.0",
+  "version": "9.0.0",
   "description": "FarmaTuya Financial Dashboard",
   "main": "app.js",
   "scripts": {
