@@ -658,13 +658,13 @@ function renderBW2Home(){
   // ── Summary (full-width grid, no floating title) ──
   h += `<div class="bw2-global-summary" style="margin-bottom:0.75rem;">
     <div class="kpi-grid">
-      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital Total</div><div class="kpi-value">${fmt.m(gCap)}</div></div>
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital Total</div><div class="kpi-value">${fmt.m(gCap)}</div><div class="kpi-detail">global</div></div>
       <div class="kpi-card" data-status="${gComm>gCap?'danger':'warn'}"><div class="kpi-label">Tope Máx. Requerido</div><div class="kpi-value" style="color:${gComm>gCap?'var(--red)':'var(--yellow)'}">${fmt.oop(gComm)}</div><div class="kpi-detail">${gCap>0?((gComm/gCap)*100).toFixed(0):'0'}% de cap.</div></div>
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Reserva Opex</div><div class="kpi-value">${fmt.m(gWorkingCapital)}</div><div class="kpi-detail">Capital de Trabajo</div></div>
-      <div class="kpi-card" data-status="${gFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${gFree>=0?'var(--green)':'var(--red)'}">${fmt.m(gFree)}</div></div>
+      <div class="kpi-card" data-status="${gFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${gFree>=0?'var(--green)':'var(--red)'}">${fmt.m(gFree)}</div><div class="kpi-detail">${gFree>=0?'Capital Disponible':'⚠️ Presupuesto Excedido'}</div></div>
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${gBranches}</div><div class="kpi-detail">${empresas.length} empresa${empresas.length!==1?'s':''}</div></div>
-      <div class="kpi-card" data-status="${gEBITDA>=0?'success':'danger'}"><div class="kpi-label">EBITDA/mes</div><div class="kpi-value" style="color:${gEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(gEBITDA)}</div></div>
-      <div class="kpi-card" data-status="${gAvg >= 80 ? 'success' : gAvg >= 60 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value" style="display:flex;align-items:center;">${scoreRing(gAvg, 40)}</div></div>
+      <div class="kpi-card" data-status="${gEBITDA>=0?'success':'danger'}"><div class="kpi-label">EBITDA/mes</div><div class="kpi-value" style="color:${gEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(gEBITDA)}</div><div class="kpi-detail">agregado</div></div>
+      <div class="kpi-card" data-status="${gAvg >= 80 ? 'success' : gAvg >= 60 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value" style="display:flex;align-items:center;">${scoreRing(gAvg, 40)}</div><div class="kpi-detail">portafolio</div></div>
     </div>
   </div>`;
 

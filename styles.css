@@ -649,7 +649,7 @@ body:has(#app-header){padding-top:50px}
 .kpi-card[data-status="good"] .kpi-value,.kpi-card[data-status="success"] .kpi-value{color:var(--green)}
 .kpi-card[data-status="bad"] .kpi-value,.kpi-card[data-status="danger"] .kpi-value{color:var(--red)}
 .kpi-card[data-status="warn"] .kpi-value,.kpi-card[data-status="warning"] .kpi-value{color:var(--yellow)}
-.kpi-detail{font-size:0.65rem;color:var(--text-2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-detail{font-size:0.65rem;color:var(--text-2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:0.9rem}
 
 /* ═══ KPI TOOLTIP (?) ═══ */
 .kpi-help{
