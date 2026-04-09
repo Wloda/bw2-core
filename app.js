@@ -273,6 +273,12 @@ function scoreRing(score, size=48) {
   </div>`;
 }
 
+function scoreBar(score) {
+  const pct = Math.min(100, Math.max(0, score));
+  const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+  return `<span style="font-family:var(--font-mono);font-size:1.05rem;font-weight:700;color:${color}">${score}/100</span>`;
+}
+
 /* ── Sparkline SVG helper ── */
 function sparklineSVG(values, w=120, h=28) {
   if (!values || values.length < 2) return '';
@@ -631,7 +637,9 @@ function renderBW2Home(){
   let gCap=0,gComm=0,gBranches=0,gEBITDA=0,gScore=0,gScored=0;
   let gTangible=0,gWorkingCapital=0;
   empresas.forEach(emp => {
-    gCap += emp.totalCapital || 0;
+    // totalCapital lives on the proyecto level (updated by partner CRUD)
+    const empCap = (emp.proyectos||[]).reduce((s, p) => s + (p.totalCapital || 0), 0) || emp.totalCapital || 0;
+    gCap += empCap;
     (emp.proyectos||[]).forEach(proj => {
       (proj.branches||[]).forEach(b => {
         if(b.status==='archived') return;
@@ -659,12 +667,12 @@ function renderBW2Home(){
   h += `<div class="bw2-global-summary" style="margin-bottom:0.75rem;">
     <div class="kpi-grid">
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital Total</div><div class="kpi-value">${fmt.m(gCap)}</div><div class="kpi-detail">global</div></div>
-      <div class="kpi-card" data-status="${gComm>gCap?'danger':'warn'}"><div class="kpi-label">Tope Máx. Requerido</div><div class="kpi-value" style="color:${gComm>gCap?'var(--red)':'var(--yellow)'}">${fmt.oop(gComm)}</div><div class="kpi-detail">${gCap>0?((gComm/gCap)*100).toFixed(0):'0'}% de cap.</div></div>
+      <div class="kpi-card" data-status="${gComm>gCap?'danger':'warn'}"><div class="kpi-label">Inv. Requerida</div><div class="kpi-value" style="color:${gComm>gCap?'var(--red)':'var(--yellow)'}">${fmt.oop(gComm)}</div><div class="kpi-detail">${gCap>0?((gComm/gCap)*100).toFixed(0):'0'}% de cap.</div></div>
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Reserva Opex</div><div class="kpi-value">${fmt.m(gWorkingCapital)}</div><div class="kpi-detail">Capital de Trabajo</div></div>
       <div class="kpi-card" data-status="${gFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${gFree>=0?'var(--green)':'var(--red)'}">${fmt.m(gFree)}</div><div class="kpi-detail">${gFree>=0?'Capital Disponible':'⚠️ Presupuesto Excedido'}</div></div>
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${gBranches}</div><div class="kpi-detail">${empresas.length} empresa${empresas.length!==1?'s':''}</div></div>
       <div class="kpi-card" data-status="${gEBITDA>=0?'success':'danger'}"><div class="kpi-label">EBITDA/mes</div><div class="kpi-value" style="color:${gEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(gEBITDA)}</div><div class="kpi-detail">agregado</div></div>
-      <div class="kpi-card" data-status="${gAvg >= 80 ? 'success' : gAvg >= 60 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value" style="display:flex;align-items:center;">${scoreRing(gAvg, 40)}</div><div class="kpi-detail">portafolio</div></div>
+      <div class="kpi-card" data-status="${gAvg >= 80 ? 'success' : gAvg >= 60 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value">${scoreBar(gAvg)}</div><div class="kpi-detail">portafolio</div></div>
     </div>
   </div>`;
 
@@ -820,7 +828,7 @@ function renderPortfolioSummary(empresa){
       <div class="kpi-card" data-status="${consol.capitalFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${consol.capitalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(consol.capitalFree)}</div></div>
       <div class="kpi-card" data-status="${consol.avgMonthlyEBITDA>=0?'success':'danger'}"><div class="kpi-label">Ganancia/mes</div><div class="kpi-value" style="color:${consol.avgMonthlyEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(consol.avgMonthlyEBITDA)}</div></div>
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${consol.branchCount}</div></div>
-      <div class="kpi-card" data-status="${consol.avgScore>=70?'success':consol.avgScore>=50?'warn':'danger'}"><div class="kpi-label">Score</div><div class="kpi-value" style="display:flex;align-items:center;">${scoreRing(consol.avgScore,40)}</div></div>
+      <div class="kpi-card" data-status="${consol.avgScore>=70?'success':consol.avgScore>=50?'warn':'danger'}"><div class="kpi-label">Score</div><div class="kpi-value">${scoreBar(consol.avgScore)}</div><div class="kpi-detail">promedio</div></div>
     </div>`;
 }
 
@@ -840,7 +848,8 @@ function renderEmpresaDashboard(empresa){
   });
 
   // Calculate empresa-wide KPIs across all projects
-  let totalCap = empresa.totalCapital || 0;
+  // totalCapital lives on the proyecto level (updated by partner CRUD)
+  let totalCap = (empresa.proyectos||[]).reduce((s, p) => s + (p.totalCapital || 0), 0) || empresa.totalCapital || 0;
   let totalComm = 0, totalBranches = 0, totalEBITDA = 0, totalScore = 0, scoredCount = 0;
   (empresa.proyectos||[]).forEach(proj => {
     (proj.branches||[]).forEach(b => {
@@ -867,7 +876,7 @@ function renderEmpresaDashboard(empresa){
         <div class="kpi-card" data-status="${totalFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${totalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(totalFree)}</div></div>
         <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${totalBranches}</div><div class="kpi-detail">${empresa.proyectos.length} proyecto${empresa.proyectos.length!==1?'s':''}</div></div>
         <div class="kpi-card" data-status="${totalEBITDA>=0?'success':'danger'}"><div class="kpi-label">EBITDA/mes</div><div class="kpi-value" style="color:${totalEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(totalEBITDA)}</div></div>
-        <div class="kpi-card" data-status="${avgScore >= 70 ? 'success' : avgScore >= 50 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value" style="display:flex;align-items:center;">${scoreRing(avgScore, 40)}</div></div>
+        <div class="kpi-card" data-status="${avgScore >= 70 ? 'success' : avgScore >= 50 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value">${scoreBar(avgScore)}</div><div class="kpi-detail">promedio</div></div>
       </div>`;
   }
 
@@ -2976,7 +2985,7 @@ function renderBranchScenarios(branch, empresa) {
   const metrics = [
     { l: 'Capex Equipamiento', f: r => fmt.iva(r.totalInvestment) },
     { l: 'Capital Trabajo', f: r => fmt.m(r.workingCapitalRequired) },
-    { l: 'Tope Máx. Requerido', f: r => fmt.oop(getOOP(r)) },
+    { l: 'Inv. Requerida', f: r => fmt.oop(getOOP(r)) },
     { l: 'EBITDA / mes', f: r => fmt.m(r.avgMonthlyEBITDA), color: r => r.avgMonthlyEBITDA > 0 ? 'positive' : 'negative' },
     { l: 'Venta Prom. / mes', f: r => fmt.m(r.avgMonthlyRevenue) },
     { l: 'Margen EBITDA', f: r => fmt.p(r.ebitdaMarginStabilized) },
@@ -4013,12 +4022,12 @@ function renderEmpresaSettings(empresa){
   const kpis = `
     <div class="kpi-grid" style="margin-bottom:1rem">
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital Total</div><div class="kpi-value">${fmt.m(totalCap)}</div><div class="kpi-detail">${partners.length} socios</div></div>
-      <div class="kpi-card" data-status="${totalComm>totalCap?'danger':'warn'}"><div class="kpi-label">Tope Máx. Requerido</div><div class="kpi-value" style="color:${totalComm>totalCap?'var(--red)':'var(--yellow)'}">${fmt.oop(totalComm)}</div><div class="kpi-detail">${totalCap>0?((totalComm/totalCap)*100).toFixed(0):'0'}% de cap.</div></div>
+      <div class="kpi-card" data-status="${totalComm>totalCap?'danger':'warn'}"><div class="kpi-label">Inv. Requerida</div><div class="kpi-value" style="color:${totalComm>totalCap?'var(--red)':'var(--yellow)'}">${fmt.oop(totalComm)}</div><div class="kpi-detail">${totalCap>0?((totalComm/totalCap)*100).toFixed(0):'0'}% de cap.</div></div>
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Reserva Opex</div><div class="kpi-value">${fmt.m(totalWorkingCapital)}</div><div class="kpi-detail">Capital de Trabajo</div></div>
       <div class="kpi-card" data-status="${totalFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${totalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(totalFree)}</div><div class="kpi-detail">${totalFree>=0?'Capital Disponible':'⚠️ Presupuesto Excedido'}</div></div>
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${allBranches.length}</div><div class="kpi-detail">${(empresa.proyectos||[]).length} proyecto(s)</div></div>
       <div class="kpi-card" data-status="${totalEBITDA>=0?'success':'danger'}"><div class="kpi-label">EBITDA/mes</div><div class="kpi-value" style="color:${totalEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(totalEBITDA)}</div><div class="kpi-detail">agregado</div></div>
-      <div class="kpi-card" data-status="${avgScore >= 80 ? 'success' : avgScore >= 60 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value" style="display:flex;align-items:center;">${scoreRing(avgScore, 40)}</div><div class="kpi-detail">portafolio</div></div>
+      <div class="kpi-card" data-status="${avgScore >= 80 ? 'success' : avgScore >= 60 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value">${scoreBar(avgScore)}</div><div class="kpi-detail">portafolio</div></div>
     </div>`;
 
   // Build partners table
