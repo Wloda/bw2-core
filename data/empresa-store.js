@@ -410,20 +410,58 @@ export function resetEmpresa() {
 }
 
 /* ── Partners (on active proyecto) ── */
-function _recalcEquity(proj) {
-  proj.totalCapital = proj.partners.reduce((sum, p) => sum + Number(p.capital || 0), 0);
+
+/** Compute a partner's total capital from their transaction ledger */
+export function getPartnerCapital(partner) {
+  if (!partner.transactions || partner.transactions.length === 0) return Number(partner.capital || 0);
+  return partner.transactions.reduce((sum, tx) => {
+    if (tx.type === 'aportacion' || tx.type === 'prestamo') return sum + Number(tx.amount || 0);
+    if (tx.type === 'retiro' || tx.type === 'devolucion' || tx.type === 'distribucion') return sum - Number(tx.amount || 0);
+    return sum;
+  }, 0);
+}
+
+/** Auto-migrate legacy capital → transactions (idempotent) */
+function _migratePartnerTransactions(proj) {
+  if (!proj || !proj.partners) return;
   proj.partners.forEach(p => {
-    p.equity = proj.totalCapital > 0 ? Number(p.capital || 0) / proj.totalCapital : 0;
+    if (!p.transactions) p.transactions = [];
+    if (p.transactions.length === 0 && Number(p.capital || 0) > 0) {
+      p.transactions.push({
+        id: uid('tx'),
+        type: 'aportacion',
+        amount: Number(p.capital),
+        date: new Date().toISOString().slice(0, 10),
+        note: 'Capital inicial (migrado)'
+      });
+    }
+  });
+}
+
+function _recalcEquity(proj) {
+  _migratePartnerTransactions(proj);
+  proj.totalCapital = proj.partners.reduce((sum, p) => sum + getPartnerCapital(p), 0);
+  proj.partners.forEach(p => {
+    p.capital = getPartnerCapital(p);
+    p.equity = proj.totalCapital > 0 ? getPartnerCapital(p) / proj.totalCapital : 0;
   });
 }
 
 export function addPartner(name, capital, equity) {
   const proj = getActiveProyecto();
   if (!proj) return;
-  proj.partners.push({
+  const partner = {
     id: uid('p'),
-    name, capital, equity
-  });
+    name, capital, equity,
+    transactions: [{
+      id: uid('tx'),
+      type: 'aportacion',
+      amount: Number(capital),
+      date: new Date().toISOString().slice(0, 10),
+      note: 'Capital inicial'
+    }]
+  };
+  proj.partners.push(partner);
   _recalcEquity(proj);
   _save();
 }
@@ -432,8 +470,21 @@ export function updatePartner(partnerId, updates) {
   const proj = getActiveProyecto();
   if (!proj) return;
   const p = proj.partners.find(p => p.id === partnerId);
-  if (p) { 
-    Object.assign(p, updates); 
+  if (p) {
+    // If capital is being updated directly (legacy edit), adjust via a correction transaction
+    if (updates.capital !== undefined && Number(updates.capital) !== getPartnerCapital(p)) {
+      const diff = Number(updates.capital) - getPartnerCapital(p);
+      if (!p.transactions) p.transactions = [];
+      p.transactions.push({
+        id: uid('tx'),
+        type: diff > 0 ? 'aportacion' : 'retiro',
+        amount: Math.abs(diff),
+        date: new Date().toISOString().slice(0, 10),
+        note: 'Ajuste de capital'
+      });
+      delete updates.capital; // Let _recalcEquity compute it
+    }
+    Object.assign(p, updates);
     _recalcEquity(proj);
     _save(); 
   }
@@ -443,6 +494,29 @@ export function removePartner(partnerId) {
   const proj = getActiveProyecto();
   if (!proj) return;
   proj.partners = proj.partners.filter(p => p.id !== partnerId);
+  _recalcEquity(proj);
+  _save();
+}
+
+export function addPartnerTransaction(partnerId, tx) {
+  const proj = getActiveProyecto();
+  if (!proj) return null;
+  const p = proj.partners.find(p => p.id === partnerId);
+  if (!p) return null;
+  if (!p.transactions) p.transactions = [];
+  const transaction = { id: uid('tx'), ...tx };
+  p.transactions.push(transaction);
+  _recalcEquity(proj);
+  _save();
+  return transaction;
+}
+
+export function removePartnerTransaction(partnerId, txId) {
+  const proj = getActiveProyecto();
+  if (!proj) return;
+  const p = proj.partners.find(p => p.id === partnerId);
+  if (!p || !p.transactions) return;
+  p.transactions = p.transactions.filter(tx => tx.id !== txId);
   _recalcEquity(proj);
   _save();
 }

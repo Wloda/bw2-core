@@ -4,7 +4,7 @@
 import { MODELS, SCENARIOS } from './data/model-registry.js?v=bw37';
 import { runProjection, runSensitivity, calcStress, generateChecklist, evaluateAlerts } from './engine/financial-model.js?v=bw37';
 import { runBranchProjection, runConsolidation } from './engine/enterprise-engine.js?v=bw37';
-import { getWorkspace, getEmpresas, getEmpresaById, getActiveEmpresa, setActiveEmpresa, addEmpresa, updateEmpresaData, removeEmpresa, getProyectos, getProyectoById, getActiveProyecto, setActiveProyecto, addProyecto, updateProyecto, removeProyecto, getEmpresa, updateEmpresa, addBranch, updateBranch, updateBranchOverrides, dupBranch, archiveBranch, activateBranch, restoreBranch, removeBranch, getBranch, getActiveBranches, addPartner, updatePartner, removePartner, resetEmpresa, resetBranchToDefaults, buildDefaultOverrides, updateBranchLocation, onEmpresaChange } from './data/empresa-store.js?v=bw38';
+import { getWorkspace, getEmpresas, getEmpresaById, getActiveEmpresa, setActiveEmpresa, addEmpresa, updateEmpresaData, removeEmpresa, getProyectos, getProyectoById, getActiveProyecto, setActiveProyecto, addProyecto, updateProyecto, removeProyecto, getEmpresa, updateEmpresa, addBranch, updateBranch, updateBranchOverrides, dupBranch, archiveBranch, activateBranch, restoreBranch, removeBranch, getBranch, getActiveBranches, addPartner, updatePartner, removePartner, resetEmpresa, resetBranchToDefaults, buildDefaultOverrides, updateBranchLocation, onEmpresaChange, addPartnerTransaction, removePartnerTransaction, getPartnerCapital } from './data/empresa-store.js?v=bw39';
 import { runLocationStudy, calcCombinedMarketFactor, geocodeAddress } from './engine/location-engine.js?v=bw51';
 import { generateBranchPDF } from './pdf-export.js?v=bw54';
 import { setGoogleApiKey, loadGoogleMaps, attachPlacesAutocomplete, createGoogleMap, buildStudyMarkers, isGoogleMapsLoaded, getGoogleApiKey } from './engine/google-places.js?v=bw37';
@@ -4047,15 +4047,24 @@ function renderEmpresaSettings(empresa){
             <th style="padding-bottom: 0.5rem; text-align: left; color: var(--text-2); font-size: 0.75rem;">NOMBRE</th>
             <th class="num" style="padding-bottom: 0.5rem; text-align: right; color: var(--text-2); font-size: 0.75rem;">CAPITAL</th>
             <th class="num" style="padding-bottom: 0.5rem; text-align: right; color: var(--text-2); font-size: 0.75rem;">%</th>
-            <th style="padding-bottom: 0.5rem;"></th>
+            <th style="padding-bottom: 0.5rem; text-align: center; color: var(--text-2); font-size: 0.75rem;">ACCIONES</th>
           </tr>
         </thead>
-        <tbody>${partners.map(p => `<tr>
+        <tbody>${partners.map(p => {
+          const txCount = (p.transactions || []).length;
+          return `<tr>
           <td style="padding: 0 0.25rem;"><input class="input-text w-full" value="${esc(p.name)}" data-pid="${p.id}" data-field="name" style="width:100%; font-size: 0.85rem;"></td>
-          <td class="num" style="padding: 0 0.25rem;"><input class="input-text w-full num" type="number" value="${p.capital}" data-pid="${p.id}" data-field="capital" step="100000" style="width:100%; text-align: right; font-size: 0.85rem;"></td>
+          <td class="num" style="padding: 0 0.25rem; font-weight:600; text-align: right; font-size: 0.85rem; color: var(--accent);">${fmt.m(getPartnerCapital(p))}</td>
           <td class="num calc" style="padding: 0 0.25rem; font-weight:600; text-align: right; font-size: 0.85rem;">${(p.equity*100).toFixed(1)}%</td>
-          <td style="padding: 0 0.25rem; text-align:right;"><button class="btn-sm warn btn-rm-partner-emp" data-pid="${p.id}" style="padding: 0.4rem 0.6rem;">🗑</button></td>
-        </tr>`).join('')}</tbody>
+          <td style="padding: 0 0.25rem; text-align:center;">
+            <div style="display:flex;gap:0.25rem;justify-content:center;align-items:center;">
+              <button class="btn-sm success btn-aportacion" data-pid="${p.id}" data-pname="${esc(p.name)}" style="padding:0.3rem 0.5rem;font-size:0.7rem;white-space:nowrap" title="Registrar aportación">💰 Aportar</button>
+              <button class="btn-sm btn-historial" data-pid="${p.id}" data-pname="${esc(p.name)}" style="padding:0.3rem 0.5rem;font-size:0.7rem;position:relative" title="Ver historial de aportaciones">📋${txCount > 0 ? `<span style="position:absolute;top:-4px;right:-4px;background:var(--accent);color:#fff;border-radius:50%;width:14px;height:14px;font-size:0.55rem;display:flex;align-items:center;justify-content:center">${txCount}</span>` : ''}</button>
+              <button class="btn-sm warn btn-rm-partner-emp" data-pid="${p.id}" style="padding:0.3rem 0.5rem;font-size:0.7rem">🗑</button>
+            </div>
+          </td>
+        </tr>`;
+        }).join('')}</tbody>
         <tfoot>
           <tr>
             <td style="padding-top: 1rem;"><strong>Total</strong></td>
@@ -4129,6 +4138,141 @@ function renderEmpresaSettings(empresa){
       showConfirm('🗑 ¿Eliminar este socio?','<p>Se eliminará y se recalcularán las métricas.</p>','🗑 Eliminar',() => {
         removePartner(btn.dataset.pid);
         renderEmpresaSettings(getActiveEmpresa());
+      });
+    });
+  });
+
+  // Aportar — open modal
+  container.querySelectorAll('.btn-aportacion').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pid = btn.dataset.pid;
+      const pname = btn.dataset.pname;
+      const today = new Date().toISOString().slice(0, 10);
+      const old = document.querySelector('.bw2-modal-overlay:not([id])');
+      if (old) old.remove();
+      const overlay = document.createElement('div');
+      overlay.className = 'bw2-modal-overlay';
+      overlay.innerHTML = `
+        <div class="bw2-modal" style="max-width:420px">
+          <div class="bw2-modal-header"><h3>💰 Nueva Aportación</h3><button class="bw2-modal-close">✕</button></div>
+          <div class="bw2-modal-body">
+            <div class="bw2-form-group" style="margin-bottom:0.75rem">
+              <label style="font-size:0.7rem;color:var(--text-2)">SOCIO</label>
+              <div style="font-weight:600;font-size:0.95rem">${pname}</div>
+            </div>
+            <div class="bw2-form-group" style="margin-bottom:0.75rem">
+              <label style="font-size:0.7rem;color:var(--text-2)">MONTO ($)</label>
+              <input type="number" id="tx-amount" class="input-text" placeholder="200000" step="10000" min="1" style="font-size:1rem;font-weight:600">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+              <div class="bw2-form-group" style="margin-bottom:0.75rem">
+                <label style="font-size:0.7rem;color:var(--text-2)">FECHA</label>
+                <input type="date" id="tx-date" class="input-text" value="${today}">
+              </div>
+              <div class="bw2-form-group" style="margin-bottom:0.75rem">
+                <label style="font-size:0.7rem;color:var(--text-2)">TIPO</label>
+                <select id="tx-type" class="input-text">
+                  <option value="aportacion">Aportación</option>
+                  <option value="prestamo">Préstamo</option>
+                </select>
+              </div>
+            </div>
+            <div class="bw2-form-group" style="margin-bottom:0">
+              <label style="font-size:0.7rem;color:var(--text-2)">CONCEPTO</label>
+              <input type="text" id="tx-note" class="input-text" placeholder="Ej: Expansión Jesús del Monte">
+            </div>
+          </div>
+          <div class="bw2-modal-footer">
+            <button class="btn-text bw2-modal-cancel">Cancelar</button>
+            <button class="btn-primary" id="tx-submit">💰 Registrar Aportación</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      overlay.style.display = 'flex';
+      overlay.querySelector('.bw2-modal-close').onclick = () => overlay.remove();
+      overlay.querySelector('.bw2-modal-cancel').onclick = () => overlay.remove();
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+      overlay.querySelector('#tx-amount').focus();
+      overlay.querySelector('#tx-submit').addEventListener('click', () => {
+        const amount = parseFloat(overlay.querySelector('#tx-amount').value);
+        if (!amount || amount <= 0) { overlay.querySelector('#tx-amount').style.borderColor = 'var(--red)'; return; }
+        const tx = {
+          type: overlay.querySelector('#tx-type').value,
+          amount,
+          date: overlay.querySelector('#tx-date').value || today,
+          note: overlay.querySelector('#tx-note').value.trim() || ''
+        };
+        addPartnerTransaction(pid, tx);
+        overlay.remove();
+        showToast(`💰 $${amount.toLocaleString('es-MX')} registrado para ${pname}`, 'success');
+        renderEmpresaSettings(getActiveEmpresa());
+      });
+    });
+  });
+
+  // Historial — show timeline modal
+  container.querySelectorAll('.btn-historial').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pid = btn.dataset.pid;
+      const pname = btn.dataset.pname;
+      const proj = getActiveProyecto();
+      const partner = proj?.partners?.find(p => p.id === pid);
+      if (!partner) return;
+      const txs = (partner.transactions || []).slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      const old = document.querySelector('.bw2-modal-overlay:not([id])');
+      if (old) old.remove();
+      const overlay = document.createElement('div');
+      overlay.className = 'bw2-modal-overlay';
+      const typeLabels = { aportacion: '➕ Aportación', retiro: '➖ Retiro', distribucion: '💸 Distribución', prestamo: '🏦 Préstamo', devolucion: '↩️ Devolución' };
+      const typeColors = { aportacion: 'var(--green)', retiro: 'var(--red)', distribucion: 'var(--yellow)', prestamo: 'var(--accent)', devolucion: 'var(--red)' };
+      let cumulative = 0;
+      const txRows = txs.length ? txs.map(tx => {
+        const isPositive = tx.type === 'aportacion' || tx.type === 'prestamo';
+        cumulative += isPositive ? tx.amount : -tx.amount;
+        const dateStr = tx.date ? new Date(tx.date + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+        return `<div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--border)">
+          <div style="min-width:70px;font-size:0.7rem;color:var(--text-3);padding-top:2px">${dateStr}</div>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:0.85rem;color:${typeColors[tx.type] || 'var(--text-1)'}">${typeLabels[tx.type] || tx.type} — ${fmt.m(tx.amount)}</div>
+            ${tx.note ? `<div style="font-size:0.75rem;color:var(--text-3);margin-top:2px">${esc(tx.note)}</div>` : ''}
+            <div style="font-size:0.65rem;color:var(--text-3);margin-top:2px">Acumulado: ${fmt.m(cumulative)}</div>
+          </div>
+          <button class="btn-sm warn btn-rm-tx" data-txid="${tx.id}" style="padding:0.2rem 0.4rem;font-size:0.6rem;opacity:0.5" title="Eliminar movimiento">🗑</button>
+        </div>`;
+      }).join('') : '<p style="color:var(--text-3);font-size:0.85rem;padding:1rem 0">Sin movimientos registrados.</p>';
+
+      overlay.innerHTML = `
+        <div class="bw2-modal" style="max-width:500px">
+          <div class="bw2-modal-header"><h3>📋 Historial de Capital — ${pname}</h3><button class="bw2-modal-close">✕</button></div>
+          <div class="bw2-modal-body" style="max-height:60vh;overflow-y:auto;padding:0 1rem">
+            ${txRows}
+            <div style="padding:1rem 0;border-top:2px solid var(--border);display:flex;justify-content:space-between;font-weight:700">
+              <span>CAPITAL ACTUAL</span>
+              <span style="color:var(--accent)">${fmt.m(getPartnerCapital(partner))}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-3)">
+              <span>EQUITY</span>
+              <span>${(partner.equity * 100).toFixed(1)}%</span>
+            </div>
+          </div>
+          <div class="bw2-modal-footer">
+            <button class="btn-text bw2-modal-close">Cerrar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      overlay.style.display = 'flex';
+      overlay.querySelectorAll('.bw2-modal-close').forEach(b => b.onclick = () => overlay.remove());
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+      // Wire delete transaction buttons
+      overlay.querySelectorAll('.btn-rm-tx').forEach(b => {
+        b.addEventListener('click', () => {
+          showConfirm('🗑 ¿Eliminar movimiento?', '<p>Se eliminará este registro y se recalculará el capital.</p>', '🗑 Eliminar', () => {
+            removePartnerTransaction(pid, b.dataset.txid);
+            overlay.remove();
+            showToast('Movimiento eliminado', 'info');
+            renderEmpresaSettings(getActiveEmpresa());
+          });
+        });
       });
     });
   });
