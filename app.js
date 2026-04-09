@@ -820,12 +820,18 @@ function renderPortfolioSummary(empresa){
   };
   const consol = runConsolidation(pseudoEmpresa, getActiveEmpresa());
   
+  // Calculate Inv. Requerida using getOOP (same formula as Home & Empresa views)
+  let pComm = 0;
+  consol.branchResults.forEach(({result: r}) => { if(r) pComm += getOOP(r); });
+  const pCap = pseudoEmpresa.totalCapital;
+  const pFree = pCap - pComm;
+
   el.style.display='';
   el.innerHTML=`
     <div class="kpi-grid">
-      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital</div><div class="kpi-value">${fmt.m(pseudoEmpresa.totalCapital)}</div></div>
-      <div class="kpi-card" data-status="${consol.capitalCommitted>pseudoEmpresa.totalCapital?'danger':'warn'}"><div class="kpi-label">Inv. Requerida</div><div class="kpi-value" style="color:${consol.capitalCommitted>pseudoEmpresa.totalCapital?'var(--red)':'var(--yellow)'}">${fmt.m(consol.capitalCommitted)}</div><div class="kpi-detail">${pseudoEmpresa.totalCapital?((consol.capitalCommitted/pseudoEmpresa.totalCapital)*100).toFixed(0):'0'}% del cap.</div></div>
-      <div class="kpi-card" data-status="${consol.capitalFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${consol.capitalFree>=0?'var(--green)':'var(--red)'}">${fmt.m(consol.capitalFree)}</div></div>
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital</div><div class="kpi-value">${fmt.m(pCap)}</div></div>
+      <div class="kpi-card" data-status="${pComm>pCap?'danger':'warn'}"><div class="kpi-label">Inv. Requerida</div><div class="kpi-value" style="color:${pComm>pCap?'var(--red)':'var(--yellow)'}">${fmt.oop(pComm)}</div><div class="kpi-detail">${pCap?((pComm/pCap)*100).toFixed(0):'0'}% del cap.</div></div>
+      <div class="kpi-card" data-status="${pFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${pFree>=0?'var(--green)':'var(--red)'}">${fmt.m(pFree)}</div></div>
       <div class="kpi-card" data-status="${consol.avgMonthlyEBITDA>=0?'success':'danger'}"><div class="kpi-label">Ganancia/mes</div><div class="kpi-value" style="color:${consol.avgMonthlyEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(consol.avgMonthlyEBITDA)}</div></div>
       <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${consol.branchCount}</div></div>
       <div class="kpi-card" data-status="${consol.avgScore>=70?'success':consol.avgScore>=50?'warn':'danger'}"><div class="kpi-label">Score</div><div class="kpi-value">${scoreBar(consol.avgScore)}</div><div class="kpi-detail">promedio</div></div>
@@ -4180,11 +4186,14 @@ function renderProyectoSettings(proyecto){
   // ── KPI strip at top ──
   const kpiEl = $('empresa-kpis');
   if (kpiEl) {
-    const capStatus = consol.capitalFree >= 0 ? 'good' : 'bad';
+    let psComm = 0;
+    consol.branchResults.forEach(({result: r}) => { if(r) psComm += getOOP(r); });
+    const psFree = proyecto.totalCapital - psComm;
+    const psCapStatus = psFree >= 0 ? 'good' : 'bad';
     kpiEl.innerHTML = [
       kc('Capital Total', fmt.m(proyecto.totalCapital), `${proyecto.partners.length} socios`, 'neutral'),
-      kc('Inv. Requerida', fmt.m(consol.capitalCommitted), `Sumatoria Capex de ${consol.branchCount || 0} suc+reserva`, 'neutral'),
-      kc('Libre / Faltante', fmt.m(consol.capitalFree), capStatus === 'good' ? 'Capital Disponible' : '⚠️ Presupuesto Excedido', capStatus),
+      kc('Inv. Requerida', fmt.oop(psComm), `Sumatoria Capex de ${consol.branchCount || 0} suc+reserva`, 'neutral'),
+      kc('Libre / Faltante', fmt.m(psFree), psCapStatus === 'good' ? 'Capital Disponible' : '⚠️ Presupuesto Excedido', psCapStatus),
       kc('Ganancia/mes', fmt.m(consol.avgMonthlyNet), `en ${consol.branchCount || 0} suc.`, consol.avgMonthlyNet >= 0 ? 'good' : 'bad'),
       kc('Recuperación Proy.', consol.paybackMonth ? consol.paybackMonth + ' meses' : '∞', 'Todas las sucursales', consol.paybackMonth && consol.paybackMonth <= 36 ? 'good' : 'warn'),
       kc('Calificación', consol.avgScore + '/100', 'Promedio portafolio', consol.avgScore >= 70 ? 'good' : consol.avgScore >= 50 ? 'warn' : 'bad')
