@@ -5032,6 +5032,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(e) {}
       }
       showApp();
+      // Always navigate to home after login
+      state.view = 'bw2home'; state.activeLevel = 1; state.activeEmpresaId = null; state.activeProyectoId = null; state.activeBranchId = null;
       if (typeof renderCurrentView === 'function') renderCurrentView();
     } else {
       errorEl.textContent = result.error;
@@ -5083,6 +5085,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(e) {}
       }
       showApp();
+      // Always navigate to home after registration
+      state.view = 'bw2home'; state.activeLevel = 1; state.activeEmpresaId = null; state.activeProyectoId = null; state.activeBranchId = null;
       if (typeof renderCurrentView === 'function') renderCurrentView();
       if (typeof showToast === 'function') showToast('¡Cuenta creada exitosamente!', 'success');
     } else {
