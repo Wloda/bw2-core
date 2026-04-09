@@ -4266,9 +4266,9 @@ function renderEmpresaSettings(empresa){
       // Wire delete transaction buttons
       overlay.querySelectorAll('.btn-rm-tx').forEach(b => {
         b.addEventListener('click', () => {
+          overlay.remove(); // Close historial first so confirm dialog is visible
           showConfirm('🗑 ¿Eliminar movimiento?', '<p>Se eliminará este registro y se recalculará el capital.</p>', '🗑 Eliminar', () => {
             removePartnerTransaction(pid, b.dataset.txid);
-            overlay.remove();
             showToast('Movimiento eliminado', 'info');
             renderEmpresaSettings(getActiveEmpresa());
           });
