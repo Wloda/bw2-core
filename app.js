@@ -4,8 +4,8 @@
 import { MODELS, SCENARIOS } from './data/model-registry.js?v=bw37';
 import { runProjection, runSensitivity, calcStress, generateChecklist, evaluateAlerts } from './engine/financial-model.js?v=bw37';
 import { runBranchProjection, runConsolidation } from './engine/enterprise-engine.js?v=bw37';
-import { getWorkspace, getEmpresas, getEmpresaById, getActiveEmpresa, setActiveEmpresa, addEmpresa, updateEmpresaData, removeEmpresa, getProyectos, getProyectoById, getActiveProyecto, setActiveProyecto, addProyecto, updateProyecto, removeProyecto, getEmpresa, updateEmpresa, addBranch, updateBranch, updateBranchOverrides, dupBranch, archiveBranch, activateBranch, restoreBranch, removeBranch, getBranch, getActiveBranches, addPartner, updatePartner, removePartner, resetEmpresa, resetBranchToDefaults, buildDefaultOverrides, updateBranchLocation, onEmpresaChange, addPartnerTransaction, removePartnerTransaction, getPartnerCapital, switchUserWorkspace, initNewUserWorkspace, discardSessionChanges } from './data/empresa-store.js?v=bw39';
-import { runLocationStudy, calcCombinedMarketFactor, geocodeAddress } from './engine/location-engine.js?v=bw51';
+import { getWorkspace, getEmpresas, getEmpresaById, getActiveEmpresa, setActiveEmpresa, addEmpresa, updateEmpresaData, removeEmpresa, getProyectos, getProyectoById, getActiveProyecto, setActiveProyecto, addProyecto, updateProyecto, removeProyecto, getEmpresa, updateEmpresa, addBranch, updateBranch, updateBranchOverrides, dupBranch, archiveBranch, activateBranch, restoreBranch, removeBranch, getBranch, getActiveBranches, addPartner, updatePartner, removePartner, resetEmpresa, resetBranchToDefaults, buildDefaultOverrides, updateBranchLocation, onEmpresaChange, addPartnerTransaction, removePartnerTransaction, editPartnerTransaction, getPartnerCapital, switchUserWorkspace, initNewUserWorkspace, discardSessionChanges } from './data/empresa-store.js?v=bw41';
+import { runLocationStudy, calcCombinedMarketFactor, geocodeAddress } from './engine/location-engine.js?v=bw52';
 import { generateBranchPDF } from './pdf-export.js?v=bw54';
 import { setGoogleApiKey, loadGoogleMaps, attachPlacesAutocomplete, createGoogleMap, buildStudyMarkers, isGoogleMapsLoaded, getGoogleApiKey } from './engine/google-places.js?v=bw37';
 import { registerUser, loginUser, logoutUser, getCurrentUser, isAuthenticated, updateUserProfile, updateUserEmail, changePassword } from './auth.js?v=bw38';
@@ -1215,8 +1215,8 @@ function renderEmpresaDashboard(empresa){
   // Calculate empresa-wide KPIs across all projects
   const firstProj = (empresa.proyectos || [])[0];
   const partners = (empresa.partners && empresa.partners.length > 0) ? empresa.partners : (firstProj ? (firstProj.partners || []) : []);
-  const partnersCap = partners.reduce((s, p) => s + (p.capital || 0), 0);
-  let totalCap = partnersCap > 0 ? partnersCap : ((empresa.proyectos||[]).reduce((s, p) => s + (p.totalCapital || 0), 0) || empresa.totalCapital || 0);
+  const partnersCap = partners.reduce((s, p) => s + Number(p.capital || 0), 0);
+  let totalCap = partnersCap > 0 ? partnersCap : Number((empresa.proyectos||[]).reduce((s, p) => s + Number(p.totalCapital || 0), 0)) || Number(empresa.totalCapital || 0);
   let totalComm = 0, totalBranches = 0, totalEBITDA = 0, totalScore = 0, scoredCount = 0;
   (empresa.proyectos||[]).forEach(proj => {
     (proj.branches||[]).forEach(b => {
@@ -4645,10 +4645,24 @@ function renderEmpresaSettings(empresa){
   const container = $('view-empresa');
   if (!container || !empresa) return;
 
+  // Extract partners properly
+  const firstProj = (empresa.proyectos || [])[0];
+  const partners = (empresa.partners && empresa.partners.length > 0) ? empresa.partners : (firstProj ? (firstProj.partners || []) : []);
+  if (partners === firstProj?.partners && partners.length > 0) {
+    // Lazy migration on read
+    empresa.partners = [...partners];
+  }
+  
+  // Aggregate Capital safely forcing Number type to avoid JS string concatenation bugs
+  let totalCap = Number((empresa.proyectos || []).reduce((s, p) => s + Number(p.totalCapital || 0), 0)) || Number(empresa.totalCapital || 0);
+  const totalPartnerCap = partners.reduce((s, p) => s + Number(p.capital || 0), 0);
+  if (totalPartnerCap > 0) { totalCap = totalPartnerCap; } // SYNC GLOBAL CAP WITH PARTNER CAP
+
+  const totalEquity = partners.reduce((s, p) => s + Number(p.equity || 0), 0);
+  const equityOk = Math.abs(totalEquity - 1) < 0.001;
+
   // Aggregate all branches across all projects for empresa-level consolidation
   const allBranches = [];
-  // totalCapital is updated by partner CRUD at the proyecto level, so aggregate from there
-  let totalCap = (empresa.proyectos || []).reduce((s, p) => s + (p.totalCapital || 0), 0) || empresa.totalCapital || 0;
   (empresa.proyectos || []).forEach(proj => {
     (proj.branches || []).forEach(b => {
       if (b.status !== 'archived') allBranches.push(b);
@@ -4670,18 +4684,6 @@ function renderEmpresaSettings(empresa){
   });
   const avgScore = scoredCount ? Math.round(totalScore / scoredCount) : 0;
   const totalFree = totalCap - totalComm;
-  // Partners live fundamentally on the Empresa level now, legacy data in first proyecto
-  const firstProj = (empresa.proyectos || [])[0];
-  const partners = (empresa.partners && empresa.partners.length > 0) ? empresa.partners : (firstProj ? (firstProj.partners || []) : []);
-  if (partners === firstProj?.partners && partners.length > 0) {
-    // Lazy migration on read
-    empresa.partners = [...partners];
-  }
-  const totalPartnerCap = partners.reduce((s, p) => s + (p.capital || 0), 0);
-  if (totalPartnerCap > 0) { totalCap = totalPartnerCap; } // SYNC GLOBAL CAP WITH PARTNER CAP
-
-  const totalEquity = partners.reduce((s, p) => s + (p.equity || 0), 0);
-  const equityOk = Math.abs(totalEquity - 1) < 0.001;
 
   // Build KPIs (Matching renderBW2Home design strictly)
   const kpis = `
@@ -4874,8 +4876,8 @@ function renderEmpresaSettings(empresa){
     btn.addEventListener('click', () => {
       const pid = btn.dataset.pid;
       const pname = btn.dataset.pname;
-      const proj = getActiveProyecto();
-      const partner = proj?.partners?.find(p => p.id === pid);
+      const emp = getActiveEmpresa();
+      const partner = emp?.partners?.find(p => p.id === pid);
       if (!partner) return;
       const txs = (partner.transactions || []).slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
       const old = document.querySelector('.bw2-modal-overlay:not([id])');
@@ -4896,7 +4898,10 @@ function renderEmpresaSettings(empresa){
             ${tx.note ? `<div style="font-size:0.75rem;color:var(--text-3);margin-top:2px">${esc(tx.note)}</div>` : ''}
             <div style="font-size:0.65rem;color:var(--text-3);margin-top:2px">Acumulado: ${fmt.m(cumulative)}</div>
           </div>
-          <button class="btn-sm warn btn-rm-tx" data-txid="${tx.id}" style="padding:0.2rem 0.4rem;font-size:0.6rem" title="Eliminar movimiento">🗑</button>
+          <div style="display:flex;gap:0.25rem;">
+            <button class="btn-sm success btn-edit-tx" data-txid="${tx.id}" style="padding:0.2rem 0.4rem;font-size:0.6rem" title="Editar movimiento">✏️</button>
+            <button class="btn-sm warn btn-rm-tx" data-txid="${tx.id}" style="padding:0.2rem 0.4rem;font-size:0.6rem" title="Eliminar movimiento">🗑</button>
+          </div>
         </div>`;
       }).join('') : '<p style="color:var(--text-3);font-size:0.85rem;padding:1rem 0">Sin movimientos registrados.</p>';
 
@@ -4929,6 +4934,40 @@ function renderEmpresaSettings(empresa){
           showConfirm('🗑 ¿Eliminar movimiento?', '<p>Se eliminará este registro y se recalculará el capital.</p>', '🗑 Eliminar', () => {
             removePartnerTransaction(pid, b.dataset.txid);
             showToast('Movimiento eliminado', 'info');
+            renderEmpresaSettings(getActiveEmpresa());
+          });
+        });
+      });
+
+      // Wire edit transaction buttons
+      overlay.querySelectorAll('.btn-edit-tx').forEach(b => {
+        b.addEventListener('click', () => {
+          overlay.remove(); // Close historial first
+          const txId = b.dataset.txid;
+          const tx = partner.transactions.find(t => t.id === txId);
+          if (!tx) return;
+          
+          const bodyHtml = `
+            <div class="bw2-form-group">
+              <label>Monto</label>
+              <input type="number" id="es-edit-tx-amount" class="input-text" value="${tx.amount}" step="1000">
+            </div>
+            <div class="bw2-form-group">
+              <label>Fecha</label>
+              <input type="date" id="es-edit-tx-date" class="input-text" value="${tx.date || new Date().toISOString().slice(0, 10)}">
+            </div>
+            <div class="bw2-form-group">
+              <label>Nota</label>
+              <input type="text" id="es-edit-tx-note" class="input-text" value="${esc(tx.note || '')}">
+            </div>
+          `;
+          showConfirm('✏️ Editar movimiento', bodyHtml, 'Guardar', () => {
+            const amount = parseFloat(document.getElementById('es-edit-tx-amount').value);
+            if (isNaN(amount) || amount < 0) return showToast('Monto inválido', 'error');
+            const date = document.getElementById('es-edit-tx-date').value;
+            const note = document.getElementById('es-edit-tx-note').value;
+            editPartnerTransaction(pid, txId, { amount, date, note });
+            showToast('Movimiento actualizado', 'success');
             renderEmpresaSettings(getActiveEmpresa());
           });
         });
