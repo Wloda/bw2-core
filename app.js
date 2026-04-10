@@ -169,10 +169,9 @@ window.addEventListener('bw2:storage-error', (e) => {
 
 /* ═══ ONBOARDING TOUR ═══ */
 window.BW2Tour = {
-  steps: [], currentStep: 0, overlay: null, popover: null, activeElement: null,
+  isActive: false, isManual: false, overlay: null, popover: null, activeElement: null, currentTimer: null,
 
-  init(steps) {
-    this.steps = steps;
+  init() {
     if (!document.querySelector('.bw2-tour-overlay')) {
       this.overlay = document.createElement('div');
       this.overlay.className = 'bw2-tour-overlay';
@@ -185,36 +184,75 @@ window.BW2Tour = {
       document.body.appendChild(this.popover);
     } else { this.popover = document.querySelector('.bw2-tour-popover'); }
 
-    this.overlay.onclick = () => this.end();
+    this.overlay.onclick = () => { this.end(); localStorage.setItem('bw2_tour_completed', '1'); };
   },
 
-  start() {
-    if (!this.steps.length) return;
-    this.currentStep = 0;
+  start(manual = false) {
+    if (!manual && localStorage.getItem('bw2_tour_completed')) return;
+    if (manual) localStorage.removeItem('bw2_tour_completed');
+    this.isActive = true;
+    this.isManual = manual;
     this.overlay.classList.add('visible');
     this.popover.classList.add('visible');
-    this.showStep();
+    this.evaluateState();
   },
 
-  showStep() {
-    if (this.activeElement) this.activeElement.classList.remove('tour-highlight');
+  evaluateState() {
+    if (!this.isActive) return;
+    if (this.currentTimer) clearTimeout(this.currentTimer);
+    if (this.activeElement) { this.activeElement.classList.remove('tour-highlight'); this.activeElement = null; }
 
-    const step = this.steps[this.currentStep];
-    if (!step) { this.end(); return; }
+    const empresas = getEmpresas();
+    const totalProj = empresas.reduce((s, e) => s + (e.proyectos||[]).length, 0);
+    const totalBranch = empresas.reduce((s, e) => s + (e.proyectos||[]).reduce((sp, p) => sp + (p.branches||[]).length, 0), 0);
 
-    const target = (typeof step.target === 'string') ? document.querySelector(step.target) : step.target;
-    if (!target) {
-      if(step.optional) {
-        this.currentStep++;
-        if (this.currentStep < this.steps.length) this.showStep(); else this.end();
-      } else {
-        // Log error and gently skip or end instead of infinitely looping
-        console.warn('BW2Tour: Target not found:', step.target);
-        this.currentStep++;
-        if (this.currentStep < this.steps.length) this.showStep(); else this.end();
+    let step = null;
+
+    if (empresas.length === 0) {
+      if (document.querySelector('#btn-empty-create')) step = { title: "1. Crea tu Imperio", body: "BW² está listo. Haz clic aquí para inicializar tu primera Empresa.", target: "#btn-empty-create", placement: "top", emoji: "🏢" };
+      else if (document.querySelector('#btn-create-empresa')) step = { title: "1. Crea tu Imperio", body: "BW² está listo. Haz clic en Nueva Empresa.", target: "#btn-create-empresa", placement: "left", emoji: "🏢" };
+    } 
+    else if (totalProj === 0) {
+      if (state.activeLevel === 1 && document.querySelector('.btn-open-empresa')) {
+        step = { title: "2. Abre tu Empresa", body: "¡Muy bien! Ahora entra a tu empresa haciendo clic aquí.", target: ".btn-open-empresa", placement: "bottom", emoji: "📂" };
+      } else if (state.activeLevel === 2 && document.querySelector('.btn-add-proyecto-dash')) {
+        step = { title: "3. Añade un Proyecto", body: "Un Proyecto es el esqueleto donde vivirán tus sucursales. ¡Créalo ahora!", target: ".btn-add-proyecto-dash", placement: "right", emoji: "📊" };
       }
+    }
+    else if (totalBranch === 0) {
+      if (state.activeLevel === 1 && document.querySelector('.btn-open-empresa')) {
+        step = { title: "Sigue adelante...", body: "Entra a tu Empresa para continuar.", target: ".btn-open-empresa", placement: "bottom", emoji: "📂" };
+      } else if (state.activeLevel === 2 && document.querySelector('.btn-open-proyecto-dash')) {
+        step = { title: "Entra a tu Proyecto", body: "Haz clic en Explorar para abrir tu nuevo proyecto.", target: ".btn-open-proyecto-dash", placement: "bottom", emoji: "🚀" };
+      } else if (state.activeLevel === 3 && document.querySelector('#btn-add-branch')) {
+        step = { title: "4. ¡La Acción!", body: "Haz clic aquí para originar tu primera Inversión (Sucursal).", target: "#btn-add-branch", placement: "right", emoji: "✨" };
+      }
+    }
+    else {
+      this.end();
+      localStorage.setItem('bw2_tour_completed', '1');
+      setTimeout(() => showToast("¡Excelente! Ya dominaste las bases de BW² 🎉", "success"), 500);
       return;
     }
+
+    if (!document.querySelector('.bw2-tour-overlay')) this.init();
+
+    if (!step || !step.target || !document.querySelector(step.target)) {
+      this.currentTimer = setTimeout(() => this.evaluateState(), 800);
+      if (this.popover) this.popover.style.display = 'none';
+      return;
+    }
+
+    if (document.querySelector('.bw2-modal-overlay')) {
+      if (this.popover) this.popover.style.display = 'none';
+      if (this.overlay) this.overlay.style.display = 'none';
+      this.currentTimer = setTimeout(() => this.evaluateState(), 800);
+      return;
+    }
+
+    const target = document.querySelector(step.target);
+    if (this.popover) this.popover.style.display = '';
+    if (this.overlay) this.overlay.style.display = '';
 
     this.activeElement = target;
     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -227,7 +265,6 @@ window.BW2Tour = {
   },
 
   renderPopover(step, rect) {
-    const isLast = this.currentStep === this.steps.length - 1;
     let titleHtml = step.title;
     if (step.emoji) titleHtml = `<span style="font-size:1.2rem;margin-right:0.25rem">${step.emoji}</span> ${titleHtml}`;
     
@@ -242,42 +279,24 @@ window.BW2Tour = {
 
     this.popover.innerHTML = `
       <div class="tour-header">
-        <span class="tour-step-badge">Paso ${this.currentStep + 1} de ${this.steps.length}</span>
-        <button class="tour-btn tour-btn-close" id="tour-close-btn" style="padding:0;font-size:1.1rem" title="Cerrar tour">✕</button>
+        <span class="tour-step-badge" style="background:var(--accent);color:#fff">Misión Activa</span>
+        <button class="tour-btn tour-btn-close" id="tour-close-btn" style="padding:0;font-size:1.1rem" title="Detener tour">✕</button>
       </div>
       <div class="tour-title">${titleHtml}</div>
       <div class="tour-body">${step.body}</div>
-      <div class="tour-actions">
-        ${this.currentStep > 0 ? `<button class="tour-btn tour-btn-close" id="tour-prev-btn">← Atrás</button>` : '<div></div>'}
-        <button class="tour-btn tour-btn-next" id="tour-next-btn">${isLast ? '¡Vamos! ✨' : 'Siguiente →'}</button>
-      </div>
       ${arrowHtml}
     `;
 
-    this.popover.querySelector('#tour-close-btn').onclick = (e) => { e.stopPropagation(); this.end(); };
-    if (this.popover.querySelector('#tour-prev-btn')) {
-      this.popover.querySelector('#tour-prev-btn').onclick = (e) => { e.stopPropagation(); this.currentStep--; this.showStep(); };
-    }
-    this.popover.querySelector('#tour-next-btn').onclick = (e) => { 
-      e.stopPropagation(); 
-      if (step.onNext) step.onNext();
-      this.currentStep++; 
-      this.showStep(); 
-    };
+    this.popover.querySelector('#tour-close-btn').onclick = (e) => { e.stopPropagation(); this.end(); localStorage.setItem('bw2_tour_completed', '1'); };
 
     const poRect = this.popover.getBoundingClientRect();
     let top = 0, left = 0;
     const margin = 20;
-
     switch (placement) {
-      case 'bottom':
-        top = rect.bottom + margin; left = rect.left + (rect.width / 2) - (poRect.width / 2); break;
-      case 'top':
-        top = rect.top - poRect.height - margin; left = rect.left + (rect.width / 2) - (poRect.width / 2); break;
-      case 'left':
-        top = rect.top + (rect.height / 2) - (poRect.height / 2); left = rect.left - poRect.width - margin; break;
-      case 'right':
-        top = rect.top + (rect.height / 2) - (poRect.height / 2); left = rect.right + margin; break;
+      case 'bottom': top = rect.bottom + margin; left = rect.left + (rect.width / 2) - (poRect.width / 2); break;
+      case 'top': top = rect.top - poRect.height - margin; left = rect.left + (rect.width / 2) - (poRect.width / 2); break;
+      case 'left': top = rect.top + (rect.height / 2) - (poRect.height / 2); left = rect.left - poRect.width - margin; break;
+      case 'right': top = rect.top + (rect.height / 2) - (poRect.height / 2); left = rect.right + margin; break;
     }
     
     if (left < 10) left = 10;
@@ -290,13 +309,14 @@ window.BW2Tour = {
   },
 
   end() {
-    this.overlay.classList.remove('visible');
-    this.popover.classList.remove('visible');
+    this.isActive = false;
+    if (this.currentTimer) clearTimeout(this.currentTimer);
+    if (this.overlay) this.overlay.classList.remove('visible');
+    if (this.popover) this.popover.classList.remove('visible');
     if (this.activeElement) {
       this.activeElement.classList.remove('tour-highlight');
       this.activeElement = null;
     }
-    this.currentStep = 0;
   }
 };
 
@@ -798,7 +818,8 @@ function renderCurrentView() {
   // Update contextual sidebar and breadcrumb
   updateNav();
   updateBreadcrumb();
-
+  
+  if (window.BW2Tour) window.BW2Tour.evaluateState();
 }
 
 function updateEnterpriseHeader(empresa){
@@ -6058,31 +6079,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnStartTour = $('btn-start-tour');
   if (btnStartTour) {
     btnStartTour.addEventListener('click', () => {
-      let steps = [
-        { title: "Bienvenido a BW²", body: "Has entrado a tu plataforma de Inteligencia Financiera. Te daremos un breve recorrido.", target: "#app-header", placement: "bottom", emoji: "👋" },
-        { title: "Navegación", body: "Este es el núcleo de tu portafolio. Siempre puedes hacer clic aquí para volver y ver todas tus empresas.", target: "#btn-bw2-home", placement: "bottom", emoji: "🏢" }
-      ];
-      
-      if (document.querySelector('.btn-add')) {
-        steps.push({ title: "Expande tu Imperio", body: "Desde este botón maestro crearás nuevas Empresas, Proyectos y calculaciones de Sucursales.", target: ".btn-add", placement: "right", emoji: "✨" });
-      }
-
-      if (document.querySelector('.header-market-toggle')) {
-        steps.push({ title: "Simulación de Entorno", body: "Los Factores de Mercado te permiten visualizar cómo los KPIs se ven afectados en frío (pesimista) o activamente con variables del entorno geográfico.", target: ".header-market-toggle", placement: "bottom", emoji: "📈" });
-      }
-
-      steps.push({ title: "Tu Perfil Seguro", body: "Configura tus parámetros base, sube el logo oficial de tu negocio y asegura tu sesión aquí. ¡Listo para explorar!", target: "#btn-open-profile", placement: "left", emoji: "👤" });
-
-      window.BW2Tour.init(steps);
-      window.BW2Tour.start();
+      window.BW2Tour.init();
+      window.BW2Tour.start(true); // manual trigger
     });
   }
 
-  // Auto trigger the first time EVER the user logs in
-  if (!localStorage.getItem('bw2_tour_completed')) {
-    setTimeout(() => {
-      localStorage.setItem('bw2_tour_completed', '1');
-      if (btnStartTour) btnStartTour.click();
-    }, 1200);
-  }
+  // Auto trigger for brand new users
+  window.BW2Tour.init();
+  setTimeout(() => window.BW2Tour.start(false), 800);
 });
