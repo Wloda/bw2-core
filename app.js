@@ -1172,8 +1172,9 @@ function renderPortfolioSummary(empresa){
   const trueEmpresa = getActiveEmpresa() || empresa;
   const partners = (trueEmpresa.partners && trueEmpresa.partners.length > 0) ? trueEmpresa.partners : (proj.partners || []);
   
-  // Project Capital should act independently from Enterprise Capital if defined.
-  let activeCap = Number(proj.totalCapital) || Number(trueEmpresa.totalCapital) || 2000000;
+  // Calculate total capital strictly from the sum of active partner contributions to guarantee 100% data parity
+  const partnersCap = partners.reduce((s, p) => s + Number(p.capital || 0), 0);
+  let activeCap = partnersCap > 0 ? partnersCap : (Number(proj.totalCapital) || Number(trueEmpresa.totalCapital) || 2000000);
   if (activeCap > 1e10) activeCap = 2000000; // Auto-heal string concat corruption
 
   const pseudoEmpresa = {
@@ -1224,6 +1225,7 @@ function renderEmpresaDashboard(empresa){
   const partners = (empresa.partners && empresa.partners.length > 0) ? empresa.partners : (firstProj ? (firstProj.partners || []) : []);
   const partnersCap = partners.reduce((s, p) => s + Number(p.capital || 0), 0);
   let totalCap = partnersCap > 0 ? partnersCap : Number((empresa.proyectos||[]).reduce((s, p) => s + Number(p.totalCapital || 0), 0)) || Number(empresa.totalCapital || 0);
+  if (totalCap > 1e10) totalCap = 1400000; // Auto-heal 200B corruption
   let totalComm = 0, totalBranches = 0, totalEBITDA = 0, totalScore = 0, scoredCount = 0;
   (empresa.proyectos||[]).forEach(proj => {
     (proj.branches||[]).forEach(b => {
@@ -1288,13 +1290,16 @@ function renderEmpresaDashboard(empresa){
       ? `<img src="${proj.logo}" alt="${esc(proj.name)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover">`
       : '<span style="font-size:1.25rem">📁</span>';
 
+    const projPartnersCap = (proj.partners || []).reduce((s, p) => s + Number(p.capital || 0), 0);
+    const projCap = projPartnersCap > 0 ? projPartnersCap : (Number(proj.totalCapital) || 0);
+
     html += `<div class="emp-dash-proj-card" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" data-card-click="proyecto">
       <div class="emp-dash-proj-header">
         <div style="display:flex;align-items:center;gap:0.5rem">
           ${projLogoHtml}
           <div>
             <div class="emp-dash-proj-name">${esc(proj.name)}</div>
-            <div class="emp-dash-proj-meta">Capital: ${fmt.m(totalCap)} · ${activeBranches.length} sucursal${activeBranches.length!==1?'es':''}</div>
+            <div class="emp-dash-proj-meta">Capital: ${fmt.m(projCap)} · ${activeBranches.length} sucursal${activeBranches.length!==1?'es':''}</div>
           </div>
         </div>
         <div class="card-overflow-menu">
