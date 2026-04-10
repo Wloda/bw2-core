@@ -210,6 +210,17 @@ function _load() {
         }
         if (!emp.partners) emp.partners = [];
         _recalcEquity(emp); // Force heal corrupted legacy partner discrepancies
+        
+        // HEAL ROGUE OVERRIDES
+        // Some users accidentally tested "pago_unico" which spiked their initial inversion by 125,000 permanently.
+        // We delete it universally so their local storage resets back to the accurate expected pricing.
+        (emp.proyectos || []).forEach(proj => {
+          (proj.branches || []).forEach(b => {
+             if (b.overrides && b.overrides.royaltyMode === 'pago_unico') {
+                delete b.overrides.royaltyMode; 
+             }
+          });
+        });
       });
     } catch(e) {
       _workspace = null;

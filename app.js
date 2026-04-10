@@ -450,7 +450,7 @@ window.ensureChartJS = async function() { await _origEnsureChartJS(); _configure
 const $=id=>document.getElementById(id);
 const _getf = () => {
   const el = document.getElementById('toggle-iva');
-  return el ? (el.checked ? 1.16 : 1) : 1.16; // Asume IVA default si no hay toggle global
+  return el ? (el.checked ? 1 : 1.16) : 1.16; // Asume IVA default si no hay toggle global
 };
 const getOOP = (r) => (r.totalInvestment * _getf()) + (r.workingCapitalRequired || 0);
 const getOOPConsol = (c) => (c.totalInvestment * _getf()) + (c.totalWorkingCapital || 0);
@@ -1651,10 +1651,10 @@ function renderPortfolio(empresa){
         </div>
       </div>
       ${r?`<div class="branch-kpis">
-        <div class="branch-kpi"><span class="bk-label" title="Ganancia mensual antes de impuestos">Ganancia/mes</span><span class="bk-value" style="color:${r.avgMonthlyEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(r.avgMonthlyEBITDA)}</span></div>
-        <div class="branch-kpi"><span class="bk-label" title="Venta mínima mensual para cubrir todos los costos">Pto. Equilibrio</span><span class="bk-value">${fmt.m(r.breakEvenRevenue)}</span></div>
-        <div class="branch-kpi"><span class="bk-label" title="Meses reales para recuperar la inversión (flujo acumulado desde apertura)">Recuperación</span><span class="bk-value" style="color:${r.paybackMonth&&r.paybackMonth<=36?'var(--green)':r.paybackMonth&&r.paybackMonth<=48?'var(--yellow)':'var(--red)'}">${r.paybackMonth?r.paybackMonth+' meses':'∞'}</span></div>
-        <div class="branch-kpi" style="display:flex;align-items:center;gap:0.35rem"><span class="bk-label" title="Calificación de viabilidad: 0-100">Calif.</span>${scoreRing(score, 32)}</div>
+        <div class="branch-kpi"><span class="bk-label" title="Ganancia mensual antes de impuestos">Ganancia</span><span class="bk-value" style="color:${r.avgMonthlyEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(r.avgMonthlyEBITDA)}</span></div>
+        <div class="branch-kpi"><span class="bk-label" title="Venta mínima mensual para cubrir todos los costos">Pto. Eq.</span><span class="bk-value">${fmt.m(r.breakEvenRevenue)}</span></div>
+        <div class="branch-kpi"><span class="bk-label" title="Meses reales para recuperar la inversión">Retorno</span><span class="bk-value" style="color:${r.paybackMonth&&r.paybackMonth<=36?'var(--green)':r.paybackMonth&&r.paybackMonth<=48?'var(--yellow)':'var(--red)'}">${r.paybackMonth?r.paybackMonth+' m':'∞'}</span></div>
+        <div class="branch-kpi"><span class="bk-label" title="Calificación de viabilidad: 0-100">Score</span>${scoreRing(score, 32)}</div>
       </div>`:'<div class="branch-kpis"><span style="color:var(--text-3)">Sin datos</span></div>'}
       <div class="branch-actions">${actionBtns}</div>
     </div>`;
