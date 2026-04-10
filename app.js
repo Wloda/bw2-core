@@ -1169,10 +1169,16 @@ function renderPortfolioSummary(empresa){
   const proj = getActiveProyecto();
   if(!proj){ el.style.display='none'; return; }
 
+  const partners = (empresa.partners && empresa.partners.length > 0) ? empresa.partners : (proj.partners || []);
+  const partnersCap = partners.reduce((s, p) => s + Number(p.capital || 0), 0);
+  let safeProjCap = Number(proj.totalCapital) || 2000000;
+  if (safeProjCap > 1e10) safeProjCap = 2000000; // Auto-heal string concat corruption
+  const activeCap = partnersCap > 0 ? partnersCap : safeProjCap;
+
   const pseudoEmpresa = {
     ...empresa,
     branches: proj.branches || [],
-    totalCapital: proj.totalCapital || 2e6,
+    totalCapital: activeCap,
     corporateReserve: proj.corporateReserve || 0,
     corporateExpenses: proj.corporateExpenses || 0,
     partners: proj.partners || []
@@ -1287,7 +1293,7 @@ function renderEmpresaDashboard(empresa){
           ${projLogoHtml}
           <div>
             <div class="emp-dash-proj-name">${esc(proj.name)}</div>
-            <div class="emp-dash-proj-meta">Capital: ${fmt.m(proj.totalCapital)} · ${activeBranches.length} sucursal${activeBranches.length!==1?'es':''}</div>
+            <div class="emp-dash-proj-meta">Capital: ${fmt.m(totalCap)} · ${activeBranches.length} sucursal${activeBranches.length!==1?'es':''}</div>
           </div>
         </div>
         <div class="card-overflow-menu">
