@@ -208,7 +208,43 @@ window.BW2Tour = {
 
     let step = null;
 
-    if (empresas.length === 0) {
+    const isModalOpen = document.querySelector('.bw2-modal-overlay') && getComputedStyle(document.querySelector('.bw2-modal-overlay')).display !== 'none';
+    
+    // Si hay un modal abierto, creamos el "Efecto Túnel"
+    if (isModalOpen) {
+      if (this.overlay) this.overlay.style.display = 'block';
+      const modal = document.querySelector('.bw2-modal-overlay');
+      const basicName = modal.querySelector('#bw2-input-name');
+      const basicSubmit = modal.querySelector('.bw2-modal-submit');
+      const wizEmpName = modal.querySelector('#wiz-emp-name');
+      const wizSucName = modal.querySelector('#wiz-suc-name');
+      const wizNext = modal.querySelector('#wizard-btn-next');
+      const wizFinish = modal.querySelector('#wizard-btn-finish');
+      
+      const wizActiveBtn = (wizNext && getComputedStyle(wizNext).display !== 'none') ? '#wizard-btn-next' : 
+                           (wizFinish && getComputedStyle(wizFinish).display !== 'none') ? '#wizard-btn-finish' : null;
+
+      if (basicName && basicSubmit) {
+        if (!basicName.value.trim()) step = { title: "Ponle Nombre", body: "Escribe el nombre aquí.", target: "#bw2-input-name", placement: "bottom", emoji: "✍️" };
+        else step = { title: "¡Adelante!", body: "Haz clic para materializarlo.", target: ".bw2-modal-submit", placement: "top", emoji: "🚀" };
+      } 
+      else if (wizEmpName && wizActiveBtn && typeof WizardManager !== 'undefined' && WizardManager.activeType === 'empresa') {
+        if (!wizEmpName.value.trim()) step = { title: "Identidad", body: "Escribe el nombre legal de tu empresa.", target: "#wiz-emp-name", placement: "bottom", emoji: "🏢" };
+        else step = { title: "Buena Elección", body: "Continúa al paso de capital.", target: wizActiveBtn, placement: "top", emoji: "➡️" };
+      }
+      else if (wizSucName && wizActiveBtn && typeof WizardManager !== 'undefined' && WizardManager.activeType === 'sucursal') {
+        if (!wizSucName.value.trim()) step = { title: "Nombra tu Sucursal", body: "Dale un nombre a este local.", target: "#wiz-suc-name", placement: "bottom", emoji: "📍" };
+        else step = { title: "Crea tu Sucursal", body: "Lanza la magia financiera.", target: wizActiveBtn, placement: "top", emoji: "✨" };
+      }
+      else if (wizActiveBtn) {
+         step = { title: "Verifica", body: "Revisa los campos y avanza.", target: wizActiveBtn, placement: "top", emoji: "✅" };
+      }
+      
+      // Auto-poll para detectar inputs en el modal
+      this.currentTimer = setTimeout(() => this.evaluateState(), 500);
+    } 
+    // Lógica normal de los dashboards
+    else if (empresas.length === 0) {
       if (document.querySelector('#btn-empty-create')) step = { title: "1. Crea tu Imperio", body: "BW² está listo. Haz clic aquí para inicializar tu primera Empresa.", target: "#btn-empty-create", placement: "top", emoji: "🏢" };
       else if (document.querySelector('#btn-create-empresa')) step = { title: "1. Crea tu Imperio", body: "BW² está listo. Haz clic en Nueva Empresa.", target: "#btn-create-empresa", placement: "left", emoji: "🏢" };
     } 
@@ -240,13 +276,6 @@ window.BW2Tour = {
     if (!step || !step.target || !document.querySelector(step.target)) {
       this.currentTimer = setTimeout(() => this.evaluateState(), 800);
       if (this.popover) this.popover.style.display = 'none';
-      return;
-    }
-
-    if (document.querySelector('.bw2-modal-overlay')) {
-      if (this.popover) this.popover.style.display = 'none';
-      if (this.overlay) this.overlay.style.display = 'none';
-      this.currentTimer = setTimeout(() => this.evaluateState(), 800);
       return;
     }
 
