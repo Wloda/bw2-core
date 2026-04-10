@@ -158,6 +158,10 @@ export async function queryMultiRadius(lat, lng) {
       // Other shops (density proxy)
       node["shop"](around:${radius},${lat},${lng});
 
+      // Shoe stores (for Zapatería model)
+      node["shop"="shoes"](around:${radius},${lat},${lng});
+      way["shop"="shoes"](around:${radius},${lat},${lng});
+
       // Pet shops (vet corridor)
       node["shop"="pet"](around:${radius},${lat},${lng});
       way["shop"="pet"](around:${radius},${lat},${lng});
@@ -215,7 +219,7 @@ export async function queryMultiRadius(lat, lng) {
 
   // Classify all elements
   const classified = {
-    farmacias: [], salud: [], escuelas: [], iglesias: [],
+    farmacias: [], calzado: [], salud: [], escuelas: [], iglesias: [],
     mercados: [], comercios: [], bancos: [], restaurantes: [],
     transporte: [], gasolineras: [], residencial: [],
     veterinarias: [], petShops: [], dogParks: [], publicHealth: []
@@ -255,6 +259,9 @@ export async function queryMultiRadius(lat, lng) {
     } else if (shop === 'pet') {
       classified.petShops.push({ ...item, type: 'Pet Shop' });
       classified.comercios.push({ ...item, type: 'pet' });
+    } else if (shop === 'shoes') {
+      classified.calzado.push({ ...item, type: 'Zapatería' });
+      classified.comercios.push({ ...item, type: 'shoes' });
     } else if (shop) {
       classified.comercios.push({ ...item, type: shop });
     } else if (['bank', 'atm'].includes(amenity)) {
@@ -288,6 +295,7 @@ export async function queryMultiRadius(lat, lng) {
     });
     radiusSummary[r] = {
       farmacias: inRadius(classified.farmacias).length,
+      calzado: inRadius(classified.calzado).length,
       salud: inRadius(classified.salud).length,
       escuelas: inRadius(classified.escuelas).length,
       iglesias: inRadius(classified.iglesias).length,
@@ -383,14 +391,17 @@ export function calcLocationScores(study, modelId) {
     f1_rezago = map[study.rezago.grado] ?? 50;
   }
 
-  // ── Factor 2: Competition Density (farmacias/km² at 1km) ──
-  const pharm1km = r1.farmacias || 0;
-  const pharmDensity = pharm1km / (Math.PI * 1); // per km²
-  const f2_compDensity = pharmDensity <= 1 ? 95 : pharmDensity <= 3 ? 80 : pharmDensity <= 6 ? 60 : pharmDensity <= 10 ? 35 : 15;
+  const isRetail = modelId === 'shoes_mall' || (modelId && modelId.includes('shoes'));
+  const targetArray = isRetail ? (c.calzado || []) : (c.farmacias || []);
+  const target1km = isRetail ? (r1.calzado || 0) : (r1.farmacias || 0);
+
+  // ── Factor 2: Competition Density (target/km² at 1km) ──
+  const targetDensity = target1km / (Math.PI * 1); // per km²
+  const f2_compDensity = targetDensity <= 1 ? 95 : targetDensity <= 3 ? 80 : targetDensity <= 6 ? 60 : targetDensity <= 10 ? 35 : 15;
 
   // ── Factor 3: Competition Quality (chain vs independent) ──
-  const chains = (c.farmacias || []).filter(f => f.chain !== 'Independiente');
-  const chainRatio = pharm1km > 0 ? chains.length / pharm1km : 0;
+  const chains = targetArray.filter(f => f.chain && f.chain !== 'Independiente');
+  const chainRatio = target1km > 0 ? chains.length / target1km : 0;
   const f3_compQuality = chainRatio <= 0.2 ? 85 : chainRatio <= 0.4 ? 70 : chainRatio <= 0.6 ? 50 : 30;
 
   // ── Factor 4: Health Corridor ──
@@ -426,32 +437,31 @@ export function calcLocationScores(study, modelId) {
 
   // ── Factor 10: Market Saturation Index ──
   const potentialCustomers = resid1km * 10 + schools * 200 + health1km * 50 + markets * 100;
-  const saturation = potentialCustomers > 0 ? pharm1km / (potentialCustomers / 1000) : pharm1km;
+  const saturation = potentialCustomers > 0 ? target1km / (potentialCustomers / 1000) : target1km;
   const f10_saturation = saturation <= 0.5 ? 90 : saturation <= 1 ? 75 : saturation <= 2 ? 55 : saturation <= 4 ? 35 : 15;
 
   // ── Factor 11: Distance to Nearest Competitor ──
-  const nearestPharm = (c.farmacias || [])[0];
-  const nearestDist = nearestPharm?.distance || 9999;
+  const nearestTarget = targetArray[0];
+  const nearestDist = nearestTarget?.distance || 9999;
   const f11_nearest = nearestDist >= 800 ? 95 : nearestDist >= 500 ? 82 : nearestDist >= 300 ? 65 : nearestDist >= 150 ? 45 : nearestDist >= 50 ? 25 : 10;
 
   // ── Factor 12: COFEPRIS 200m Compliance ──
-  // COFEPRIS requires minimum 200m between pharmacies
-  const cofeprisPass = nearestDist > 200;
-  const f12_cofepris = nearestDist >= 500 ? 95 : nearestDist >= 300 ? 80 : nearestDist > 200 ? 60 : nearestDist >= 100 ? 20 : 5;
+  // COFEPRIS requires minimum 200m between pharmacies (N/A for Retail/Shoes)
+  const cofeprisPass = isRetail ? true : nearestDist > 200;
+  const f12_cofepris = isRetail ? 50 : (nearestDist >= 500 ? 95 : nearestDist >= 300 ? 80 : nearestDist > 200 ? 60 : nearestDist >= 100 ? 20 : 5);
 
   // ── Factor 13: DENUE Census Validation ──
   // Uses INEGI DENUE data if available from async enrichment
   const denueData = study.denueValidation;
   let f13_denue = 50; // neutral default if no DENUE data
-  if (denueData) {
-    const osmCount = pharm1km;
+  if (denueData && !isRetail) {
+    const osmCount = target1km;
     const denueCount = denueData.pharmacyCount || 0;
     const delta = Math.abs(osmCount - denueCount);
-    // High confidence if counts match closely
-    if (delta <= 1) f13_denue = 85; // OSM matches INEGI = high trust
+    if (delta <= 1) f13_denue = 85;
     else if (delta <= 3) f13_denue = 70;
-    else if (osmCount < denueCount) f13_denue = 40; // OSM undercount = more competition unseen
-    else f13_denue = 60; // OSM overcount = less serious
+    else if (osmCount < denueCount) f13_denue = 40;
+    else f13_denue = 60;
   }
 
   // ── Factor 14: Public Health Infrastructure (IMSS/ISSSTE/SSA) ──
@@ -470,14 +480,13 @@ export function calcLocationScores(study, modelId) {
   const f15_vetCorridor = vetScore >= 12 ? 95 : vetScore >= 8 ? 82 : vetScore >= 5 ? 68 : vetScore >= 2 ? 48 : 20;
 
   // ── Weighted Total (15 factors, sum = 1.00) ──
-  const isRetail = modelId === 'shoes_mall';
   let weights;
   if (isRetail) {
     weights = {
-      // Retail/Shoes: Foot traffic, malls, and income are king. Pharmacies/Hospitals irrelevant.
-      rezago: 0.05, compDensity: 0.0, compQuality: 0.0, health: 0.0,
-      traffic: 0.30, commercial: 0.30, transport: 0.10, residential: 0.10,
-      income: 0.15, saturation: 0.0, nearest: 0.0,
+      // Retail/Shoes: Foot traffic, malls, and income are king. Competitors are actively tracked.
+      rezago: 0.05, compDensity: 0.15, compQuality: 0.05, health: 0.0,
+      traffic: 0.25, commercial: 0.25, transport: 0.05, residential: 0.05,
+      income: 0.10, saturation: 0.03, nearest: 0.02,
       cofepris: 0.0, denue: 0.0, publicHealth: 0.0, vetCorridor: 0.0
     };
   } else if (isCoolPet) {
@@ -522,7 +531,7 @@ export function calcLocationScores(study, modelId) {
   const comercial = Math.round(
     f2_compDensity * 0.3 + f4_health * 0.3 + f6_commercial * 0.2 + f5_traffic * 0.2
   );
-  const compLabel = pharm1km === 0 ? 'Sin competencia' : pharm1km <= 2 ? 'Baja' : pharm1km <= 5 ? 'Media' : pharm1km <= 10 ? 'Alta' : 'Muy alta';
+  const compLabel = target1km === 0 ? 'Sin competencia' : target1km <= 2 ? 'Baja' : target1km <= 5 ? 'Media' : target1km <= 10 ? 'Alta' : 'Muy alta';
 
   return {
     territorial: f1_rezago,
@@ -536,8 +545,10 @@ export function calcLocationScores(study, modelId) {
     cofeprisCompliant: cofeprisPass,
     cofeprisNearestDist: nearestDist < 9999 ? nearestDist : null,
     // Extra data for UI
-    nearestCompetitor: nearestPharm ? { name: nearestPharm.name, distance: nearestPharm.distance, chain: nearestPharm.chain } : null,
-    pharmacyCount1km: pharm1km,
+    nearestCompetitor: nearestTarget ? { name: nearestTarget.name, distance: nearestTarget.distance, chain: nearestTarget.chain } : null,
+    pharmacyCount1km: r1.farmacias || 0,
+    calzadoCount1km: r1.calzado || 0,
+    targetCount1km: target1km,
     chainCount: chains.length,
     healthFacilities: health1km,
     hospitals,

@@ -4,7 +4,7 @@
 import { MODELS, SCENARIOS } from './data/model-registry.js?v=bw37';
 import { runProjection, runSensitivity, calcStress, generateChecklist, evaluateAlerts } from './engine/financial-model.js?v=bw37';
 import { runBranchProjection, runConsolidation } from './engine/enterprise-engine.js?v=bw37';
-import { getWorkspace, getEmpresas, getEmpresaById, getActiveEmpresa, setActiveEmpresa, addEmpresa, updateEmpresaData, removeEmpresa, getProyectos, getProyectoById, getActiveProyecto, setActiveProyecto, addProyecto, updateProyecto, removeProyecto, getEmpresa, updateEmpresa, addBranch, updateBranch, updateBranchOverrides, dupBranch, archiveBranch, activateBranch, restoreBranch, removeBranch, getBranch, getActiveBranches, addPartner, updatePartner, removePartner, resetEmpresa, resetBranchToDefaults, buildDefaultOverrides, updateBranchLocation, onEmpresaChange, addPartnerTransaction, removePartnerTransaction, editPartnerTransaction, getPartnerCapital, switchUserWorkspace, initNewUserWorkspace, discardSessionChanges } from './data/empresa-store.js?v=bw41';
+import { getWorkspace, getEmpresas, getEmpresaById, getActiveEmpresa, setActiveEmpresa, addEmpresa, updateEmpresaData, removeEmpresa, getProyectos, getProyectoById, getActiveProyecto, setActiveProyecto, addProyecto, updateProyecto, removeProyecto, getEmpresa, updateEmpresa, addBranch, updateBranch, updateBranchOverrides, dupBranch, archiveBranch, activateBranch, restoreBranch, removeBranch, getBranch, getActiveBranches, addPartner, updatePartner, removePartner, resetEmpresa, resetBranchToDefaults, buildDefaultOverrides, updateBranchLocation, onEmpresaChange, addPartnerTransaction, removePartnerTransaction, editPartnerTransaction, getPartnerCapital, switchUserWorkspace, initNewUserWorkspace, discardSessionChanges } from './data/empresa-store.js?v=bw42';
 import { runLocationStudy, calcCombinedMarketFactor, geocodeAddress } from './engine/location-engine.js?v=bw52';
 import { generateBranchPDF } from './pdf-export.js?v=bw54';
 import { setGoogleApiKey, loadGoogleMaps, attachPlacesAutocomplete, createGoogleMap, buildStudyMarkers, isGoogleMapsLoaded, getGoogleApiKey } from './engine/google-places.js?v=bw37';
@@ -1169,11 +1169,12 @@ function renderPortfolioSummary(empresa){
   const proj = getActiveProyecto();
   if(!proj){ el.style.display='none'; return; }
 
-  const partners = (empresa.partners && empresa.partners.length > 0) ? empresa.partners : (proj.partners || []);
-  const partnersCap = partners.reduce((s, p) => s + Number(p.capital || 0), 0);
-  let safeProjCap = Number(proj.totalCapital) || 2000000;
-  if (safeProjCap > 1e10) safeProjCap = 2000000; // Auto-heal string concat corruption
-  const activeCap = partnersCap > 0 ? partnersCap : safeProjCap;
+  const trueEmpresa = getActiveEmpresa() || empresa;
+  const partners = (trueEmpresa.partners && trueEmpresa.partners.length > 0) ? trueEmpresa.partners : (proj.partners || []);
+  
+  // Project Capital should act independently from Enterprise Capital if defined.
+  let activeCap = Number(proj.totalCapital) || Number(trueEmpresa.totalCapital) || 2000000;
+  if (activeCap > 1e10) activeCap = 2000000; // Auto-heal string concat corruption
 
   const pseudoEmpresa = {
     ...empresa,
@@ -1181,7 +1182,7 @@ function renderPortfolioSummary(empresa){
     totalCapital: activeCap,
     corporateReserve: proj.corporateReserve || 0,
     corporateExpenses: proj.corporateExpenses || 0,
-    partners: proj.partners || []
+    partners: partners
   };
   const consol = runConsolidation(pseudoEmpresa, getActiveEmpresa());
   
@@ -4983,7 +4984,8 @@ function renderEmpresaSettings(empresa){
 
   // Add partner
   const addBtn = container.querySelector('#es-btn-add-partner');
-  if (addBtn) addBtn.addEventListener('click', () => {
+  if (addBtn) addBtn.addEventListener('click', (e) => {
+    e.preventDefault();
     const n = container.querySelector('#es-add-name')?.value?.trim();
     const c = parseFloat(container.querySelector('#es-add-capital')?.value);
     
@@ -5039,9 +5041,20 @@ function renderEmpresaSettings(empresa){
 
 /* ═══ PROYECTO SETTINGS VIEW ═══ */
 function renderProyectoSettings(proyecto){
-  const consol = runConsolidation(proyecto, getActiveEmpresa());
-  const partnersCap = (proyecto.partners || []).reduce((s, p) => s + (p.capital || 0), 0);
-  const trueC = partnersCap > 0 ? partnersCap : (proyecto.totalCapital || 0);
+  const trueEmpresa = getActiveEmpresa();
+  const partners = (trueEmpresa && trueEmpresa.partners && trueEmpresa.partners.length > 0) ? trueEmpresa.partners : (proyecto.partners || []);
+  let trueC = Number(proyecto.totalCapital) || Number(trueEmpresa?.totalCapital) || 2000000;
+  if (trueC > 1e10) trueC = 2000000;
+
+  const pseudoEmpresa = {
+    ...(trueEmpresa || {}),
+    branches: proyecto.branches || [],
+    totalCapital: trueC,
+    corporateReserve: proyecto.corporateReserve || 0,
+    corporateExpenses: proyecto.corporateExpenses || 0,
+    partners: partners
+  };
+  const consol = runConsolidation(pseudoEmpresa, trueEmpresa);
 
   // ── KPI strip at top ──
   const kpiEl = $('empresa-kpis');
@@ -5051,7 +5064,7 @@ function renderProyectoSettings(proyecto){
     const psFree = trueC - psComm;
     const psCapStatus = psFree >= 0 ? 'good' : 'bad';
     kpiEl.innerHTML = [
-      kc('Capital Total', fmt.m(trueC), `${(proyecto.partners || []).length} socios`, 'neutral'),
+      kc('Capital Total', fmt.m(trueC), `${partners.length} socios`, 'neutral'),
       kc('Inv. Requerida', fmt.oop(psComm), `Sumatoria Capex de ${consol.branchCount || 0} suc+reserva`, 'neutral'),
       kc('Libre / Faltante', fmt.m(psFree), psCapStatus === 'good' ? 'Capital Disponible' : '⚠️ Presupuesto Excedido', psCapStatus),
       kc('Ganancia/mes', fmt.m(consol.avgMonthlyNet), `en ${consol.branchCount || 0} suc.`, consol.avgMonthlyNet >= 0 ? 'good' : 'bad'),
@@ -5061,7 +5074,7 @@ function renderProyectoSettings(proyecto){
   }
 
   // ── Form fields ──
-  const empresa = getActiveEmpresa();
+  const empresa = trueEmpresa || getActiveEmpresa();
   const nameEl = $('emp-name');
   if (nameEl) nameEl.value = empresa.name || '';
   

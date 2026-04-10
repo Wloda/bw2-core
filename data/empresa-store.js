@@ -193,6 +193,23 @@ function _load() {
           emp.corporateExpenses = 0;
           emp.partners = [];
         }
+        if (emp.proyectos && emp.proyectos.length > 0) {
+          const p = emp.proyectos[0];
+          if (p.partners && p.partners.length > 0) {
+            if (!emp.partners || emp.partners.length === 0) {
+              emp.partners = JSON.parse(JSON.stringify(p.partners));
+            } else {
+              emp.partners.forEach(ep => {
+                const pp = p.partners.find(x => x.id === ep.id);
+                if (pp && pp.transactions && (!ep.transactions || pp.transactions.length > ep.transactions.length)) {
+                  ep.transactions = JSON.parse(JSON.stringify(pp.transactions));
+                }
+              });
+            }
+          }
+        }
+        if (!emp.partners) emp.partners = [];
+        _recalcEquity(emp); // Force heal corrupted legacy partner discrepancies
       });
     } catch(e) {
       _workspace = null;
@@ -477,7 +494,7 @@ export function resetEmpresa() {
 
 /** Compute a partner's total capital from their transaction ledger */
 export function getPartnerCapital(partner) {
-  if (!partner.transactions || partner.transactions.length === 0) return Number(partner.capital || 0);
+  if (!partner.transactions) return Number(partner.capital || 0);
   return partner.transactions.reduce((sum, tx) => {
     if (tx.type === 'aportacion' || tx.type === 'prestamo') return sum + Number(tx.amount || 0);
     if (tx.type === 'retiro' || tx.type === 'devolucion' || tx.type === 'distribucion') return sum - Number(tx.amount || 0);
@@ -514,9 +531,19 @@ function _recalcEquity(target) {
 }
 
 export function addPartner(name, capital, equity) {
-  const proj = getActiveProyecto();
-  if (!proj) return;
-  if (!proj.partners) proj.partners = [];
+  const emp = getActiveEmpresa();
+  if (!emp) return;
+  
+  // Auto-heal legacy partner migration if empty before pushing new
+  if (!emp.partners || emp.partners.length === 0) {
+    const firstProj = (emp.proyectos || [])[0];
+    if (firstProj && firstProj.partners && firstProj.partners.length > 0) {
+      emp.partners = JSON.parse(JSON.stringify(firstProj.partners));
+    } else {
+      emp.partners = [];
+    }
+  }
+  
   const partner = {
     id: uid('p'),
     name, capital, equity,
@@ -528,15 +555,15 @@ export function addPartner(name, capital, equity) {
       note: 'Capital inicial'
     }]
   };
-  proj.partners.push(partner);
-  _recalcEquity(proj);
+  emp.partners.push(partner);
+  _recalcEquity(emp);
   _save();
 }
 
 export function updatePartner(partnerId, updates) {
-  const proj = getActiveProyecto();
-  if (!proj || !proj.partners) return;
-  const p = proj.partners.find(p => p.id === partnerId);
+  const emp = getActiveEmpresa();
+  if (!emp || !emp.partners) return;
+  const p = emp.partners.find(p => p.id === partnerId);
   if (p) {
     if (updates.capital !== undefined && Number(updates.capital) !== getPartnerCapital(p)) {
       const diff = Number(updates.capital) - getPartnerCapital(p);
@@ -551,39 +578,56 @@ export function updatePartner(partnerId, updates) {
       delete updates.capital;
     }
     Object.assign(p, updates);
-    _recalcEquity(proj);
+    _recalcEquity(emp);
     _save(); 
   }
 }
 
 export function removePartner(partnerId) {
-  const proj = getActiveProyecto();
-  if (!proj || !proj.partners) return;
-  proj.partners = proj.partners.filter(p => p.id !== partnerId);
-  _recalcEquity(proj);
+  const emp = getActiveEmpresa();
+  if (!emp || !emp.partners) return;
+  emp.partners = emp.partners.filter(p => p.id !== partnerId);
+  _recalcEquity(emp);
   _save();
 }
 
 export function addPartnerTransaction(partnerId, tx) {
-  const proj = getActiveProyecto();
-  if (!proj || !proj.partners) return null;
-  const p = proj.partners.find(p => p.id === partnerId);
+  const emp = getActiveEmpresa();
+  if (!emp || !emp.partners) return null;
+  const p = emp.partners.find(p => p.id === partnerId);
   if (!p) return null;
   if (!p.transactions) p.transactions = [];
   const transaction = { id: uid('tx'), ...tx };
   p.transactions.push(transaction);
-  _recalcEquity(proj);
+  _recalcEquity(emp);
   _save();
   return transaction;
 }
 
+export function editPartnerTransaction(partnerId, txId, updates) {
+  const emp = getActiveEmpresa();
+  if (!emp || !emp.partners) return;
+  const p = emp.partners.find(p => p.id === partnerId);
+  if (!p || !p.transactions) return;
+  const tx = p.transactions.find(t => t.id === txId);
+  if (!tx) return;
+  
+  if (updates.type !== undefined) tx.type = updates.type;
+  if (updates.amount !== undefined) tx.amount = Number(updates.amount);
+  if (updates.date !== undefined) tx.date = updates.date;
+  if (updates.note !== undefined) tx.note = updates.note;
+  
+  _recalcEquity(emp);
+  _save();
+}
+
 export function removePartnerTransaction(partnerId, txId) {
-  const proj = getActiveProyecto();
-  if (!proj || !proj.partners) return;
-  const p = proj.partners.find(p => p.id === partnerId);
+  const emp = getActiveEmpresa();
+  if (!emp || !emp.partners) return;
+  const p = emp.partners.find(p => p.id === partnerId);
   if (!p || !p.transactions) return;
   p.transactions = p.transactions.filter(tx => tx.id !== txId);
-  _recalcEquity(proj);
+  _recalcEquity(emp);
   _save();
 }
 
