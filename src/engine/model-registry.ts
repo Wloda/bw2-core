@@ -336,6 +336,112 @@ export const MODELS = {
       franchise_fees_documented: 'brochure_coolpet',
       royalty_promo_documented: null, source_status_for_capex: 'PLACEHOLDER'
     }
+  },
+
+  /* ─────────────── ZAPATERÍA MALL (RETAIL) ─────────────── */
+  shoes_mall: {
+    id: 'shoes_mall', label: 'Zapatería', emoji: '👞',
+    brand: 'Retail Genérico',
+
+    fixedCosts: {
+      rent: 40000.00, systems: 1500.00, accounting: 1500.00,
+      payroll: 35000.00, socialCharge: 10500.00,
+      servPap: { m1: 2000.00, m2: 2500.00, m3: 3000.00 },
+      omissions: { m1: 500, m2: 500, m3: 500 },
+      totalDocumented: { m1: 91000.00, m2: 91500.00, m3: 92000.00 },
+      auditStatus: 'PLACEHOLDER',
+      auditNote: '⚠️ ESTIMATED — generic shoe retail inside a mall.'
+    },
+
+    variableCosts: {
+      cogs: 0.50, comVenta: 0.03, merma: 0.005, pubDir: 0.015,
+      regalia: 0.000, bancario: 0.015,
+      cvTotal: 0.565, mc: 0.435
+    },
+
+    sales: {
+      m1: 150000, m2: 200000, m3: 250000, m4: 300000,
+      m5: 350000, m6: 380000,
+      m12: 450000, m24: 550000, m36: 600000,
+      m48: 620000, m60: 650000
+    },
+
+    netProfitDoc: null,
+
+    summary: {
+      profitRange: [80000, 120000],
+      profit5Y: null,
+      invRange: [1200000, 1500000],
+      fixedCosts: 92000.00,
+      documentedClaimPayback: 24, beMonths: [6, 12]
+    },
+
+    derived: null,
+    franchise: { brandFee: 0, services: 100000, equipment: 600000, inventory: 800000, total: 1500000 },
+    royaltyPromo: null,
+    totalInitialInvestment: { min: 1200000, max: 1500000, default: 1500000 },
+    taxRate: 0.30,
+    sourceNotes: {
+      capex_documented: null, franchise_fees_documented: null,
+      royalty_promo_documented: null, source_status_for_capex: 'PLACEHOLDER'
+    }
+  },
+
+  /* ─────────────── PICCOLO LUDO / LUDOTECA ─────────────── */
+  ludoteca: {
+    id: 'ludoteca', label: 'Ludoteca', emoji: '🧸',
+    brand: 'Retail Genérico',
+
+    fixedCosts: {
+      rent: 35000.00, systems: 2000.00, accounting: 1500.00,
+      payroll: 40408.00, socialCharge: 11000.00, // Loaded from Excel
+      servPap: { m1: 5250.00, m2: 5250.00, m3: 5250.00 }, // Mantenimiento Plaza
+      omissions: { m1: 0, m2: 0, m3: 0 },
+      totalDocumented: { m1: 91658.00, m2: 92048.00, m3: 92048.00 },
+      auditStatus: 'DOCUMENTED',
+      auditNote: 'Proyección Excel Ludoteca Patio SantaFe'
+    },
+
+    // Weighted-average variable costs
+    // Accesos (0% COS) = 65% rev, Comida (25% COS) = 25% rev, Fiestas (33% COS) = 10% rev
+    // Approximate blended COGS = ~9%
+    variableCosts: {
+      cogs: 0.09, comVenta: 0.005, merma: 0.005, pubDir: 0.015,
+      regalia: 0.05, bancario: 0.01,
+      cvTotal: 0.175, mc: 0.825
+    },
+
+    sales: {
+      m1: 157440, m2: 200200, m3: 200200, m4: 200200,
+      m5: 200200, m6: 200200,
+      m12: 176176, m24: 200000, m36: 210000,
+      m48: 220000, m60: 231000
+    },
+
+    netProfitDoc: {
+      m1: 30000, m2: 60000, m3: 60000, m4: 60000,
+      m6: 60000,
+      m12: 50000, m24: 65000, m36: 72000,
+      m48: 78000, m60: 85000
+    },
+
+    summary: {
+      profitRange: [50000, 85000],
+      profit5Y: null,
+      invRange: [1200000, 1500000],
+      fixedCosts: 92000.00,
+      documentedClaimPayback: 24, beMonths: [3, 9]
+    },
+
+    derived: null,
+    franchise: { brandFee: 25000, services: 35000, equipment: 1159500, inventory: 0, total: 1500000 },
+    royaltyPromo: null,
+    totalInitialInvestment: { min: 1200000, max: 1500000, default: 1500000 },
+    taxRate: 0.30,
+    sourceNotes: {
+      capex_documented: 'excel_piccolo', franchise_fees_documented: null,
+      royalty_promo_documented: null, source_status_for_capex: 'DOCUMENTED'
+    }
   }
 };
 

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BW² — Dashboard de Inversión</title>
   <meta name="description" content="Dashboard multi-sucursal para análisis de inversión en franquicia FarmaTuya">
-  <link rel="icon" type="image/svg+xml" href="/assets/favicon-DSpV-WPS.svg">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -49,14 +49,13 @@
       return Promise.all(promises);
     };
   </script>
+  <link rel="stylesheet" href="styles.css?v=bw40">
   <script>
     window.addEventListener('error',e=>console.error('[Error Global]', e.message, e.error));
     window.addEventListener('unhandledrejection',e=>console.error('[Rechazo Async]', e.reason));
     if(!localStorage.getItem('bw2_workspace')){localStorage.removeItem('farmatuya_empresa');console.log('[BW2] clean slate')}
     console.log('[BW2] inline script OK, localStorage keys:', Object.keys(localStorage));
   </script>
-  <script type="module" crossorigin src="/assets/index-Dg0ESBI2.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-BMADWuUx.css">
 </head>
 <body>
   <!-- ═══ AUTH SCREEN ═══ -->
@@ -859,6 +858,7 @@
     </div>
   </div>
 
-  <footer id="app-footer"><p>BW² — Dashboard de Inversión · v.10 · Multi-Empresa</p></footer>
+  <footer id="app-footer"><p>BW² — Dashboard de Inversión · v.9 · Multi-Empresa</p></footer>
+  <script type="module" src="app.js?v=bw56"></script>
 </body>
 </html>

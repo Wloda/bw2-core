@@ -120,7 +120,9 @@ function createEmpresa(name = 'Mi Empresa') {
     name,
     logo: null,
     createdAt: new Date().toISOString(),
-    proyectos: []
+    proyectos: [
+      createProyecto('Proyecto 1')
+    ]
   };
 }
 
@@ -468,8 +470,9 @@ export function resetEmpresa() {
   const ws = _load();
   const emp = getActiveEmpresa();
   if (!emp) return;
-  emp.proyectos = [];
-  ws.activeProyectoId = null;
+  const defaultProj = createProyecto('FarmaTuya');
+  emp.proyectos = [defaultProj];
+  ws.activeProyectoId = defaultProj.id;
   _save();
 }
 
@@ -489,17 +492,15 @@ export function getPartnerCapital(partner) {
 function _migratePartnerTransactions(target) {
   if (!target || !target.partners) return;
   target.partners.forEach(p => {
-    if (!p.transactions) {
-      p.transactions = [];
-      if (Number(p.capital || 0) > 0) {
-        p.transactions.push({
-          id: uid('tx'),
-          type: 'aportacion',
-          amount: Number(p.capital),
-          date: new Date().toISOString().slice(0, 10),
-          note: 'Capital inicial (migrado)'
-        });
-      }
+    if (!p.transactions) p.transactions = [];
+    if (p.transactions.length === 0 && Number(p.capital || 0) > 0) {
+      p.transactions.push({
+        id: uid('tx'),
+        type: 'aportacion',
+        amount: Number(p.capital),
+        date: new Date().toISOString().slice(0, 10),
+        note: 'Capital inicial (migrado)'
+      });
     }
   });
 }
@@ -514,9 +515,9 @@ function _recalcEquity(target) {
 }
 
 export function addPartner(name, capital, equity) {
-  const proj = getActiveProyecto();
-  if (!proj) return;
-  if (!proj.partners) proj.partners = [];
+  const emp = getActiveEmpresa();
+  if (!emp) return;
+  if (!emp.partners) emp.partners = [];
   const partner = {
     id: uid('p'),
     name, capital, equity,
@@ -528,15 +529,15 @@ export function addPartner(name, capital, equity) {
       note: 'Capital inicial'
     }]
   };
-  proj.partners.push(partner);
-  _recalcEquity(proj);
+  emp.partners.push(partner);
+  _recalcEquity(emp);
   _save();
 }
 
 export function updatePartner(partnerId, updates) {
-  const proj = getActiveProyecto();
-  if (!proj || !proj.partners) return;
-  const p = proj.partners.find(p => p.id === partnerId);
+  const emp = getActiveEmpresa();
+  if (!emp || !emp.partners) return;
+  const p = emp.partners.find(p => p.id === partnerId);
   if (p) {
     if (updates.capital !== undefined && Number(updates.capital) !== getPartnerCapital(p)) {
       const diff = Number(updates.capital) - getPartnerCapital(p);
@@ -551,39 +552,39 @@ export function updatePartner(partnerId, updates) {
       delete updates.capital;
     }
     Object.assign(p, updates);
-    _recalcEquity(proj);
+    _recalcEquity(emp);
     _save(); 
   }
 }
 
 export function removePartner(partnerId) {
-  const proj = getActiveProyecto();
-  if (!proj || !proj.partners) return;
-  proj.partners = proj.partners.filter(p => p.id !== partnerId);
-  _recalcEquity(proj);
+  const emp = getActiveEmpresa();
+  if (!emp || !emp.partners) return;
+  emp.partners = emp.partners.filter(p => p.id !== partnerId);
+  _recalcEquity(emp);
   _save();
 }
 
 export function addPartnerTransaction(partnerId, tx) {
-  const proj = getActiveProyecto();
-  if (!proj || !proj.partners) return null;
-  const p = proj.partners.find(p => p.id === partnerId);
+  const emp = getActiveEmpresa();
+  if (!emp || !emp.partners) return null;
+  const p = emp.partners.find(p => p.id === partnerId);
   if (!p) return null;
   if (!p.transactions) p.transactions = [];
   const transaction = { id: uid('tx'), ...tx };
   p.transactions.push(transaction);
-  _recalcEquity(proj);
+  _recalcEquity(emp);
   _save();
   return transaction;
 }
 
 export function removePartnerTransaction(partnerId, txId) {
-  const proj = getActiveProyecto();
-  if (!proj || !proj.partners) return;
-  const p = proj.partners.find(p => p.id === partnerId);
+  const emp = getActiveEmpresa();
+  if (!emp || !emp.partners) return;
+  const p = emp.partners.find(p => p.id === partnerId);
   if (!p || !p.transactions) return;
   p.transactions = p.transactions.filter(tx => tx.id !== txId);
-  _recalcEquity(proj);
+  _recalcEquity(emp);
   _save();
 }
 

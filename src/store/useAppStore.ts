@@ -86,33 +86,11 @@ interface AppState extends Workspace {
 }
 
 function createDefaultWorkspace(): Workspace {
-  const proj: Proyecto = {
-    id: uid('proj'),
-    name: 'FarmaTuya',
-    isFranchise: true,
-    logo: null,
-    branches: [],
-    createdAt: new Date().toISOString()
-  };
-  const emp: Empresa = {
-    id: uid('emp'),
-    name: 'NOJOM',
-    logo: null,
-    totalCapital: 2000000,
-    corporateReserve: 200000,
-    corporateExpenses: 0,
-    partners: [
-      { id: 'p1', name: 'Socio 1', capital: 1000000, equity: 0.50 },
-      { id: 'p2', name: 'Socio 2', capital: 1000000, equity: 0.50 }
-    ],
-    createdAt: new Date().toISOString(),
-    proyectos: [proj]
-  };
   return {
     id: uid('bw2'),
-    empresas: [emp],
-    activeEmpresaId: emp.id,
-    activeProyectoId: proj.id
+    empresas: [],
+    activeEmpresaId: null,
+    activeProyectoId: null
   };
 }
 

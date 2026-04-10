@@ -76,9 +76,20 @@ export function runProjection(modelId, overrides={}) {
   } else {
     totalInv = model.summary.invRange[1]; // fallback to max
   }
+  // Discount Brand Fee if not a franchise
+  const isFranchise = overrides.isFranchise !== false;
+  if (!isFranchise && model.franchise && model.franchise.brandFee) {
+    totalInv -= model.franchise.brandFee;
+  }
+
   // Pago único adds upfront royalty
-  if (royaltyMode === 'pago_unico' && model.royaltyPromo) {
+  if (royaltyMode === 'pago_unico' && model.royaltyPromo && isFranchise) {
     totalInv += model.royaltyPromo.upfront5Y || 125000;
+  }
+
+  // If not a franchise, strip royalty from VC
+  if (!isFranchise) {
+    vc.regalia = 0;
   }
 
   // Partners

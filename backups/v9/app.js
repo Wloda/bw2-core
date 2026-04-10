@@ -75,230 +75,10 @@ function showToast(msg, type='info') {
   setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3000);
 }
 
-window.showPremiumLoader = function(title, messages, durationMs, onComplete) {
-  let overlay = document.querySelector('.premium-loading-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.className = 'premium-loading-overlay';
-    overlay.innerHTML = `
-      <div class="plo-box">
-        <div class="plo-title">${title}</div>
-        <div class="plo-subtitle" id="plo-subtitle" style="transition: opacity 0.15s ease">Iniciando...</div>
-        <div class="plo-bar-container">
-          <div class="plo-bar-fill" id="plo-bar-fill"></div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-  } else {
-    overlay.querySelector('.plo-title').textContent = title;
-  }
-  
-  const subtitleEl = overlay.querySelector('#plo-subtitle');
-  const barEl = overlay.querySelector('#plo-bar-fill');
-  
-  // Reset states
-  barEl.style.transition = 'none';
-  barEl.style.width = '0%';
-  subtitleEl.style.opacity = '1';
-  subtitleEl.textContent = messages[0] || 'Por favor espera...';
-  
-  // Trigger animations
-  requestAnimationFrame(() => {
-    overlay.classList.add('active');
-    requestAnimationFrame(() => {
-      barEl.style.transition = `width ${durationMs}ms cubic-bezier(0.1, 0, 0.2, 1)`;
-      barEl.style.width = '100%';
-    });
-  });
-  
-  // Progress messages timeline
-  if (messages.length > 1) {
-    const interval = durationMs / messages.length;
-    messages.forEach((msg, idx) => {
-      if (idx === 0) return;
-      setTimeout(() => {
-        subtitleEl.style.opacity = '0';
-        setTimeout(() => {
-          subtitleEl.textContent = msg;
-          subtitleEl.style.opacity = '1';
-        }, 150);
-      }, interval * idx);
-    });
-  }
-  
-  // Completion
-  const finish = () => {
-    overlay.classList.remove('active');
-    setTimeout(() => {
-      if (typeof onComplete === 'function') onComplete();
-    }, 400); // wait for overlay fade out
-  };
-
-  if (onComplete && typeof onComplete.then === 'function') {
-    // It's a Promise! Wait for it.
-    barEl.style.transition = `width ${durationMs}ms cubic-bezier(0.1, 0.4, 0.1, 1)`;
-    barEl.style.width = '95%';
-    
-    // Safety timeout in case promise hangs
-    let finished = false;
-    onComplete.finally(() => {
-      if (finished) return;
-      finished = true;
-      barEl.style.transition = 'width 0.4s ease-out';
-      barEl.style.width = '100%';
-      subtitleEl.style.opacity = '0';
-      setTimeout(() => {
-        subtitleEl.textContent = '¡Finalizado!';
-        subtitleEl.style.opacity = '1';
-        setTimeout(finish, 600);
-      }, 150);
-    });
-  } else {
-    // Normal timeout behavior
-    barEl.style.transition = `width ${durationMs}ms cubic-bezier(0.1, 0, 0.2, 1)`;
-    barEl.style.width = '100%';
-    setTimeout(finish, durationMs + 400);
-  }
-};
-
 /* ── Listen for storage quota errors from empresa-store ── */
 window.addEventListener('bw2:storage-error', (e) => {
   showToast(e.detail?.message || 'Error de almacenamiento', 'error');
 });
-
-/* ═══ ONBOARDING TOUR ═══ */
-window.BW2Tour = {
-  steps: [], currentStep: 0, overlay: null, popover: null, activeElement: null,
-
-  init(steps) {
-    this.steps = steps;
-    if (!document.querySelector('.bw2-tour-overlay')) {
-      this.overlay = document.createElement('div');
-      this.overlay.className = 'bw2-tour-overlay';
-      document.body.appendChild(this.overlay);
-    } else { this.overlay = document.querySelector('.bw2-tour-overlay'); }
-
-    if (!document.querySelector('.bw2-tour-popover')) {
-      this.popover = document.createElement('div');
-      this.popover.className = 'bw2-tour-popover';
-      document.body.appendChild(this.popover);
-    } else { this.popover = document.querySelector('.bw2-tour-popover'); }
-
-    this.overlay.onclick = () => this.end();
-  },
-
-  start() {
-    if (!this.steps.length) return;
-    this.currentStep = 0;
-    this.overlay.classList.add('visible');
-    this.popover.classList.add('visible');
-    this.showStep();
-  },
-
-  showStep() {
-    if (this.activeElement) this.activeElement.classList.remove('tour-highlight');
-
-    const step = this.steps[this.currentStep];
-    if (!step) { this.end(); return; }
-
-    const target = (typeof step.target === 'string') ? document.querySelector(step.target) : step.target;
-    if (!target) {
-      if(step.optional) {
-        this.currentStep++;
-        if (this.currentStep < this.steps.length) this.showStep(); else this.end();
-      } else {
-        // Log error and gently skip or end instead of infinitely looping
-        console.warn('BW2Tour: Target not found:', step.target);
-        this.currentStep++;
-        if (this.currentStep < this.steps.length) this.showStep(); else this.end();
-      }
-      return;
-    }
-
-    this.activeElement = target;
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    
-    setTimeout(() => {
-      target.classList.add('tour-highlight');
-      const rect = target.getBoundingClientRect();
-      this.renderPopover(step, rect);
-    }, 300);
-  },
-
-  renderPopover(step, rect) {
-    const isLast = this.currentStep === this.steps.length - 1;
-    let titleHtml = step.title;
-    if (step.emoji) titleHtml = `<span style="font-size:1.2rem;margin-right:0.25rem">${step.emoji}</span> ${titleHtml}`;
-    
-    const placement = step.placement || 'bottom';
-    let arrowHtml = '';
-    const arrowIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>`;
-    
-    if (placement === 'bottom') arrowHtml = `<div class="bw2-tour-arrow tour-arrow-top">${arrowIcon}</div>`;
-    else if (placement === 'top') arrowHtml = `<div class="bw2-tour-arrow tour-arrow-bottom">${arrowIcon}</div>`;
-    else if (placement === 'left') arrowHtml = `<div class="bw2-tour-arrow tour-arrow-right">${arrowIcon}</div>`;
-    else if (placement === 'right') arrowHtml = `<div class="bw2-tour-arrow tour-arrow-left">${arrowIcon}</div>`;
-
-    this.popover.innerHTML = `
-      <div class="tour-header">
-        <span class="tour-step-badge">Paso ${this.currentStep + 1} de ${this.steps.length}</span>
-        <button class="tour-btn tour-btn-close" id="tour-close-btn" style="padding:0;font-size:1.1rem" title="Cerrar tour">✕</button>
-      </div>
-      <div class="tour-title">${titleHtml}</div>
-      <div class="tour-body">${step.body}</div>
-      <div class="tour-actions">
-        ${this.currentStep > 0 ? `<button class="tour-btn tour-btn-close" id="tour-prev-btn">← Atrás</button>` : '<div></div>'}
-        <button class="tour-btn tour-btn-next" id="tour-next-btn">${isLast ? '¡Vamos! ✨' : 'Siguiente →'}</button>
-      </div>
-      ${arrowHtml}
-    `;
-
-    this.popover.querySelector('#tour-close-btn').onclick = (e) => { e.stopPropagation(); this.end(); };
-    if (this.popover.querySelector('#tour-prev-btn')) {
-      this.popover.querySelector('#tour-prev-btn').onclick = (e) => { e.stopPropagation(); this.currentStep--; this.showStep(); };
-    }
-    this.popover.querySelector('#tour-next-btn').onclick = (e) => { 
-      e.stopPropagation(); 
-      if (step.onNext) step.onNext();
-      this.currentStep++; 
-      this.showStep(); 
-    };
-
-    const poRect = this.popover.getBoundingClientRect();
-    let top = 0, left = 0;
-    const margin = 20;
-
-    switch (placement) {
-      case 'bottom':
-        top = rect.bottom + margin; left = rect.left + (rect.width / 2) - (poRect.width / 2); break;
-      case 'top':
-        top = rect.top - poRect.height - margin; left = rect.left + (rect.width / 2) - (poRect.width / 2); break;
-      case 'left':
-        top = rect.top + (rect.height / 2) - (poRect.height / 2); left = rect.left - poRect.width - margin; break;
-      case 'right':
-        top = rect.top + (rect.height / 2) - (poRect.height / 2); left = rect.right + margin; break;
-    }
-    
-    if (left < 10) left = 10;
-    if (left + poRect.width > window.innerWidth - 10) left = window.innerWidth - poRect.width - 10;
-    if (top < 10) top = 10;
-    if (top + poRect.height > window.innerHeight - 10) top = window.innerHeight - poRect.height - 10;
-
-    this.popover.style.top = top + 'px';
-    this.popover.style.left = left + 'px';
-  },
-
-  end() {
-    this.overlay.classList.remove('visible');
-    this.popover.classList.remove('visible');
-    if (this.activeElement) {
-      this.activeElement.classList.remove('tour-highlight');
-      this.activeElement = null;
-    }
-    this.currentStep = 0;
-  }
-};
 
 /* ── Resize image file to max 256×256 base64 data URL ── */
 function resizeImageToDataURL(file, maxSize = 256) {
@@ -340,9 +120,6 @@ function _configureChartDefaults() {
   Chart.defaults.plugins.legend.labels.pointStyle='circle';
   Chart.defaults.elements.bar.borderRadius=6;
   Chart.defaults.elements.bar.borderSkipped=false;
-  Chart.defaults.elements.bar.borderWidth=2;
-  Chart.defaults.elements.bar.borderColor='#FFFFFF';
-  Object.assign(Chart.defaults.datasets.bar, { barPercentage: 0.85, categoryPercentage: 0.85 });
   Chart.defaults.elements.line.tension=0.35;
   Chart.defaults.elements.line.borderWidth=2.5;
   Chart.defaults.elements.point.radius=0;
@@ -733,7 +510,7 @@ function renderCurrentView() {
 
   // Hide all views
   ['view-bw2-home','view-empresa-dashboard','view-portfolio','view-branch','view-consolidated','view-comparador','view-empresa','view-glosario'].forEach(id=>{
-    const el=$(id);if(el){el.style.display='none';el.classList.remove('view-entering');}
+    const el=$(id);if(el)el.style.display='none';
   });
 
   const headerLogo = document.querySelector('#app-header .header-logo');
@@ -743,9 +520,7 @@ function renderCurrentView() {
   const isEmpresaDash = state.activeLevel === 2;
 
   if(isBW2Home || (!activeEmp && !isEmpresaDash)) {
-    const homeView = $('view-bw2-home');
-    homeView.style.display='block';
-    homeView.classList.add('view-entering');
+    $('view-bw2-home').style.display='block';
     renderBW2Home();
     if(hInfo) hInfo.innerHTML='';
     if(headerLogo) headerLogo.style.display = 'none';
@@ -863,10 +638,8 @@ function renderBW2Home(){
   let gCap=0,gComm=0,gBranches=0,gEBITDA=0,gScore=0,gScored=0;
   let gTangible=0,gWorkingCapital=0;
   empresas.forEach(emp => {
-    const firstProj = (emp.proyectos || [])[0];
-    const partners = (emp.partners && emp.partners.length > 0) ? emp.partners : (firstProj ? (firstProj.partners || []) : []);
-    const partnersCap = partners.reduce((s, p) => s + (p.capital || 0), 0);
-    const empCap = partnersCap > 0 ? partnersCap : ((emp.proyectos||[]).reduce((s, p) => s + (p.totalCapital || 0), 0) || emp.totalCapital || 0);
+    // totalCapital lives on the proyecto level (updated by partner CRUD)
+    const empCap = (emp.proyectos||[]).reduce((s, p) => s + (p.totalCapital || 0), 0) || emp.totalCapital || 0;
     gCap += empCap;
     (emp.proyectos||[]).forEach(proj => {
       (proj.branches||[]).forEach(b => {
@@ -894,13 +667,13 @@ function renderBW2Home(){
   // ── Summary (full-width grid, no floating title) ──
   h += `<div class="bw2-global-summary" style="margin-bottom:0.75rem;">
     <div class="kpi-grid">
-      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital Total</div><div class="kpi-value">${fmt.m(gCap)}</div><div class="kpi-detail kpi-detail-tooltip">Total del Portafolio<span class="kpi-detail-tip">Suma del capital aportado por todos los socios en todas las empresas</span></div></div>
-      <div class="kpi-card" data-status="${gComm>gCap?'danger':'warn'}"><div class="kpi-label">Inv. Requerida</div><div class="kpi-value" style="color:${gComm>gCap?'var(--red)':'var(--yellow)'}">${fmt.oop(gComm)}</div><div class="kpi-detail kpi-detail-tooltip">${gCap>0?((gComm/gCap)*100).toFixed(0):'0'}% del capital<span class="kpi-detail-tip">Porcentaje del capital total comprometido en inversiones activas</span></div></div>
-      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Reserva Opex</div><div class="kpi-value">${fmt.m(gWorkingCapital)}</div><div class="kpi-detail kpi-detail-tooltip">Capital de Trabajo<span class="kpi-detail-tip">Fondos reservados para cubrir gastos operativos durante los primeros meses</span></div></div>
-      <div class="kpi-card" data-status="${gFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${gFree>=0?'var(--green)':'var(--red)'}">${fmt.m(gFree)}</div><div class="kpi-detail kpi-detail-tooltip">${gFree>=0?'Capital Disponible':'⚠️ Presupuesto Excedido'}<span class="kpi-detail-tip">${gFree>=0?'Fondos restantes después de cubrir todas las inversiones':'Tu inversión total excede el capital disponible'}</span></div></div>
-      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${gBranches}</div><div class="kpi-detail kpi-detail-tooltip">${empresas.length} empresa${empresas.length!==1?'s':''} activa${empresas.length!==1?'s':''}<span class="kpi-detail-tip">Total de empresas registradas en tu portafolio</span></div></div>
-      <div class="kpi-card" data-status="${gEBITDA>=0?'success':'danger'}"><div class="kpi-label">EBITDA/mes</div><div class="kpi-value" style="color:${gEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(gEBITDA)}</div><div class="kpi-detail kpi-detail-tooltip">Total Mensual<span class="kpi-detail-tip">Suma de ganancia operativa mensual de todas tus sucursales</span></div></div>
-      <div class="kpi-card" data-status="${gAvg >= 80 ? 'success' : gAvg >= 60 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value">${scoreBar(gAvg)}</div><div class="kpi-detail kpi-detail-tooltip">Promedio Portafolio<span class="kpi-detail-tip">Calificación promedio de viabilidad de todas tus sucursales (0-100)</span></div></div>
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Capital Total</div><div class="kpi-value">${fmt.m(gCap)}</div><div class="kpi-detail">global</div></div>
+      <div class="kpi-card" data-status="${gComm>gCap?'danger':'warn'}"><div class="kpi-label">Inv. Requerida</div><div class="kpi-value" style="color:${gComm>gCap?'var(--red)':'var(--yellow)'}">${fmt.oop(gComm)}</div><div class="kpi-detail">${gCap>0?((gComm/gCap)*100).toFixed(0):'0'}% de cap.</div></div>
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Reserva Opex</div><div class="kpi-value">${fmt.m(gWorkingCapital)}</div><div class="kpi-detail">Capital de Trabajo</div></div>
+      <div class="kpi-card" data-status="${gFree>=0?'success':'danger'}"><div class="kpi-label">Libre / Faltante</div><div class="kpi-value" style="color:${gFree>=0?'var(--green)':'var(--red)'}">${fmt.m(gFree)}</div><div class="kpi-detail">${gFree>=0?'Capital Disponible':'⚠️ Presupuesto Excedido'}</div></div>
+      <div class="kpi-card" data-status="neutral"><div class="kpi-label">Sucursales</div><div class="kpi-value">${gBranches}</div><div class="kpi-detail">${empresas.length} empresa${empresas.length!==1?'s':''}</div></div>
+      <div class="kpi-card" data-status="${gEBITDA>=0?'success':'danger'}"><div class="kpi-label">EBITDA/mes</div><div class="kpi-value" style="color:${gEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(gEBITDA)}</div><div class="kpi-detail">agregado</div></div>
+      <div class="kpi-card" data-status="${gAvg >= 80 ? 'success' : gAvg >= 60 ? 'warn' : 'danger'}"><div class="kpi-label">Score</div><div class="kpi-value">${scoreBar(gAvg)}</div><div class="kpi-detail">portafolio</div></div>
     </div>
   </div>`;
 
@@ -913,23 +686,9 @@ function renderBW2Home(){
   if(!empresas.length){
     h += `<div class="empty-state">
       <div class="empty-state-icon">🏢</div>
-      <div class="empty-state-title">Bienvenido a BW²</div>
-      <div class="empty-state-desc">Tu plataforma de análisis de inversión. Comienza creando tu primera empresa para evaluar la viabilidad de tus proyectos.</div>
-      <div class="empty-state-steps">
-        <div class="empty-state-step">
-          <div class="empty-state-step-num">1</div>
-          <div class="empty-state-step-label">Crea tu<br>empresa</div>
-        </div>
-        <div class="empty-state-step">
-          <div class="empty-state-step-num">2</div>
-          <div class="empty-state-step-label">Agrega un<br>proyecto</div>
-        </div>
-        <div class="empty-state-step">
-          <div class="empty-state-step-num">3</div>
-          <div class="empty-state-step-label">Configura<br>sucursales</div>
-        </div>
-      </div>
-      <button class="empty-state-cta-large" id="btn-empty-create">+ Crear Mi Primera Empresa</button>
+      <div class="empty-state-title">Crea tu primera empresa</div>
+      <div class="empty-state-desc">Organiza tus inversiones en franquicias por empresa, proyecto y sucursal. Analiza viabilidad financiera, estudio de mercado y más.</div>
+      <button class="empty-state-cta" id="btn-empty-create">+ Crear Empresa</button>
     </div>`;
     container.innerHTML = h;
     $('btn-create-empresa').onclick = ()=>WizardManager.open('empresa');
@@ -977,7 +736,7 @@ function renderBW2Home(){
       });
     });
 
-    h += `<div class="emp-dash-proj-card" data-emp-id="${emp.id}" data-card-click="empresa">
+    h += `<div class="emp-dash-proj-card" data-emp-id="${emp.id}">
       <div class="emp-dash-proj-header">
         <div style="display:flex;align-items:center;gap:0.5rem">
           ${logo}
@@ -986,13 +745,9 @@ function renderBW2Home(){
             <div class="emp-dash-proj-meta">${pCount} proyecto${pCount!==1?'s':''} · ${bCount} sucursal${bCount!==1?'es':''}</div>
           </div>
         </div>
-        <div class="card-overflow-menu">
-          <button class="card-overflow-btn" data-overflow-toggle title="Opciones">⋯</button>
-          <div class="card-overflow-dropdown">
-            <button class="card-overflow-item btn-edit-empresa" data-emp-id="${emp.id}"><span class="overflow-ico">${ico('edit', 14)}</span> Editar nombre</button>
-            <div class="card-overflow-divider"></div>
-            <button class="card-overflow-item danger btn-delete-empresa" data-emp-id="${emp.id}"><span class="overflow-ico">${ico('trash', 14)}</span> Eliminar empresa</button>
-          </div>
+        <div style="display:flex;gap:0.25rem">
+          <button class="btn-icon btn-edit-empresa" data-emp-id="${emp.id}" title="Editar">✏️</button>
+          <button class="btn-icon btn-delete-empresa" data-emp-id="${emp.id}" title="Eliminar">🗑️</button>
         </div>
       </div>
       <div class="emp-dash-proj-kpis">
@@ -1003,7 +758,7 @@ function renderBW2Home(){
       ${sparkData.length >= 2 ? sparklineSVG(sparkData) : ''}
       <div class="emp-dash-proj-footer">
         <div class="emp-dash-proj-meta-foot">${pCount} proyecto${pCount!==1?'s':''} · ${bCount} sucursal${bCount!==1?'es':''}</div>
-        <button class="btn-open-empresa btn-compact-open" data-emp-id="${emp.id}">Explorar <span class="btn-cta-icon">➜</span></button>
+        <button class="btn-open-empresa btn-compact-open" data-emp-id="${emp.id}">Abrir →</button>
       </div>
     </div>`;
   });
@@ -1025,57 +780,23 @@ function bindBW2Events(){
   const createBtn = $('btn-create-empresa');
   if(createBtn) createBtn.onclick = ()=>WizardManager.open('empresa');
 
-  // ── Overflow menu toggle ──
-  document.querySelectorAll('[data-overflow-toggle]').forEach(btn=>{
-    btn.onclick = (e)=>{
-      e.stopPropagation();
-      const dropdown = btn.nextElementSibling;
-      const wasOpen = dropdown.classList.contains('open');
-      // Close all other dropdowns first
-      document.querySelectorAll('.card-overflow-dropdown.open').forEach(d=>d.classList.remove('open'));
-      if(!wasOpen) dropdown.classList.add('open');
-    };
-  });
-  // Close overflow menus when clicking outside
-  document.addEventListener('click', ()=>{
-    document.querySelectorAll('.card-overflow-dropdown.open').forEach(d=>d.classList.remove('open'));
-  }, {once: true});
-
   document.querySelectorAll('.btn-edit-empresa').forEach(btn=>{
     btn.onclick = (e)=>{ 
       e.stopPropagation(); 
-      document.querySelectorAll('.card-overflow-dropdown.open').forEach(d=>d.classList.remove('open'));
       showBW2Modal('editar-empresa', btn.dataset.empId);
     };
   });
   document.querySelectorAll('.btn-delete-empresa').forEach(btn=>{
     btn.onclick = (e)=>{
       e.stopPropagation();
-      document.querySelectorAll('.card-overflow-dropdown.open').forEach(d=>d.classList.remove('open'));
       const emp = getEmpresaById(btn.dataset.empId);
       if(!emp) return;
-      showConfirm(`🗑️ ¿Eliminar "${emp.name}"?`,`<p>Se eliminarán todos los proyectos y sucursales. <strong>Esta acción no se puede deshacer.</strong></p>`,'🗑️ Eliminar',()=>{ removeEmpresa(btn.dataset.empId); renderBW2Home(); });
+      showConfirm(`🗑️ ¿Eliminar "${emp.name}"?`,`<p>Se eliminarán todos los proyectos y sucursales.</p>`,'🗑️ Eliminar',()=>{ removeEmpresa(btn.dataset.empId); renderBW2Home(); });
     };
   });
   document.querySelectorAll('.btn-open-empresa').forEach(btn=>{
-    btn.onclick = (e)=>{
-      e.stopPropagation();
+    btn.onclick = ()=>{
       setActiveEmpresa(btn.dataset.empId);
-      state.activeLevel = 2;
-      state.view = 'empresa-dashboard';
-      state.activeBranchId = null;
-      renderCurrentView();
-    };
-  });
-
-  // ── Clickable Card delegation (C) ──
-  document.querySelectorAll('[data-card-click="empresa"]').forEach(card=>{
-    card.onclick = (e)=>{
-      // Ignore if clicking buttons, menus, or overflow items
-      if(e.target.closest('.card-overflow-menu, .btn-open-empresa, .btn-edit-empresa, .btn-delete-empresa, button')) return;
-      const empId = card.dataset.empId;
-      if(!empId) return;
-      setActiveEmpresa(empId);
       state.activeLevel = 2;
       state.view = 'empresa-dashboard';
       state.activeBranchId = null;
@@ -1134,10 +855,8 @@ function renderEmpresaDashboard(empresa){
   });
 
   // Calculate empresa-wide KPIs across all projects
-  const firstProj = (empresa.proyectos || [])[0];
-  const partners = (empresa.partners && empresa.partners.length > 0) ? empresa.partners : (firstProj ? (firstProj.partners || []) : []);
-  const partnersCap = partners.reduce((s, p) => s + (p.capital || 0), 0);
-  let totalCap = partnersCap > 0 ? partnersCap : ((empresa.proyectos||[]).reduce((s, p) => s + (p.totalCapital || 0), 0) || empresa.totalCapital || 0);
+  // totalCapital lives on the proyecto level (updated by partner CRUD)
+  let totalCap = (empresa.proyectos||[]).reduce((s, p) => s + (p.totalCapital || 0), 0) || empresa.totalCapital || 0;
   let totalComm = 0, totalBranches = 0, totalEBITDA = 0, totalScore = 0, scoredCount = 0;
   (empresa.proyectos||[]).forEach(proj => {
     (proj.branches||[]).forEach(b => {
@@ -1202,7 +921,7 @@ function renderEmpresaDashboard(empresa){
       ? `<img src="${proj.logo}" alt="${esc(proj.name)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover">`
       : '<span style="font-size:1.25rem">📁</span>';
 
-    html += `<div class="emp-dash-proj-card" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" data-card-click="proyecto">
+    html += `<div class="emp-dash-proj-card" data-emp-id="${empresa.id}" data-proj-id="${proj.id}">
       <div class="emp-dash-proj-header">
         <div style="display:flex;align-items:center;gap:0.5rem">
           ${projLogoHtml}
@@ -1211,13 +930,9 @@ function renderEmpresaDashboard(empresa){
             <div class="emp-dash-proj-meta">Capital: ${fmt.m(proj.totalCapital)} · ${activeBranches.length} sucursal${activeBranches.length!==1?'es':''}</div>
           </div>
         </div>
-        <div class="card-overflow-menu">
-          <button class="card-overflow-btn" data-overflow-toggle title="Opciones">⋯</button>
-          <div class="card-overflow-dropdown">
-            <button class="card-overflow-item btn-edit-proyecto" data-emp-id="${empresa.id}" data-proj-id="${proj.id}"><span class="overflow-ico">${ico('edit', 14)}</span> Editar nombre</button>
-            <div class="card-overflow-divider"></div>
-            <button class="card-overflow-item danger btn-delete-proyecto" data-emp-id="${empresa.id}" data-proj-id="${proj.id}"><span class="overflow-ico">${ico('trash', 14)}</span> Eliminar proyecto</button>
-          </div>
+        <div style="display:flex;gap:0.25rem">
+          <button class="btn-icon btn-edit-proyecto" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" title="Editar">✏️</button>
+          <button class="btn-icon btn-delete-proyecto" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" title="Eliminar">🗑️</button>
         </div>
       </div>
       <div class="emp-dash-proj-kpis">
@@ -1228,7 +943,7 @@ function renderEmpresaDashboard(empresa){
       ${sparkData.length >= 2 ? sparklineSVG(sparkData) : ''}
       <div class="emp-dash-proj-footer">
         <div class="emp-dash-proj-meta-foot">${activeBranches.length} sucursal${activeBranches.length!==1?'es':''} activas</div>
-        <button class="btn-open-proyecto-dash btn-compact-open" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" style="width:auto;margin-top:0;">Explorar <span class="btn-cta-icon">➜</span></button>
+        <button class="btn-open-proyecto-dash btn-compact-open" data-emp-id="${empresa.id}" data-proj-id="${proj.id}" style="width:auto;margin-top:0;display:inline-block;">Abrir →</button>
       </div>
     </div>`;
   });
@@ -1240,24 +955,9 @@ function renderEmpresaDashboard(empresa){
 
   gridEl.innerHTML = html;
 
-  // ── Overflow menu toggle ──
-  gridEl.querySelectorAll('[data-overflow-toggle]').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const dropdown = btn.nextElementSibling;
-      const wasOpen = dropdown.classList.contains('open');
-      document.querySelectorAll('.card-overflow-dropdown.open').forEach(d=>d.classList.remove('open'));
-      if(!wasOpen) dropdown.classList.add('open');
-    });
-  });
-  document.addEventListener('click', ()=>{
-    document.querySelectorAll('.card-overflow-dropdown.open').forEach(d=>d.classList.remove('open'));
-  }, {once: true});
-
   // Wire events
   gridEl.querySelectorAll('.btn-open-proyecto-dash').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
+    btn.addEventListener('click', () => {
       setActiveProyecto(btn.dataset.empId, btn.dataset.projId);
       state.activeLevel = 3;
       state.view = 'portfolio';
@@ -1273,37 +973,20 @@ function renderEmpresaDashboard(empresa){
   gridEl.querySelectorAll('.btn-edit-proyecto').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      document.querySelectorAll('.card-overflow-dropdown.open').forEach(d=>d.classList.remove('open'));
       showBW2Modal('editar-proyecto', btn.dataset.empId, btn.dataset.projId);
     });
   });
   gridEl.querySelectorAll('.btn-delete-proyecto').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      document.querySelectorAll('.card-overflow-dropdown.open').forEach(d=>d.classList.remove('open'));
       const proj = getProyectoById(btn.dataset.empId, btn.dataset.projId);
       if(!proj) return;
       showConfirm(
         `🗑️ ¿Eliminar "${proj.name}"?`,
-        `<p>Se eliminarán todas las sucursales de este proyecto. <strong>Esta acción no se puede deshacer.</strong></p>`,
+        `<p>Se eliminarán todas las sucursales de este proyecto.</p>`,
         '🗑️ Eliminar',
         ()=>{ removeProyecto(btn.dataset.empId, btn.dataset.projId); renderEmpresaDashboard(getActiveEmpresa()); }
       );
-    });
-  });
-
-  // ── Clickable Card delegation (C) ──
-  gridEl.querySelectorAll('[data-card-click="proyecto"]').forEach(card=>{
-    card.addEventListener('click', (e)=>{
-      if(e.target.closest('.card-overflow-menu, .btn-open-proyecto-dash, .btn-edit-proyecto, .btn-delete-proyecto, button')) return;
-      const empId = card.dataset.empId;
-      const projId = card.dataset.projId;
-      if(!empId || !projId) return;
-      setActiveProyecto(empId, projId);
-      state.activeLevel = 3;
-      state.view = 'portfolio';
-      state.activeBranchId = null;
-      renderCurrentView();
     });
   });
 }
@@ -1735,25 +1418,13 @@ function updateNav() {
     html += `<button class="btn-add" id="btn-add-proyecto-nav"><span class="nav-icon">+</span> <span class="nav-text">Nuevo Proyecto</span></button>`;
     html += `</div>`;
   } else if (isBranch && branch) {
-    // Level 4: Branch Details — with progress indicators (E)
-    const ov = branch.overrides || {};
-    const hasConfig = Object.keys(ov).length > 2; // More than just format/status
-    const hasLocation = !!branch.colonia;
-    const hasMkt = !!(ov.cafConsultas || ov.seoLocalBudget || ov.adsBudget || ov.cofeprisBudget || ov.loyaltyEnabled);
-    const hasMarketStudy = !!(branch.locationStudy || branch.locationScore);
-
-    const progIcon = (done, active) => {
-      if(done) return `<span class="nav-progress done">✓</span>`;
-      if(active) return `<span class="nav-progress active">●</span>`;
-      return `<span class="nav-progress pending">○</span>`;
-    };
-
+    // Level 4: Branch Details
     html += `<div class="nav-section">Análisis Operativo</div>`;
-    html += `<button class="nav-btn ${state.activeTab === 'resultados' ? 'active' : ''}" data-branch-tab="resultados"><span class="nav-icon">${ico('trending')}</span><span class="nav-text">Estado de Resultados</span>${progIcon(true)}</button>`;
-    html += `<button class="nav-btn ${state.activeTab === 'corrida' ? 'active' : ''}" data-branch-tab="corrida"><span class="nav-icon">${ico('grid')}</span><span class="nav-text">Corrida Financiera</span>${progIcon(true)}</button>`;
-    html += `<button class="nav-btn ${state.activeTab === 'marketing' ? 'active' : ''}" data-branch-tab="marketing"><span class="nav-icon">${ico('rocket')}</span><span class="nav-text">Growth & Marketing</span>${progIcon(hasMkt, state.activeTab === 'marketing')}</button>`;
-    html += `<button class="nav-btn ${state.activeTab === 'config' ? 'active' : ''}" data-branch-tab="config"><span class="nav-icon">${ico('gear')}</span><span class="nav-text">Configuración Capex</span>${progIcon(hasConfig, state.activeTab === 'config')}</button>`;
-    html += `<button class="nav-btn ${state.activeTab === 'socioeconomico' ? 'active' : ''}" data-branch-tab="socioeconomico"><span class="nav-icon">${ico('map')}</span><span class="nav-text">Estudio de Mercado</span>${progIcon(hasMarketStudy, state.activeTab === 'socioeconomico')}</button>`;
+    html += `<button class="nav-btn ${state.activeTab === 'resultados' ? 'active' : ''}" data-branch-tab="resultados"><span class="nav-icon">${ico('trending')}</span><span class="nav-text">Estado de Resultados</span></button>`;
+    html += `<button class="nav-btn ${state.activeTab === 'corrida' ? 'active' : ''}" data-branch-tab="corrida"><span class="nav-icon">${ico('grid')}</span><span class="nav-text">Corrida Financiera</span></button>`;
+    html += `<button class="nav-btn ${state.activeTab === 'marketing' ? 'active' : ''}" data-branch-tab="marketing"><span class="nav-icon">${ico('rocket')}</span><span class="nav-text">Growth & Marketing</span></button>`;
+    html += `<button class="nav-btn ${state.activeTab === 'config' ? 'active' : ''}" data-branch-tab="config"><span class="nav-icon">${ico('gear')}</span><span class="nav-text">Configuración Capex</span></button>`;
+    html += `<button class="nav-btn ${state.activeTab === 'socioeconomico' ? 'active' : ''}" data-branch-tab="socioeconomico"><span class="nav-icon">${ico('map')}</span><span class="nav-text">Estudio de Mercado</span></button>`;
     html += `<div style="margin-top:1.5rem">`;
     html += `<button class="btn-add" id="nav-export-pdf" style="width:100%;box-sizing:border-box;justify-content:flex-start;background:var(--surface);color:var(--text-2);box-shadow:var(--shadow-card)"><span class="nav-icon">📄</span><span class="nav-text">Generar Reporte PDF</span></button>`;
     html += `</div>`;
@@ -2100,142 +1771,28 @@ const WizardManager = {
           validate: () => !!$('wiz-emp-name').value.trim()
         },
         {
-          title: '2. Capital y Socios',
+          title: '2. Capital Inicial',
           render: () => `
-            <div style="margin-bottom:0.75rem">
-              <small class="field-help" style="color:var(--text-3)">Agrega los socios y sus aportaciones. El Capital Social se calculará automáticamente.</small>
+            <div class="modal-field">
+              <label>Capital Social Total ($)</label>
+              <input type="number" id="wiz-emp-cap" class="input-text" placeholder="Ej: 3000000">
             </div>
-            <div id="wiz-partners-list" style="display:flex;flex-direction:column;gap:0.75rem"></div>
-            <button type="button" id="wiz-add-partner" class="btn-sm" style="margin-top:0.75rem;margin-bottom:1.5rem;width:100%;display:flex;align-items:center;justify-content:center;gap:0.4rem;padding:0.6rem;border:2px dashed var(--border);background:transparent;color:var(--text-2);font-weight:700;cursor:pointer;border-radius:var(--r-sm);transition:all 0.2s">
-              + Agregar Socio
-            </button>
-            <div style="background:var(--surface-alt);padding:1rem;border-radius:var(--r-md);box-shadow:var(--shadow-neu-inset-sm)">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--border)">
-                <span style="font-weight:700;color:var(--text-2);font-size:0.85rem;text-transform:uppercase;letter-spacing:0.04em">Capital Total Calculado</span>
-                <span id="wiz-calc-total" style="font-size:1.2rem;font-weight:800;color:var(--accent)">$0</span>
-              </div>
-              <div class="modal-field" style="margin-bottom:0">
-                <label>Reserva Corporativa Opcional ($)</label>
-                <input type="number" id="wiz-emp-res" class="input-text" placeholder="Ej: 200000" min="0">
-                <small class="field-help" style="display:block;margin-top:4px;color:var(--text-3)">Fondo de reserva; se resta del capital para no destinarlo a inversión directa.</small>
-              </div>
+            <div class="modal-field">
+              <label>Reserva Corporativa ($)</label>
+              <input type="number" id="wiz-emp-res" class="input-text" placeholder="Ej: 200000">
             </div>
           `,
-          validate: () => {
-            const rows = document.querySelectorAll('.wiz-partner-row');
-            if (rows.length === 0) return false;
-            let valid = true;
-            let hasCapital = false;
-            rows.forEach(r => {
-              const name = r.querySelector('.wiz-p-name').value.trim();
-              const cap = parseFloat(r.querySelector('.wiz-p-cap').value) || 0;
-              if (!name) valid = false;
-              if (cap > 0) hasCapital = true;
-            });
-            return valid && hasCapital;
-          },
-          afterRender: () => {
-            const list = $('wiz-partners-list');
-            const totalDisplay = $('wiz-calc-total');
-            
-            const addPartnerRow = (name = '', capital = '') => {
-              const row = document.createElement('div');
-              row.className = 'wiz-partner-row';
-              row.style.cssText = 'display:flex;gap:0.5rem;align-items:flex-end;background:var(--surface);padding:0.75rem;border-radius:var(--r-sm);box-shadow:var(--shadow-neu-sm)';
-              row.innerHTML = `
-                <div style="flex:2">
-                  <label style="font-size:0.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;display:block">Nombre del Socio</label>
-                  <input type="text" class="input-text wiz-p-name" placeholder="Ej: Juan Pérez" value="${name}" style="width:100%">
-                </div>
-                <div style="flex:1">
-                  <label style="font-size:0.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;display:block">Aportación ($)</label>
-                  <input type="number" class="input-text wiz-p-cap" placeholder="Ej: 500000" value="${capital}" min="0" style="width:100%">
-                </div>
-                <div style="flex:0 0 auto;display:flex;align-items:center">
-                  <span class="wiz-p-pct" style="font-size:0.75rem;font-weight:800;color:var(--accent);min-width:42px;text-align:center">—</span>
-                  <button type="button" class="wiz-p-remove" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1.1rem;padding:0.25rem;opacity:0.6;transition:opacity 0.2s" title="Eliminar socio">✕</button>
-                </div>
-              `;
-              list.appendChild(row);
-              
-              row.querySelector('.wiz-p-remove').addEventListener('click', () => {
-                row.remove();
-                updatePercentages();
-              });
-              row.querySelector('.wiz-p-cap').addEventListener('input', updatePercentages);
-            };
-            
-            const updatePercentages = () => {
-              const rows = list.querySelectorAll('.wiz-partner-row');
-              const totalPartnerCap = Array.from(rows).reduce((s, r) => s + (parseFloat(r.querySelector('.wiz-p-cap').value) || 0), 0);
-              rows.forEach(r => {
-                const cap = parseFloat(r.querySelector('.wiz-p-cap').value) || 0;
-                const pct = totalPartnerCap > 0 ? ((cap / totalPartnerCap) * 100).toFixed(1) : 0;
-                r.querySelector('.wiz-p-pct').textContent = `${pct}%`;
-              });
-              if(totalDisplay) {
-                totalDisplay.textContent = new Intl.NumberFormat('en-US', {style:'currency',currency:'USD',maximumFractionDigits:0}).format(totalPartnerCap);
-              }
-            };
-
-            // Default: 2 empty partner rows
-            addPartnerRow();
-            addPartnerRow();
-            
-            $('wiz-add-partner').addEventListener('click', () => addPartnerRow());
-            updatePercentages(); // initialize
-          }
+          validate: () => true
         }
       ],
       onFinish: () => {
         const name = $('wiz-emp-name').value.trim() || 'Mi Empresa';
-        const reserve = parseFloat($('wiz-emp-res').value) || 0;
-        
-        // Collect partner data
-        const partnerRows = document.querySelectorAll('.wiz-partner-row');
-        const totalPartnerCap = Array.from(partnerRows).reduce((s, r) => s + (parseFloat(r.querySelector('.wiz-p-cap').value) || 0), 0);
-        const totalCap = totalPartnerCap || 1400000;
-        
-        const partners = Array.from(partnerRows).map((r, i) => {
-          const pName = r.querySelector('.wiz-p-name').value.trim() || `Socio ${i + 1}`;
-          const pCap = parseFloat(r.querySelector('.wiz-p-cap').value) || 0;
-          const equity = totalPartnerCap > 0 ? pCap / totalPartnerCap : 0;
-          return {
-            id: `p${Date.now()}_${i}`,
-            name: pName,
-            capital: pCap,
-            equity: parseFloat(equity.toFixed(4)),
-            transactions: [{
-              id: `tx${Date.now()}_${i}`,
-              type: 'aportacion',
-              amount: pCap,
-              date: new Date().toISOString().slice(0, 10),
-              note: 'Capital inicial'
-            }]
-          };
-        }).filter(p => p.capital > 0);
-        
         const emp = addEmpresa(name);
-        
-        // Update the auto-created Proyecto 1 with captured capital & partners
-        if (emp.proyectos && emp.proyectos[0]) {
-          const proj = emp.proyectos[0];
-          // Use updateProyecto for the fields it handles (triggers _save)
-          updateProyecto(emp.id, proj.id, { totalCapital: totalCap, corporateReserve: reserve });
-          // Set partners directly on the object (updateProyecto doesn't handle partners)
-          proj.partners = partners.length > 0 ? partners : [
-            { id: 'p1', name: 'Socio 1', capital: totalCap / 2, equity: 0.50 },
-            { id: 'p2', name: 'Socio 2', capital: totalCap / 2, equity: 0.50 }
-          ];
-          // Trigger a final save via updateEmpresaData (name unchanged, just forces _save)
-          updateEmpresaData(emp.id, { capitalInicial: totalCap });
-        }
-        
         setActiveEmpresa(emp.id);
         state.view = 'empresa-dashboard';
         state.activeEmpresaId = emp.id;
         renderCurrentView();
-        showToast('🏢 Empresa creada con ' + (partners.length > 0 ? partners.length : 2) + ' socio' + (partners.length !== 1 ? 's' : ''), 'success');
+        showToast('🏢 Empresa creada', 'success');
       }
     },
     proyecto: {
@@ -2367,55 +1924,14 @@ const WizardManager = {
             '📍 Sin dirección',
             '<p>No ingresaste una dirección. ¿Deseas crear la sucursal sin ubicación?</p><p style="color:var(--text-3);font-size:0.8rem">Podrás agregarla después en el Estudio de Mercado.</p>',
             '✅ Crear sin dirección',
-            () => { 
-              WizardManager.close();
-              const voidPromise = new Promise(r => setTimeout(r, 1800)); // Just fake load
-              window.showPremiumLoader(
-                'Creando Sucursal',
-                ['Inicializando entorno base...', 'Generando proyecciones financieras...', 'Configurando sucursal...'],
-                1800,
-                voidPromise.then(() => {
-                  const newB = addBranch(format, name, colonia, isFranchise); 
-                  state.view = 'branch';
-                  state.activeBranchId = newB.id;
-                  state.activeTab = 'resultados';
-                  renderCurrentView();
-                  showToast('🏪 Sucursal creada sin ubicación', 'success');
-                })
-              );
-            }
+            () => { addBranch(format, name, colonia, isFranchise); renderCurrentView(); }
           );
           return;
         }
         
-        WizardManager.close();
-        
-        // Start study instantly in background
-        const studyPromise = runLocationStudy(colonia, null, true).catch(err => ({ errors: [{error: err.message}] }));
-        
-        window.showPremiumLoader(
-          'Creando y Analizando',
-          [
-            'Estableciendo polígono de análisis...',
-            'Calculando densidad demográfica...',
-            'Buscando competencia y generadores...',
-            'Finalizando Estudio de Mercado...'
-          ],
-          3200, // min animation duration
-          studyPromise.then((studyResult) => {
-            const newBranch = addBranch(format, name, colonia, isFranchise);
-            _suppressFullRender = true;
-            updateBranchLocation(newBranch.id, studyResult);
-            _suppressFullRender = false;
-            
-            // Auto navigate to the newly created branch view!
-            state.view = 'branch';
-            state.activeBranchId = newBranch.id;
-            state.activeTab = 'estudio-mercado';
-            renderCurrentView();
-            showToast('🏪 Sucursal lista y evaluada', 'success');
-          })
-        );
+        addBranch(format, name, colonia, isFranchise);
+        renderCurrentView();
+        showToast('🏪 Sucursal creada', 'success');
       }
     }
   },
@@ -3128,7 +2644,7 @@ async function renderBranchResumen(r){
   grad.addColorStop(0, 'rgba(77,124,254,0.18)');
   grad.addColorStop(0.5, 'rgba(77,124,254,0.06)');
   grad.addColorStop(1, 'rgba(77,124,254,0.01)');
-    charts['branch-cashflow']=new Chart(ctx,{type:'line',data:{labels:r.months.map(m=>'M'+m.month),datasets:[{label:'Acumulado',data:r.months.map(m=>m.cumulativeCashFlow),borderColor:'#4d7cfe',backgroundColor:grad,fill:true,pointRadius:0,borderWidth:2.5,pointHoverRadius:5,pointHoverBackgroundColor:'#4d7cfe',pointHoverBorderColor:'#fff',pointHoverBorderWidth:2},{label:'Mensual',data:r.months.map(m=>m.cashFlow),type:'bar',backgroundColor:r.months.map(m=>m.cashFlow>=0?'rgba(107, 122, 46, 0.65)':'rgba(220, 38, 38, 0.5)'),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt.m(c.parsed.y)}`}}},scales:{y:{ticks:{callback:v=>fmt.mk(v)}}}}});
+  charts['branch-cashflow']=new Chart(ctx,{type:'line',data:{labels:r.months.map(m=>'M'+m.month),datasets:[{label:'Acumulado',data:r.months.map(m=>m.cumulativeCashFlow),borderColor:'#4d7cfe',backgroundColor:grad,fill:true,pointRadius:0,borderWidth:2.5,pointHoverRadius:5,pointHoverBackgroundColor:'#4d7cfe',pointHoverBorderColor:'#fff',pointHoverBorderWidth:2},{label:'Mensual',data:r.months.map(m=>m.cashFlow),type:'bar',backgroundColor:r.months.map(m=>m.cashFlow>=0?'rgba(52,211,153,0.45)':'rgba(248,113,113,0.35)'),borderRadius:4,maxBarThickness:8}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt.m(c.parsed.y)}`}}},scales:{y:{ticks:{callback:v=>fmt.mk(v)}}}}});
 
   // Cost structure donut (main section)
   dc('branch-costs-main');const cDonut=$('chart-branch-costs-main');if(cDonut){
@@ -3205,7 +2721,7 @@ function renderMarketStudyPanel(branch) {
       return meta[k] || k;
     });
     const factorScores = factorKeys.map(k => factors[k]?.score || 0);
-    charts['market-radar-main']=new Chart(radarCanvas,{type:'radar',data:{labels:factorLabels,datasets:[{label:'Score',data:factorScores,backgroundColor:'rgba(107,122,46,0.15)',borderColor:'rgba(107,122,46,0.7)',borderWidth:2,pointBackgroundColor:factorScores.map(s=>s>=75?'#6B7A2E':s>=50?'#fbbf24':'#f87171'),pointRadius:3,pointHoverRadius:5}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:0},scales:{r:{beginAtZero:true,max:100,ticks:{stepSize:25,font:{size:8},backdropColor:'transparent'},grid:{color:'rgba(0,0,0,0.06)'},pointLabels:{font:{size:9,weight:'600'},color:'var(--text-2)'}}},plugins:{legend:{display:false}}}});
+    charts['market-radar-main']=new Chart(radarCanvas,{type:'radar',data:{labels:factorLabels,datasets:[{label:'Score',data:factorScores,backgroundColor:'rgba(107,122,46,0.15)',borderColor:'rgba(107,122,46,0.7)',borderWidth:2,pointBackgroundColor:factorScores.map(s=>s>=75?'#34d399':s>=50?'#fbbf24':'#f87171'),pointRadius:3,pointHoverRadius:5}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:0},scales:{r:{beginAtZero:true,max:100,ticks:{stepSize:25,font:{size:8},backdropColor:'transparent'},grid:{color:'rgba(0,0,0,0.06)'},pointLabels:{font:{size:9,weight:'600'},color:'var(--text-2)'}}},plugins:{legend:{display:false}}}});
   }
 
   const toggles = branch.overrides?.marketStudyToggles || {};
@@ -3298,17 +2814,17 @@ function renderBranchPnL(r,model,overrides){
     ].join('');
   }
   dc('branch-pnl-bars');const c1=$('chart-branch-pnl');if(c1){
-    charts['branch-pnl-bars']=new Chart(c1,{type:'bar',data:{labels:r.months.map(m=>'M'+m.month),datasets:[{label:'Ingresos',data:r.months.map(m=>m.revenue),backgroundColor:'rgba(77,124,254,0.4)'},{label:'EBITDA',data:r.months.map(m=>m.ebitda),backgroundColor:r.months.map(m=>m.ebitda>=0?'rgba(107, 122, 46, 0.65)':'rgba(220, 38, 38, 0.5)')}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},scales:{y:{ticks:{callback:v=>fmt.mk(v)}}}}});
+    charts['branch-pnl-bars']=new Chart(c1,{type:'bar',data:{labels:r.months.map(m=>'M'+m.month),datasets:[{label:'Ingresos',data:r.months.map(m=>m.revenue),backgroundColor:'rgba(77,124,254,0.4)'},{label:'EBITDA',data:r.months.map(m=>m.ebitda),backgroundColor:r.months.map(m=>m.ebitda>=0?'rgba(52,211,153,0.4)':'rgba(248,113,113,0.35)')}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false},scales:{y:{ticks:{callback:v=>fmt.mk(v)}}}}});
   }
   dc('branch-fixed-donut');const c3=$('chart-branch-donut');if(c3){
     const bd=r.fixedCostBreakdown;const labels=['Renta','Nómina','C.Social','Sistemas','Contab.','Serv/Pap','Omisiones'];
     const data=[bd.renta,bd.nomina,bd.cargaSocial,bd.sistemas,bd.contabilidad,bd.serviciosPap,bd.omisiones||0].filter((_,i)=>i<6||(bd.omisiones&&bd.omisiones>0));
     const lbls=bd.omisiones&&bd.omisiones>0?labels:labels.slice(0,6);
-    charts['branch-fixed-donut']=new Chart(c3,{type:'doughnut',data:{labels:lbls,datasets:[{data,backgroundColor:['#f87171','#4d7cfe','#818cf8','#8b5cf6','#6B7A2E','#fbbf24','#fb923c'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{tooltip:{callbacks:{label:c=>`${c.label}: ${fmt.m(c.parsed)} (${fmt.pi(c.parsed/data.reduce((a,b)=>a+b,0))})`}}}}});
+    charts['branch-fixed-donut']=new Chart(c3,{type:'doughnut',data:{labels:lbls,datasets:[{data,backgroundColor:['#f87171','#4d7cfe','#818cf8','#8b5cf6','#34d399','#fbbf24','#fb923c'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{tooltip:{callbacks:{label:c=>`${c.label}: ${fmt.m(c.parsed)} (${fmt.pi(c.parsed/data.reduce((a,b)=>a+b,0))})`}}}}});
   }
   const vc=model.variableCosts;
   dc('branch-cv-bar');const c4=$('chart-branch-cv');if(c4){
-    charts['branch-cv-bar']=new Chart(c4,{type:'bar',data:{labels:['COGS','ComVta','Merma','Pub','Regalía','Banc'],datasets:[{label:'% Venta',data:[vc.cogs*100,vc.comVenta*100,vc.merma*100,vc.pubDir*100,vc.regalia*100,vc.bancario*100],backgroundColor:['#f87171','#4d7cfe','#fbbf24','#d946ef','#818cf8','#6366f1']}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},scales:{y:{ticks:{callback:v=>v+'%'}}}}});
+    charts['branch-cv-bar']=new Chart(c4,{type:'bar',data:{labels:['COGS','ComVta','Merma','Pub','Regalía','Banc'],datasets:[{label:'% Venta',data:[vc.cogs*100,vc.comVenta*100,vc.merma*100,vc.pubDir*100,vc.regalia*100,vc.bancario*100],backgroundColor:['#f87171','#4d7cfe','#fbbf24','#d946ef','#818cf8','#6366f1']}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{ticks:{callback:v=>v+'%'}}}}});
   }
   const as=r.annualSummary;const ys=['year1','year2','year3','year4','year5'].filter(y=>as[y]);
   const btnExpAnnual = `<button class="btn-sm" style="display:none" onclick="exportCSV('resumen_anual.csv',['Año','Ingresos','Ut.Neta','Flujo'],[${ys.map((y,i)=>`['Año ${i+1}',${as[y].revenue},${as[y].netIncome},${as[y].cashFlow}]`).join(',')}])">📥 CSV</button>`;
@@ -3491,7 +3007,7 @@ function renderBranchStress(r,model,overrides){
   }
   let sensitivity;try{sensitivity=runSensitivity(getBranch(state.activeBranchId).format,overrides);}catch(e){sensitivity=[];}
   dc('branch-tornado');const ctx=$('chart-branch-tornado');if(ctx&&sensitivity.length){
-    charts['branch-tornado']=new Chart(ctx,{type:'bar',data:{labels:sensitivity.map(s=>s.label),datasets:[{label:'+20%',data:sensitivity.map(s=>s.ebitdaDeltaUp),backgroundColor:sensitivity.map(s=>s.ebitdaDeltaUp>=0?'rgba(107, 122, 46, 0.75)':'rgba(220, 38, 38, 0.65)'),borderRadius:6},{label:'−20%',data:sensitivity.map(s=>s.ebitdaDeltaDown),backgroundColor:sensitivity.map(s=>s.ebitdaDeltaDown>=0?'rgba(107, 122, 46, 0.45)':'rgba(220, 38, 38, 0.45)'),borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt.m(c.parsed.x)}`}}},scales:{x:{ticks:{callback:v=>fmt.mk(v)}}}}});
+    charts['branch-tornado']=new Chart(ctx,{type:'bar',data:{labels:sensitivity.map(s=>s.label),datasets:[{label:'+20%',data:sensitivity.map(s=>s.ebitdaDeltaUp),backgroundColor:sensitivity.map(s=>s.ebitdaDeltaUp>=0?'rgba(52,211,153,0.6)':'rgba(248,113,113,0.5)'),borderRadius:3},{label:'−20%',data:sensitivity.map(s=>s.ebitdaDeltaDown),backgroundColor:sensitivity.map(s=>s.ebitdaDeltaDown>=0?'rgba(52,211,153,0.4)':'rgba(248,113,113,0.35)'),borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt.m(c.parsed.x)}`}}},scales:{x:{ticks:{callback:v=>fmt.mk(v)}}}}});
   }
 }
 
@@ -3841,7 +3357,11 @@ function renderBranchLocation(branch) {
       _suppressFullRender = true;
       updateBranch(branch.id, { colonia: query });
       _suppressFullRender = false;
-
+      btn.disabled = true;
+      btn.textContent = '⏳ ...';
+      if (emptyEl) emptyEl.style.display = 'none'; // hide while loading
+      statusEl.innerHTML = '<span class="loc-loading">Geocodificando → Buscando establecimientos → Calculando scores...</span>';
+      
       let preGeocoded = null;
       if (btn.dataset.lat && btn.dataset.lng) {
         preGeocoded = {
@@ -3851,51 +3371,50 @@ function renderBranchLocation(branch) {
           colonia: query,
           municipio: btn.dataset.municipio || null,
           estado: btn.dataset.estado || null,
-          source: btn.dataset.source || 'Autocomplete',
+          source: btn.dataset.source || 'Autocomplete (Places/Nominatim)',
           importance: 1
         };
+        delete btn.dataset.lat;
+        delete btn.dataset.lng;
+        delete btn.dataset.full;
+        delete btn.dataset.municipio;
+        delete btn.dataset.estado;
+        delete btn.dataset.source;
       }
-      
-      const studyPromise = runLocationStudy(query, preGeocoded, true);
 
-      // Trigger beautiful animation instead of basic text
-      window.showPremiumLoader(
-        'Analizando Ubicación',
-        [
-          'Geocodificando ubicación principal...',
-          'Buscando y clasificando establecimientos...',
-          'Cruces de densidad y población...',
-          'Calculando Scoring Comercial...'
-        ],
-        2500,
-        studyPromise.then(result => {
-          _suppressFullRender = true;
-          updateBranchLocation(branch.id, result);
-          _suppressFullRender = false;
-          
-          renderBranchDetail(getEmpresa());
-          
-          if (statusEl) {
-            if (result.errors && result.errors.length) {
-              statusEl.innerHTML = '<span class="loc-warning">⚠️ Estudio parcial: ' + result.errors.map(e => e.error).join('; ') + '</span>';
-            } else {
-              statusEl.innerHTML = '<span class="loc-success">✅ ¡Estudio actualizado! — ' + new Date(result.lastUpdated).toLocaleString('es-MX') + '</span>';
-              setTimeout(() => { if ($('loc-status')) $('loc-status').innerHTML = ''; }, 6000);
-            }
+      try {
+        const result = await runLocationStudy(query, preGeocoded, true); // forceRefresh
+        _suppressFullRender = true;
+        updateBranchLocation(branch.id, result);
+        _suppressFullRender = false;
+        
+        // This completely updates Corrida Financiera and Context lines to reflect Market changes
+        renderBranchDetail(getEmpresa());
+        
+        const freshStatusEl = $('loc-status');
+        if (freshStatusEl) {
+          if (result.errors && result.errors.length) {
+            freshStatusEl.innerHTML = '<span class="loc-warning">⚠️ Estudio parcial: ' + result.errors.map(e => e.error).join('; ') + '</span>';
+          } else {
+            freshStatusEl.innerHTML = '<span class="loc-success">✅ ¡Estudio actualizado! — ' + new Date(result.lastUpdated).toLocaleString('es-MX') + '</span>';
+            setTimeout(() => { if ($('loc-status')) $('loc-status').innerHTML = ''; }, 6000);
           }
-        }).catch(e => {
-          console.error('Study error:', e);
-          if (statusEl) statusEl.innerHTML = '<span class="loc-error">❌ No se pudo completar: ' + e.message + '</span>';
-          _suppressFullRender = true;
-          updateBranchLocation(branch.id, { errors: [{ error: e.message }] });
-          _suppressFullRender = false;
-        })
-      );
-      
-      // Prevent infinite auto-reload loop by saving a failure state instead of leaving it null
-      if (emptyEl && (!study || !study.coordinates)) emptyEl.style.display = 'block';
-      const freshBtn = $('btn-run-location-study');
-      if (freshBtn) { freshBtn.disabled = false; freshBtn.textContent = '📍 Evaluar'; }
+        }
+      } catch (e) {
+        console.error('Study error:', e);
+        const freshStatusEl = $('loc-status');
+        if (freshStatusEl) freshStatusEl.innerHTML = '<span class="loc-error">❌ No se pudo completar: ' + e.message + '</span>';
+        
+        // Prevent infinite auto-reload loop by saving a failure state instead of leaving it null
+        _suppressFullRender = true;
+        updateBranchLocation(branch.id, { errors: [{ error: e.message }] });
+        _suppressFullRender = false;
+        
+        if (emptyEl && (!study || !study.coordinates)) emptyEl.style.display = 'block';
+      } finally {
+        const freshBtn = $('btn-run-location-study');
+        if (freshBtn) { freshBtn.disabled = false; freshBtn.textContent = '📍 Evaluar'; }
+      }
     };
   }
 
@@ -3910,7 +3429,7 @@ function renderBranchLocation(branch) {
     if (statusEl) statusEl.innerHTML = '<span class="loc-success">📍 Último estudio: ' + new Date(study.lastUpdated).toLocaleString('es-MX') + '</span>';
   } else if (addrInput && addrInput.value.trim().length >= 3 && btn && !study) {
     // Auto-run: branch has a colonia but NO study attempted yet — trigger automatically
-    setTimeout(() => { if (btn && !btn.disabled && !document.querySelector('.premium-loading-overlay.active')) btn.click(); }, 300);
+    setTimeout(() => { if (btn && !btn.disabled) btn.click(); }, 300);
   } else {
     if (emptyEl) emptyEl.style.display = 'block';
     if (resultsEl) resultsEl.style.display = 'none';
@@ -4486,7 +4005,7 @@ async function renderConsolidated(empresa){
 
   // Consolidated cashflow chart
   dc('consol-cashflow');const ctx=$('chart-consol-cashflow');if(ctx){
-    charts['consol-cashflow']=new Chart(ctx,{type:'line',data:{labels:consol.months.map(m=>'M'+m.month),datasets:[{label:'Acumulado Empresa',data:consol.months.map(m=>m.cumulativeCashFlow),borderColor:'#4d7cfe',backgroundColor:'rgba(77,124,254,0.1)',fill:true,tension:0.3,pointRadius:0,borderWidth:2.5},{label:'Mensual',data:consol.months.map(m=>m.netIncome),type:'bar',backgroundColor:consol.months.map(m=>m.netIncome>=0?'rgba(107, 122, 46, 0.65)':'rgba(220, 38, 38, 0.5)'),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt.m(c.parsed.y)}`}}},scales:{y:{ticks:{callback:v=>fmk(v)}}}}});
+    charts['consol-cashflow']=new Chart(ctx,{type:'line',data:{labels:consol.months.map(m=>'M'+m.month),datasets:[{label:'Acumulado Empresa',data:consol.months.map(m=>m.cumulativeCashFlow),borderColor:'#4d7cfe',backgroundColor:'rgba(77,124,254,0.1)',fill:true,tension:0.3,pointRadius:0,borderWidth:2.5},{label:'Mensual',data:consol.months.map(m=>m.netIncome),type:'bar',backgroundColor:consol.months.map(m=>m.netIncome>=0?'rgba(52,211,153,0.35)':'rgba(248,113,113,0.3)'),borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt.m(c.parsed.y)}`}}},scales:{y:{ticks:{callback:v=>fmk(v)}}}}});
   }
 
   // Partner table (compact horizontal)
@@ -4599,8 +4118,6 @@ function renderEmpresaSettings(empresa){
     empresa.partners = [...partners];
   }
   const totalPartnerCap = partners.reduce((s, p) => s + (p.capital || 0), 0);
-  if (totalPartnerCap > 0) { totalCap = totalPartnerCap; } // SYNC GLOBAL CAP WITH PARTNER CAP
-
   const totalEquity = partners.reduce((s, p) => s + (p.equity || 0), 0);
   const equityOk = Math.abs(totalEquity - 1) < 0.001;
 
@@ -4817,7 +4334,7 @@ function renderEmpresaSettings(empresa){
             ${tx.note ? `<div style="font-size:0.75rem;color:var(--text-3);margin-top:2px">${esc(tx.note)}</div>` : ''}
             <div style="font-size:0.65rem;color:var(--text-3);margin-top:2px">Acumulado: ${fmt.m(cumulative)}</div>
           </div>
-          <button class="btn-sm warn btn-rm-tx" data-txid="${tx.id}" style="padding:0.2rem 0.4rem;font-size:0.6rem" title="Eliminar movimiento">🗑</button>
+          <button class="btn-sm warn btn-rm-tx" data-txid="${tx.id}" style="padding:0.2rem 0.4rem;font-size:0.6rem;opacity:0.5" title="Eliminar movimiento">🗑</button>
         </div>`;
       }).join('') : '<p style="color:var(--text-3);font-size:0.85rem;padding:1rem 0">Sin movimientos registrados.</p>';
 
@@ -4906,18 +4423,16 @@ function renderEmpresaSettings(empresa){
 /* ═══ PROYECTO SETTINGS VIEW ═══ */
 function renderProyectoSettings(proyecto){
   const consol = runConsolidation(proyecto, getActiveEmpresa());
-  const partnersCap = (proyecto.partners || []).reduce((s, p) => s + (p.capital || 0), 0);
-  const trueC = partnersCap > 0 ? partnersCap : (proyecto.totalCapital || 0);
 
   // ── KPI strip at top ──
   const kpiEl = $('empresa-kpis');
   if (kpiEl) {
     let psComm = 0;
     consol.branchResults.forEach(({result: r}) => { if(r) psComm += getOOP(r); });
-    const psFree = trueC - psComm;
+    const psFree = proyecto.totalCapital - psComm;
     const psCapStatus = psFree >= 0 ? 'good' : 'bad';
     kpiEl.innerHTML = [
-      kc('Capital Total', fmt.m(trueC), `${(proyecto.partners || []).length} socios`, 'neutral'),
+      kc('Capital Total', fmt.m(proyecto.totalCapital), `${proyecto.partners.length} socios`, 'neutral'),
       kc('Inv. Requerida', fmt.oop(psComm), `Sumatoria Capex de ${consol.branchCount || 0} suc+reserva`, 'neutral'),
       kc('Libre / Faltante', fmt.m(psFree), psCapStatus === 'good' ? 'Capital Disponible' : '⚠️ Presupuesto Excedido', psCapStatus),
       kc('Ganancia/mes', fmt.m(consol.avgMonthlyNet), `en ${consol.branchCount || 0} suc.`, consol.avgMonthlyNet >= 0 ? 'good' : 'bad'),
@@ -5414,62 +4929,61 @@ function updateHeaderAvatar() {
 }
 
 function openProfilePopup() {
-  try {
-    const modal = $('modal-profile');
-    if (!modal) return;
+  const modal = $('modal-profile');
+  if (!modal) return;
 
-    const profile = getProfile();
+  const profile = getProfile();
 
-    // Populate fields
-    const nombreInput = $('profile-nombre');
-    const apellidoInput = $('profile-apellido');
-    const emailInput = $('profile-email');
-    if (nombreInput) nombreInput.value = profile.firstName || '';
-    if (apellidoInput) apellidoInput.value = profile.lastName || '';
-    
-    // Populate email from auth user
-    const authUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    if (emailInput && authUser) emailInput.value = authUser.email || '';
-    
-    // Reset password change section
-    const pwdSection = $('profile-pwd-section');
-    if (pwdSection) pwdSection.removeAttribute('open');
-    const curPwd = $('profile-current-pwd');
-    const newPwd = $('profile-new-pwd');
-    const pwdMsg = $('pwd-change-msg');
-    if (curPwd) curPwd.value = '';
-    if (newPwd) newPwd.value = '';
-    if (pwdMsg) pwdMsg.style.display = 'none';
+  // Populate fields
+  const nombreInput = $('profile-nombre');
+  const apellidoInput = $('profile-apellido');
+  const emailInput = $('profile-email');
+  if (nombreInput) nombreInput.value = profile.firstName || '';
+  if (apellidoInput) apellidoInput.value = profile.lastName || '';
+  
+  // Populate email from auth user
+  const authUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+  if (emailInput && authUser) emailInput.value = authUser.email || '';
+  
+  // Reset password change section
+  const pwdSection = $('profile-pwd-section');
+  if (pwdSection) pwdSection.removeAttribute('open');
+  const curPwd = $('profile-current-pwd');
+  const newPwd = $('profile-new-pwd');
+  const pwdMsg = $('pwd-change-msg');
+  if (curPwd) curPwd.value = '';
+  if (newPwd) newPwd.value = '';
+  if (pwdMsg) pwdMsg.style.display = 'none';
 
-    // Photo state
-    const placeholder = $('profile-photo-placeholder');
-    const preview = $('profile-photo-preview');
-    const previewImg = $('profile-photo-img');
-    let pendingPhoto = profile.photo || null;
+  // Photo state
+  const placeholder = $('profile-photo-placeholder');
+  const preview = $('profile-photo-preview');
+  const previewImg = $('profile-photo-img');
+  let pendingPhoto = profile.photo || null;
 
-    if (pendingPhoto) {
-      if (previewImg) previewImg.src = pendingPhoto;
-      if (preview) preview.style.display = 'flex';
-      if (placeholder) placeholder.style.display = 'none';
-    } else {
-      if (preview) preview.style.display = 'none';
-      if (placeholder) placeholder.style.display = 'flex';
-    }
+  if (pendingPhoto) {
+    previewImg.src = pendingPhoto;
+    preview.style.display = 'flex';
+    placeholder.style.display = 'none';
+  } else {
+    preview.style.display = 'none';
+    placeholder.style.display = 'flex';
+  }
 
-    // Show modal explicitly as flex
-    modal.style.display = 'flex';
+  // Show modal
+  modal.style.display = '';
 
-    // ── Photo upload handlers (set up once, then clean up) ──
-    const dropzone = $('profile-photo-dropzone');
-    const fileInput = $('profile-photo-input');
-    const removeBtn = $('btn-remove-profile-photo');
+  // ── Photo upload handlers (set up once, then clean up) ──
+  const dropzone = $('profile-photo-dropzone');
+  const fileInput = $('profile-photo-input');
+  const removeBtn = $('btn-remove-profile-photo');
 
-    function showPhotoPreview(dataURL) {
-      pendingPhoto = dataURL;
-      if(previewImg) previewImg.src = dataURL;
-      if(preview) preview.style.display = 'flex';
-      if(placeholder) placeholder.style.display = 'none';
-    }
+  function showPhotoPreview(dataURL) {
+    pendingPhoto = dataURL;
+    previewImg.src = dataURL;
+    preview.style.display = 'flex';
+    placeholder.style.display = 'none';
+  }
   function clearPhotoPreview() {
     pendingPhoto = null;
     previewImg.src = '';
@@ -5637,21 +5151,9 @@ function openProfilePopup() {
     showToast('Perfil guardado', 'success');
   };
 
-    // Focus first field
-    setTimeout(() => { if (nombreInput) nombreInput.focus(); }, 150);
-
-  } catch (err) {
-    console.error('Error opening profile:', err);
-    alert('Ha ocurrido un error al intentar abrir el perfil.');
-  }
+  // Focus first field
+  setTimeout(() => { if (nombreInput) nombreInput.focus(); }, 150);
 }
-
-// Ensure the profile popup acts robustly by using Event Delegation
-document.body.addEventListener('click', e => {
-  if (e.target.closest('#btn-open-profile')) {
-    openProfilePopup();
-  }
-});
 
 document.addEventListener('DOMContentLoaded', () => {
   /* ── Auth Gate ── */
@@ -5667,15 +5169,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mainNav) mainNav.style.display = '';
     if (appContent) appContent.style.display = '';
     if (appFooter) appFooter.style.display = '';
-    
-    // Sync auth user → old profile format FIRST
+    updateHeaderAvatar();
+    // Sync auth user → old profile format
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
     if (user) {
       saveProfile({ firstName: user.firstName, lastName: user.lastName, photo: user.photo });
     }
-    
-    // THEN update the avatar so it reads the freshly synced data
-    updateHeaderAvatar();
   }
 
   function showAuth() {
@@ -5855,7 +5354,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ── Profile Popup ── */
   updateHeaderAvatar();
-  // Listener is now handled safely via document.body event delegation
+  const openBtn = $('btn-open-profile');
+  if (openBtn) openBtn.addEventListener('click', openProfilePopup);
 
   /* ── Profile: Password Change ── */
   const changePwdBtn = $('btn-change-pwd');
@@ -6052,37 +5552,5 @@ document.addEventListener('DOMContentLoaded', () => {
       reader.readAsDataURL(file);
       platformLogoInput.value = '';
     });
-  }
-
-  /* ── Interactive Onboarding Hook ── */
-  const btnStartTour = $('btn-start-tour');
-  if (btnStartTour) {
-    btnStartTour.addEventListener('click', () => {
-      let steps = [
-        { title: "Bienvenido a BW²", body: "Has entrado a tu plataforma de Inteligencia Financiera. Te daremos un breve recorrido.", target: "#app-header", placement: "bottom", emoji: "👋" },
-        { title: "Navegación", body: "Este es el núcleo de tu portafolio. Siempre puedes hacer clic aquí para volver y ver todas tus empresas.", target: "#btn-bw2-home", placement: "bottom", emoji: "🏢" }
-      ];
-      
-      if (document.querySelector('.btn-add')) {
-        steps.push({ title: "Expande tu Imperio", body: "Desde este botón maestro crearás nuevas Empresas, Proyectos y calculaciones de Sucursales.", target: ".btn-add", placement: "right", emoji: "✨" });
-      }
-
-      if (document.querySelector('.header-market-toggle')) {
-        steps.push({ title: "Simulación de Entorno", body: "Los Factores de Mercado te permiten visualizar cómo los KPIs se ven afectados en frío (pesimista) o activamente con variables del entorno geográfico.", target: ".header-market-toggle", placement: "bottom", emoji: "📈" });
-      }
-
-      steps.push({ title: "Tu Perfil Seguro", body: "Configura tus parámetros base, sube el logo oficial de tu negocio y asegura tu sesión aquí. ¡Listo para explorar!", target: "#btn-open-profile", placement: "left", emoji: "👤" });
-
-      window.BW2Tour.init(steps);
-      window.BW2Tour.start();
-    });
-  }
-
-  // Auto trigger the first time EVER the user logs in
-  if (!localStorage.getItem('bw2_tour_completed')) {
-    setTimeout(() => {
-      localStorage.setItem('bw2_tour_completed', '1');
-      if (btnStartTour) btnStartTour.click();
-    }, 1200);
   }
 });

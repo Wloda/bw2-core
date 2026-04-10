@@ -159,6 +159,16 @@ export async function queryMultiRadius(lat, lng) {
       node["shop"="pet"](around:${radius},${lat},${lng});
       way["shop"="pet"](around:${radius},${lat},${lng});
 
+      // Clothing, Shoes & Boutiques
+      node["shop"~"clothes|shoes|boutique|beauty"](around:${radius},${lat},${lng});
+      way["shop"~"clothes|shoes|boutique|beauty"](around:${radius},${lat},${lng});
+
+      // Leisure (Parks, Cinemas, Playgrounds)
+      node["leisure"~"park|playground|indoor_play"](around:${radius},${lat},${lng});
+      way["leisure"~"park|playground|indoor_play"](around:${radius},${lat},${lng});
+      node["amenity"="cinema"](around:${radius},${lat},${lng});
+      way["amenity"="cinema"](around:${radius},${lat},${lng});
+
       // Banks & ATMs (income proxy)
       node["amenity"~"bank|atm"](around:${radius},${lat},${lng});
       way["amenity"="bank"](around:${radius},${lat},${lng});
@@ -215,7 +225,8 @@ export async function queryMultiRadius(lat, lng) {
     farmacias: [], salud: [], escuelas: [], iglesias: [],
     mercados: [], comercios: [], bancos: [], restaurantes: [],
     transporte: [], gasolineras: [], residencial: [],
-    veterinarias: [], petShops: [], dogParks: [], publicHealth: []
+    veterinarias: [], petShops: [], dogParks: [], publicHealth: [],
+    ropaZapaterias: [], ocio: []
   };
 
   for (const el of elements) {
@@ -229,6 +240,7 @@ export async function queryMultiRadius(lat, lng) {
     const amenity = el.tags?.amenity;
     const shop = el.tags?.shop;
     const healthcare = el.tags?.healthcare;
+    const leisure = el.tags?.leisure;
 
     if (amenity === 'pharmacy' || healthcare === 'pharmacy') {
       const chain = detectChain(name);
@@ -251,6 +263,9 @@ export async function queryMultiRadius(lat, lng) {
     } else if (shop === 'pet') {
       classified.petShops.push({ ...item, type: 'Pet Shop' });
       classified.comercios.push({ ...item, type: 'pet' });
+    } else if (['clothes', 'shoes', 'boutique', 'beauty'].includes(shop)) {
+      classified.ropaZapaterias.push({ ...item, type: shop });
+      classified.comercios.push({ ...item, type: shop });
     } else if (shop) {
       classified.comercios.push({ ...item, type: shop });
     } else if (['bank', 'atm'].includes(amenity)) {
@@ -263,8 +278,13 @@ export async function queryMultiRadius(lat, lng) {
       classified.transporte.push({ ...item, type: 'Estación metro/tren' });
     } else if (amenity === 'fuel') {
       classified.gasolineras.push(item);
-    } else if (el.tags?.leisure === 'dog_park') {
-      classified.dogParks.push({ ...item, type: 'Parque canino' });
+    } else if (leisure === 'dog_park') {
+      classified.dogParks.push({ ...item, type: 'Parque canino' }); // Keep legacy
+      classified.ocio.push({ ...item, type: 'Parque canino' });
+    } else if (['park', 'playground', 'indoor_play'].includes(leisure)) {
+      classified.ocio.push({ ...item, type: leisure });
+    } else if (amenity === 'cinema') {
+      classified.ocio.push({ ...item, type: 'Cine' });
     } else if (el.tags?.building === 'apartments' || el.tags?.building === 'residential') {
       classified.residencial.push({ ...item, type: el.tags.building });
     }
@@ -298,6 +318,8 @@ export async function queryMultiRadius(lat, lng) {
       petShops: inRadius(classified.petShops).length,
       dogParks: inRadius(classified.dogParks).length,
       publicHealth: inRadius(classified.publicHealth).length,
+      ropaZapaterias: inRadius(classified.ropaZapaterias).length,
+      ocio: inRadius(classified.ocio).length
     };
   }
 
@@ -465,22 +487,89 @@ export function calcLocationScores(study, modelId) {
   const vetScore = vets1km * 3 + pets1km * 2 + dogs1km * 2;
   const f15_vetCorridor = vetScore >= 12 ? 95 : vetScore >= 8 ? 82 : vetScore >= 5 ? 68 : vetScore >= 2 ? 48 : 20;
 
-  // ── Weighted Total (15 factors, sum = 1.00) ──
-  const weights = isCoolPet ? {
-    // CoolPet: vet corridor + health weighted higher, COFEPRIS still important
-    rezago: 0.07, compDensity: 0.10, compQuality: 0.07, health: 0.08,
-    traffic: 0.09, commercial: 0.06, transport: 0.06, residential: 0.08,
-    income: 0.04, saturation: 0.04, nearest: 0.04,
-    cofepris: 0.06, denue: 0.03, publicHealth: 0.04, vetCorridor: 0.14
-  } : {
-    // Pharmacy: COFEPRIS + public health weighted higher, no vet corridor
-    rezago: 0.08, compDensity: 0.12, compQuality: 0.08, health: 0.10,
-    traffic: 0.10, commercial: 0.07, transport: 0.06, residential: 0.08,
-    income: 0.04, saturation: 0.04, nearest: 0.04,
-    cofepris: 0.08, denue: 0.03, publicHealth: 0.05, vetCorridor: 0.03
-  };
+  // ── Modificadores Dinámicos por Formato ──
+  const isRetail = modelId === 'shoes_mall' || modelId === 'retail';
+  const isLudoteca = modelId === 'ludoteca';
+  
+  let weights;
+  let dynamicFactors = {};
 
-  const factors = {
+  if (isLudoteca) {
+    weights = {
+      rezago: 0.05, compDensity: 0.10, compQuality: 0.0, health: 0.0,
+      traffic: 0.20, commercial: 0.15, transport: 0.10, residential: 0.25,
+      income: 0.15, saturation: 0.0, nearest: 0.0,
+      cofepris: 0.0, denue: 0.0, publicHealth: 0.0, vetCorridor: 0.0
+    };
+    // Re-score compDensity as "Ocio / Cines / Parques (sinergia)"
+    const ocio1km = r1.ocio || 0;
+    const f2_ocio = ocio1km >= 5 ? 95 : ocio1km >= 3 ? 80 : ocio1km >= 1 ? 60 : 30;
+    
+    // Schools generate massive points in traffic generator for Ludoteca.
+    // Replace labels
+    dynamicFactors = {
+      rezago:      { score: f1_rezago,      weight: weights.rezago,      label: 'Rezago Social',              emoji: '📊' },
+      compDensity: { score: f2_ocio,        weight: weights.compDensity, label: 'Centros de Ocio/Parques',    emoji: '🎢' }, // Sinergia positiva, no comp negativa
+      compQuality: { score: 0,              weight: weights.compQuality, label: 'N/A',                        emoji: '➖' },
+      health:      { score: 0,              weight: weights.health,      label: 'N/A',                        emoji: '➖' },
+      traffic:     { score: f5_traffic,     weight: weights.traffic,     label: 'Tractores (Escuelas/Cines)', emoji: '🏫' },
+      commercial:  { score: f6_commercial,  weight: weights.commercial,  label: 'Densidad Comercial',         emoji: '🏪' },
+      transport:   { score: f7_transport,   weight: weights.transport,   label: 'Accesibilidad',              emoji: '🚌' },
+      residential: { score: f8_residential, weight: weights.residential, label: 'Densidad Residencial Fam.',  emoji: '🏠' },
+      income:      { score: f9_income,      weight: weights.income,      label: 'Nivel de Ingreso',           emoji: '💰' },
+      saturation:  { score: 0,              weight: weights.saturation,  label: 'N/A',                        emoji: '➖' },
+      nearest:     { score: 0,              weight: weights.nearest,     label: 'N/A',                        emoji: '➖' },
+      cofepris:    { score: 0,              weight: weights.cofepris,    label: 'N/A',                        emoji: '➖' },
+      denue:       { score: 0,              weight: weights.denue,       label: 'N/A',                        emoji: '➖' },
+      publicHealth:{ score: 0,              weight: weights.publicHealth,label: 'N/A',                        emoji: '➖' },
+      vetCorridor: { score: 0,              weight: weights.vetCorridor, label: 'N/A',                        emoji: '➖' },
+    };
+  } else if (isRetail) {
+    weights = {
+      // Retail/Shoes: Foot traffic, malls, and income are king.
+      rezago: 0.05, compDensity: 0.15, compQuality: 0.0, health: 0.0,
+      traffic: 0.25, commercial: 0.25, transport: 0.10, residential: 0.10,
+      income: 0.10, saturation: 0.0, nearest: 0.0,
+      cofepris: 0.0, denue: 0.0, publicHealth: 0.0, vetCorridor: 0.0
+    };
+    const ropa1km = r1.ropaZapaterias || 0;
+    const f2_ropa = ropa1km >= 10 ? 95 : ropa1km >= 5 ? 80 : ropa1km >= 2 ? 60 : 30; // Tiendas similares atraen público
+
+    dynamicFactors = {
+      rezago:      { score: f1_rezago,      weight: weights.rezago,      label: 'Rezago Social',              emoji: '📊' },
+      compDensity: { score: f2_ropa,        weight: weights.compDensity, label: 'Efecto Mall (Tiendas Similares)', emoji: '🛍️' },
+      compQuality: { score: 0,              weight: weights.compQuality, label: 'N/A',                        emoji: '➖' },
+      health:      { score: 0,              weight: weights.health,      label: 'N/A',                        emoji: '➖' },
+      traffic:     { score: f5_traffic,     weight: weights.traffic,     label: 'Generadores de Tráfico',     emoji: '🚶' },
+      commercial:  { score: f6_commercial,  weight: weights.commercial,  label: 'Densidad Comercial',         emoji: '🏪' },
+      transport:   { score: f7_transport,   weight: weights.transport,   label: 'Accesibilidad',              emoji: '🚌' },
+      residential: { score: f8_residential, weight: weights.residential, label: 'Densidad Residencial',       emoji: '🏠' },
+      income:      { score: f9_income,      weight: weights.income,      label: 'Nivel de Ingreso',           emoji: '💰' },
+      saturation:  { score: 0,              weight: weights.saturation,  label: 'N/A',                        emoji: '➖' },
+      nearest:     { score: 0,              weight: weights.nearest,     label: 'N/A',                        emoji: '➖' },
+      cofepris:    { score: 0,              weight: weights.cofepris,    label: 'N/A',                        emoji: '➖' },
+      denue:       { score: 0,              weight: weights.denue,       label: 'N/A',                        emoji: '➖' },
+      publicHealth:{ score: 0,              weight: weights.publicHealth,label: 'N/A',                        emoji: '➖' },
+      vetCorridor: { score: 0,              weight: weights.vetCorridor, label: 'N/A',                        emoji: '➖' },
+    };
+  } else if (isCoolPet) {
+    weights = {
+      rezago: 0.07, compDensity: 0.10, compQuality: 0.07, health: 0.08,
+      traffic: 0.09, commercial: 0.06, transport: 0.06, residential: 0.08,
+      income: 0.04, saturation: 0.04, nearest: 0.04,
+      cofepris: 0.06, denue: 0.03, publicHealth: 0.04, vetCorridor: 0.14
+    };
+  } else {
+    weights = {
+      rezago: 0.08, compDensity: 0.12, compQuality: 0.08, health: 0.10,
+      traffic: 0.10, commercial: 0.07, transport: 0.06, residential: 0.08,
+      income: 0.04, saturation: 0.04, nearest: 0.04,
+      cofepris: 0.08, denue: 0.03, publicHealth: 0.05, vetCorridor: 0.03
+    };
+  }
+
+  // Fallback if not specifically overwritten
+  const factors = Object.keys(dynamicFactors).length > 0 ? dynamicFactors : {
     rezago:      { score: f1_rezago,      weight: weights.rezago,      label: 'Rezago Social',              emoji: '📊' },
     compDensity: { score: f2_compDensity, weight: weights.compDensity, label: 'Competencia (densidad)',      emoji: '💊' },
     compQuality: { score: f3_compQuality, weight: weights.compQuality, label: 'Competencia (cadenas)',       emoji: '🏷️' },

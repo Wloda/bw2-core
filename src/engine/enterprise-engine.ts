@@ -42,7 +42,9 @@ export function runBranchProjection(branch, empresa, activeEmpresa) {
 
   // Enforce 0 royalty if the project is not a franchise
   const proj = empresa?.proyectos?.find(p => p.id === branch.proyectoId);
-  if (proj && proj.isFranchise === false) {
+  const isFranchise = branch.isFranchise !== undefined ? branch.isFranchise : (proj?.isFranchise !== false);
+  overrides.isFranchise = isFranchise;
+  if (!isFranchise) {
     overrides.variableCosts = { ...(overrides.variableCosts || model.variableCosts) };
     overrides.variableCosts.regalia = 0;
   }

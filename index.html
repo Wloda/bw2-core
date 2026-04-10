@@ -49,7 +49,7 @@
       return Promise.all(promises);
     };
   </script>
-  <link rel="stylesheet" href="styles.css?v=bw40">
+  <link rel="stylesheet" href="styles.css?v=bw43">
   <script>
     window.addEventListener('error',e=>console.error('[Error Global]', e.message, e.error));
     window.addEventListener('unhandledrejection',e=>console.error('[Rechazo Async]', e.reason));
@@ -177,6 +177,9 @@
           <div class="header-toggle-track"><span class="header-toggle-thumb"></span></div>
         </label>
       </div>
+      <button class="btn-sm" title="Tutorial Interactivo BW²" id="btn-start-tour" style="background:var(--surface);border:1px solid var(--border);color:var(--text-1);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.4rem;padding:0.4rem 0.8rem;border-radius:20px;font-size:0.8rem;transition:all 0.2s">
+        <span style="font-weight:700;display:flex;align-items:center;line-height:1">💡 Guía BW²</span>
+      </button>
       <button class="btn-sm" title="Actualizar Estudio de Mercado" id="global-refresh-loc-btn" style="background:var(--surface);border:1px solid var(--border);color:var(--text-1);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.4rem;padding:0.4rem 0.8rem;border-radius:20px;font-size:0.8rem;transition:all 0.2s">
         <span style="display:flex;align-items:center;font-size:1rem;line-height:1">📍</span> <span style="font-weight:600;display:flex;align-items:center;line-height:1">Actualizar Mercado</span>
       </button>
@@ -304,6 +307,8 @@
                 <button class="seg-btn" data-format="coolpet_estetica">🐾 Estética</button>
                 <button class="seg-btn" data-format="coolpet_farmaspot">🐕 FarmaSpot</button>
                 <button class="seg-btn" data-format="coolpet_farmavet">🏥 FarmaVet</button>
+                <span class="seg-divider">|</span>
+                <button class="seg-btn" data-format="shoes_mall">👞 Zapatería</button>
               </div>
             </div>
             <div class="config-item colonia-config">
@@ -312,6 +317,18 @@
               <input type="hidden" id="branch-colonia-input">
               <div class="colonia-suggestions" id="colonia-suggestions" style="display:none"></div>
               <div id="colonia-status" class="colonia-status"></div>
+            </div>
+            <div class="config-item optype-config">
+              <label>Tipo de Operación (Franquicia o Propia)</label>
+              <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
+                <span class="kpi-help" style="margin:0"><span class="kpi-tip" style="left:0;transform:none">Si se activa, el Motor asume Cuotas de Marca Iniciales e inserta Regalías Mensuales y Publicidad Corporativa.</span></span>
+                <span style="font-size:0.875rem;color:var(--text-2);font-weight:500">Corporativo / Libre</span>
+                <label class="iva-toggle" style="margin:0">
+                  <input type="checkbox" id="branch-is-franchise-toggle">
+                  <span class="iva-slider" style="background:#ca8a04"></span>
+                </label>
+                <span style="font-size:0.875rem;color:var(--text-1);font-weight:600">Socio Franquiciatario</span>
+              </div>
             </div>
           </div>
         </div>
@@ -844,7 +861,7 @@
     </div>
   </div>
 
-  <footer id="app-footer"><p>BW² — Dashboard de Inversión · v8.2 · Multi-Empresa</p></footer>
-  <script type="module" src="app.js?v=bw56"></script>
+  <footer id="app-footer"><p>BW² — Dashboard de Inversión · v.10 · Multi-Empresa</p></footer>
+  <script type="module" src="app.js?v=bw58"></script>
 </body>
 </html>

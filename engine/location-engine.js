@@ -470,19 +470,33 @@ export function calcLocationScores(study, modelId) {
   const f15_vetCorridor = vetScore >= 12 ? 95 : vetScore >= 8 ? 82 : vetScore >= 5 ? 68 : vetScore >= 2 ? 48 : 20;
 
   // ── Weighted Total (15 factors, sum = 1.00) ──
-  const weights = isCoolPet ? {
-    // CoolPet: vet corridor + health weighted higher, COFEPRIS still important
-    rezago: 0.07, compDensity: 0.10, compQuality: 0.07, health: 0.08,
-    traffic: 0.09, commercial: 0.06, transport: 0.06, residential: 0.08,
-    income: 0.04, saturation: 0.04, nearest: 0.04,
-    cofepris: 0.06, denue: 0.03, publicHealth: 0.04, vetCorridor: 0.14
-  } : {
-    // Pharmacy: COFEPRIS + public health weighted higher, no vet corridor
-    rezago: 0.08, compDensity: 0.12, compQuality: 0.08, health: 0.10,
-    traffic: 0.10, commercial: 0.07, transport: 0.06, residential: 0.08,
-    income: 0.04, saturation: 0.04, nearest: 0.04,
-    cofepris: 0.08, denue: 0.03, publicHealth: 0.05, vetCorridor: 0.03
-  };
+  const isRetail = modelId === 'shoes_mall';
+  let weights;
+  if (isRetail) {
+    weights = {
+      // Retail/Shoes: Foot traffic, malls, and income are king. Pharmacies/Hospitals irrelevant.
+      rezago: 0.05, compDensity: 0.0, compQuality: 0.0, health: 0.0,
+      traffic: 0.30, commercial: 0.30, transport: 0.10, residential: 0.10,
+      income: 0.15, saturation: 0.0, nearest: 0.0,
+      cofepris: 0.0, denue: 0.0, publicHealth: 0.0, vetCorridor: 0.0
+    };
+  } else if (isCoolPet) {
+    weights = {
+      // CoolPet: vet corridor + health weighted higher, COFEPRIS still important
+      rezago: 0.07, compDensity: 0.10, compQuality: 0.07, health: 0.08,
+      traffic: 0.09, commercial: 0.06, transport: 0.06, residential: 0.08,
+      income: 0.04, saturation: 0.04, nearest: 0.04,
+      cofepris: 0.06, denue: 0.03, publicHealth: 0.04, vetCorridor: 0.14
+    };
+  } else {
+    weights = {
+      // Pharmacy: COFEPRIS + public health weighted higher, no vet corridor
+      rezago: 0.08, compDensity: 0.12, compQuality: 0.08, health: 0.10,
+      traffic: 0.10, commercial: 0.07, transport: 0.06, residential: 0.08,
+      income: 0.04, saturation: 0.04, nearest: 0.04,
+      cofepris: 0.08, denue: 0.03, publicHealth: 0.05, vetCorridor: 0.03
+    };
+  }
 
   const factors = {
     rezago:      { score: f1_rezago,      weight: weights.rezago,      label: 'Rezago Social',              emoji: '📊' },
