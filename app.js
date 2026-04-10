@@ -4980,8 +4980,18 @@ function renderEmpresaSettings(empresa){
   if (addBtn) addBtn.addEventListener('click', () => {
     const n = container.querySelector('#es-add-name')?.value?.trim();
     const c = parseFloat(container.querySelector('#es-add-capital')?.value);
-    if (!n || isNaN(c) || c <= 0) return;
+    
+    if (!n) {
+      container.querySelector('#es-add-name').style.borderColor = 'var(--red)';
+      return showToast('⚠️ Escribe el nombre del socio a agregar.', 'error');
+    }
+    if (isNaN(c) || c < 0) {
+      container.querySelector('#es-add-capital').style.borderColor = 'var(--red)';
+      return showToast('⚠️ Ingresa un capital válido mayor o igual a $0.', 'error');
+    }
+    
     addPartner(n, c, 0); // equity auto-calculated by _recalcEquity
+    showToast('👥 Socio agregado exitosamente.', 'success');
     renderEmpresaSettings(getActiveEmpresa());
   });
 
