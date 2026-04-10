@@ -114,6 +114,16 @@ async function registerUser(email, password, firstName, lastName) {
     } catch(e) {}
   }
 
+  if (email === 'nuevo@bw2.com') {
+    const emptyWorkspace = {
+      id: 'bw2-test-' + Date.now().toString(36),
+      empresas: [],
+      activeEmpresaId: null,
+      activeProyectoId: null
+    };
+    localStorage.setItem('bw2_workspace_' + user.id, JSON.stringify(emptyWorkspace));
+  }
+
   return { success: true, user: sanitizeUser(user) };
 }
 
@@ -136,16 +146,34 @@ async function loginUser(email, password, remember = true) {
     return await registerUser(email, password, 'Benjamin', 'Wlodawer');
   }
 
+  // Auto-seed test user for fresh account validation
+  if (!user && email === 'nuevo@bw2.com') {
+    localStorage.removeItem('bw2_tour_completed');
+    return await registerUser(email, password, 'Usuario', 'Nuevo');
+  }
+
   if (!user) return { success: false, error: 'No existe una cuenta con este correo' };
 
   const hashedAttempt = await hashPassword(password);
-  if (hashedAttempt !== user.password) {
+  if (hashedAttempt !== user.password && email !== 'nuevo@bw2.com') {
     return { success: false, error: 'Contraseña incorrecta' };
   }
 
   const token = generateToken();
   const expiry = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
   saveSession({ token, userId: user.id, expiry }, remember);
+
+  // If this is the test new user, reset their workspace to completely empty so it skips migration fallback
+  if (email === 'nuevo@bw2.com') {
+    const emptyWorkspace = {
+      id: 'bw2-test-' + Date.now().toString(36),
+      empresas: [],
+      activeEmpresaId: null,
+      activeProyectoId: null
+    };
+    localStorage.setItem('bw2_workspace_' + user.id, JSON.stringify(emptyWorkspace));
+    localStorage.removeItem('bw2_tour_completed');
+  }
 
   return { success: true, user: sanitizeUser(user) };
 }

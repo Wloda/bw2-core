@@ -8,7 +8,7 @@ import { getWorkspace, getEmpresas, getEmpresaById, getActiveEmpresa, setActiveE
 import { runLocationStudy, calcCombinedMarketFactor, geocodeAddress } from './engine/location-engine.js?v=bw51';
 import { generateBranchPDF } from './pdf-export.js?v=bw54';
 import { setGoogleApiKey, loadGoogleMaps, attachPlacesAutocomplete, createGoogleMap, buildStudyMarkers, isGoogleMapsLoaded, getGoogleApiKey } from './engine/google-places.js?v=bw37';
-import { registerUser, loginUser, logoutUser, getCurrentUser, isAuthenticated, updateUserProfile, updateUserEmail, changePassword } from './auth.js?v=bw37';
+import { registerUser, loginUser, logoutUser, getCurrentUser, isAuthenticated, updateUserProfile, updateUserEmail, changePassword } from './auth.js?v=bw38';
 
 /* ═══ SVG ICON SYSTEM (Lucide-style stroked icons) ═══ */
 const _ICO = {
