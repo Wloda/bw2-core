@@ -4345,3 +4345,13 @@ td.corrida-editable:hover {
 @keyframes tourBounceBottom { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 6px); } }
 @keyframes tourBounceLeft { 0%, 100% { transform: translate(0, -50%) rotate(-90deg); } 50% { transform: translate(6px, -50%) rotate(-90deg); } }
 @keyframes tourBounceRight { 0%, 100% { transform: translate(0, -50%) rotate(90deg); } 50% { transform: translate(-6px, -50%) rotate(90deg); } }
+
+/* Dense Location Tables for fitting horizontally */
+#loc-multiradius table td, #loc-multiradius table th,
+#loc-competition table td, #loc-competition table th {
+  font-size: 0.75rem !important;
+  padding: 0.4rem 0.5rem !important;
+}
+#loc-competition table td, #loc-competition table th {
+  white-space: nowrap;
+}
