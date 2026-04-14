@@ -450,7 +450,7 @@ window.ensureChartJS = async function() { await _origEnsureChartJS(); _configure
 const $=id=>document.getElementById(id);
 const _getf = () => {
   const el = document.getElementById('toggle-iva');
-  return el ? (el.checked ? 1 : 1.16) : 1.16; // Asume IVA default si no hay toggle global
+  return el ? (el.checked ? 1.16 : 1) : 1.16; // Asume IVA default si no hay toggle global
 };
 const getOOP = (r) => (r.totalInvestment * _getf()) + (r.workingCapitalRequired || 0);
 const getOOPConsol = (c) => (c.totalInvestment * _getf()) + (c.totalWorkingCapital || 0);
