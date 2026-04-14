@@ -569,14 +569,13 @@
           <div class="dash-grid" style="margin-bottom:0.75rem">
             <div class="neu-card map-card dash-7" style="margin-bottom:0;display:flex;flex-direction:column">
               <h3 class="card-title">Mapa <span class="kpi-help">?<span class="kpi-tip">Muestra la ubicación de la sucursal, el polígono de análisis (isócrona o radio) y los competidores/generadores de tráfico detectados.</span></span></h3>
-              <div id="loc-map" style="width:100%;flex:1;min-height:380px;border-radius:var(--r-md)"></div>
+              <div id="loc-map" style="width:100%;flex:1;min-height:280px;border-radius:var(--r-md)"></div>
             </div>
             <div class="neu-card dash-5" style="margin-bottom:0;display:flex;flex-direction:column">
               <h3 class="card-title">Análisis de Factores (Radar) <span class="kpi-help">?<span class="kpi-tip">Grafica los puntajes (score) absolutos de cada factor contra su peso real. Un polígono más grande y redondeado indica una excelente sucursal.</span></span></h3>
-              <div style="flex:1;min-height:300px;width:100%;position:relative"><canvas id="loc-radar-chart"></canvas></div>
-              <div style="font-size:0.75rem;color:var(--text-3);text-align:center;margin-top:0.5rem;line-height:1.4">
-                <strong>Score:</strong> Calificación de 0-100 calculada por algoritmo para tu negocio.<br>
-                <strong>Peso (%):</strong> Importancia real del factor en la fórmula de éxito de la farmacia.<br>
+              <div style="flex:1;min-height:220px;width:100%;position:relative"><canvas id="loc-radar-chart"></canvas></div>
+              <div style="font-size:0.65rem;color:var(--text-3);text-align:center;margin-top:0.3rem;line-height:1.2">
+                <strong>Score:</strong> Calificación algorítmica.<br>
                 <strong>Nodos:</strong> <span style="color:#16a34a">🟢 Óptimo (≥75)</span> | <span style="color:#ca8a04">🟡 Regular (50-74)</span> | <span style="color:#dc2626">🔴 Crítico (&lt;50)</span>
               </div>
             </div>
