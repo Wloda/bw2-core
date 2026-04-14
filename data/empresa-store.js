@@ -209,6 +209,21 @@ function _load() {
           }
         }
         if (!emp.partners) emp.partners = [];
+        
+        // HEAL 200 BILLION BUG FROM PREVIOUS STRING CONCAT CORRUPTION
+        if (Number(emp.totalCapital) > 1e10) emp.totalCapital = Number(emp.totalCapital.toString().substring(0, 7)) || 2000000;
+        emp.partners.forEach(ep => {
+          if (Number(ep.capital) > 1e10) ep.capital = Number(ep.capital.toString().substring(0, 6)) || 700000;
+          if (ep.transactions) {
+            ep.transactions.forEach(t => {
+              if (Number(t.amount) > 1e10) t.amount = Number(t.amount.toString().substring(0, 6)) || 700000;
+            });
+          }
+        });
+        (emp.proyectos || []).forEach(p => {
+          if (Number(p.totalCapital) > 1e10) p.totalCapital = Number(p.totalCapital.toString().substring(0, 7)) || 2000000;
+        });
+
         _recalcEquity(emp); // Force heal corrupted legacy partner discrepancies
         
         // HEAL ROGUE OVERRIDES
@@ -447,9 +462,9 @@ export function updateProyecto(empresaId, proyectoId, updates) {
     if (updates.name !== undefined) proj.name = updates.name;
     if (updates.isFranchise !== undefined) proj.isFranchise = updates.isFranchise;
     if (updates.logo !== undefined) proj.logo = updates.logo;
-    if (updates.totalCapital !== undefined) proj.totalCapital = updates.totalCapital;
-    if (updates.corporateReserve !== undefined) proj.corporateReserve = updates.corporateReserve;
-    if (updates.corporateExpenses !== undefined) proj.corporateExpenses = updates.corporateExpenses;
+    if (updates.totalCapital !== undefined) proj.totalCapital = Number(updates.totalCapital);
+    if (updates.corporateReserve !== undefined) proj.corporateReserve = Number(updates.corporateReserve);
+    if (updates.corporateExpenses !== undefined) proj.corporateExpenses = Number(updates.corporateExpenses);
     _save();
   }
 }
