@@ -2781,6 +2781,10 @@ async function renderBranchDetail(empresa){
   const proj = empresa.proyectos?.find(p => p.id === branch.proyectoId);
   const isFranchise = branch.isFranchise !== undefined ? branch.isFranchise : (proj?.isFranchise !== false);
   const toggleFran = $('branch-is-franchise-toggle'); if(toggleFran) toggleFran.checked = isFranchise;
+  // Sync optype segmented control
+  const _optP = $('optype-btn-propia'), _optF = $('optype-btn-franquicia');
+  if (_optP) _optP.classList.toggle('active', !isFranchise);
+  if (_optF) _optF.classList.toggle('active', isFranchise);
   const rg=$('branch-royalty-group');
   if(rg) rg.style.display=(MODELS[branch.format]?.royaltyPromo && isFranchise)?'block':'none';
   // Royalty active state
@@ -2854,11 +2858,26 @@ document.addEventListener('DOMContentLoaded',()=>{
       updateBranch(state.activeBranchId,{format:btn.dataset.format, overrides:buildDefaultOverrides(btn.dataset.format)});
     });
   });
-  // Franchise override toggle
+  // Franchise override toggle (segmented control)
   const ftoggle = $('branch-is-franchise-toggle');
-  if(ftoggle) ftoggle.addEventListener('change', (e) => {
-    if(!state.activeBranchId)return;
-    updateBranch(state.activeBranchId, { isFranchise: e.target.checked });
+  const optypeBtnP = $('optype-btn-propia');
+  const optypeBtnF = $('optype-btn-franquicia');
+  const _syncOptypeButtons = (isFran) => {
+    if (optypeBtnP) optypeBtnP.classList.toggle('active', !isFran);
+    if (optypeBtnF) optypeBtnF.classList.toggle('active', isFran);
+  };
+  if (optypeBtnP) optypeBtnP.addEventListener('click', () => {
+    if (!state.activeBranchId) return;
+    if (ftoggle) ftoggle.checked = false;
+    _syncOptypeButtons(false);
+    updateBranch(state.activeBranchId, { isFranchise: false });
+    renderCurrentView(true);
+  });
+  if (optypeBtnF) optypeBtnF.addEventListener('click', () => {
+    if (!state.activeBranchId) return;
+    if (ftoggle) ftoggle.checked = true;
+    _syncOptypeButtons(true);
+    updateBranch(state.activeBranchId, { isFranchise: true });
     renderCurrentView(true);
   });
   // Scenario selector
