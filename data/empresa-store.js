@@ -50,6 +50,7 @@ export function buildDefaultOverrides(format) {
     totalInitialInvestment: inv.default,
     totalInitialInvestmentMin: inv.min,
     totalInitialInvestmentMax: inv.max,
+    brandFeeDiscount: (model.franchise && model.franchise.brandFee > 0) ? 60000 : 0,
     scenarioFactor: 1,
     royaltyMode: model.royaltyPromo ? model.royaltyPromo.default : 'variable_2_5'
   };

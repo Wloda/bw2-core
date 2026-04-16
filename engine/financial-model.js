@@ -81,6 +81,11 @@ export function runProjection(modelId, overrides={}) {
     totalInv -= model.franchise.brandFee;
   }
 
+  // Quantity/negotiation discount on brand fee (franchise only, in $)
+  if (isFranchise && model.franchise && model.franchise.brandFee && overrides.brandFeeDiscount > 0) {
+    totalInv -= Math.min(overrides.brandFeeDiscount, model.franchise.brandFee);
+  }
+
   // Pago único adds upfront royalty
   if (royaltyMode === 'pago_unico' && model.royaltyPromo && isFranchise) {
     totalInv += model.royaltyPromo.upfront5Y || 125000;
@@ -96,7 +101,10 @@ export function runProjection(modelId, overrides={}) {
     {name:'Socio 1',capital:1500000,equity:0.50},
     {name:'Socio 2',capital:1500000,equity:0.50}
   ];
-  const totalCapital = partners.reduce((s,p)=>s+p.capital,0);
+  const partnerCapital = partners.reduce((s,p)=>s+p.capital,0);
+  // Per-branch budget override: if set, use it as capital reference for this branch's metrics
+  const branchBudget = overrides.branchBudget || 0;
+  const totalCapital = branchBudget > 0 ? branchBudget : partnerCapital;
 
   // Ramp
   const ramp = buildRamp(model.sales, horizonMonths, scenarioFactor);
@@ -197,7 +205,8 @@ export function runProjection(modelId, overrides={}) {
   const score = calcScore({paybackMonth:pbMonth,npv,rentPctRevenue:rentPct,breakEvenPctCapacity:bePct,roi36,capitalRemaining:totalCapital-totalInv,recommendedReserve:reserve});
 
   return {
-    modelId, totalInvestment:totalInv, totalPartnerCapital:totalCapital,
+    modelId, totalInvestment:totalInv, totalPartnerCapital:partnerCapital,
+    branchBudget,
     capitalRemaining:totalCapital-totalInv, recommendedReserve:reserve,
     workingCapitalRequired: workingCapitalRequired,
     grossMargin:1-vc.cogs, varCostRate:varRateStab, mc,

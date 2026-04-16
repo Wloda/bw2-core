@@ -1657,7 +1657,7 @@ function renderPortfolio(empresa){
       </div>
       ${r?`<div class="branch-kpis">
         <div class="branch-kpi"><span class="bk-label" title="Ganancia mensual antes de impuestos">Ganancia</span><span class="bk-value" style="color:${r.avgMonthlyEBITDA>=0?'var(--green)':'var(--red)'}">${fmt.m(r.avgMonthlyEBITDA)}</span></div>
-        <div class="branch-kpi"><span class="bk-label" title="Venta mínima mensual para cubrir todos los costos">Pto. Eq.</span><span class="bk-value">${fmt.m(r.breakEvenRevenue)}</span></div>
+        <div class="branch-kpi"><span class="bk-label" title="${r.branchBudget>0?'Capital asignado a esta sucursal':'Inversión total requerida'}">${r.branchBudget>0?'Presupuesto':'Inversión'}</span><span class="bk-value">${fmt.m(r.branchBudget>0?r.branchBudget:r.totalInvestment)}</span></div>
         <div class="branch-kpi"><span class="bk-label" title="Meses reales para recuperar la inversión">Retorno</span><span class="bk-value" style="color:${r.paybackMonth&&r.paybackMonth<=36?'var(--green)':r.paybackMonth&&r.paybackMonth<=48?'var(--yellow)':'var(--red)'}">${r.paybackMonth?r.paybackMonth+' m':'∞'}</span></div>
         <div class="branch-kpi"><span class="bk-label" title="Calificación de viabilidad: 0-100">Score</span>${scoreRing(score, 32)}</div>
       </div>`:'<div class="branch-kpis"><span style="color:var(--text-3)">Sin datos</span></div>'}
@@ -3688,8 +3688,18 @@ function renderBranchEditPanel(branch, model) {
     const invMin = ov.totalInitialInvestmentMin ?? model.totalInitialInvestment?.min ?? 0;
     const invMax = ov.totalInitialInvestmentMax ?? model.totalInitialInvestment?.max ?? 0;
     const invCurrent = ov.totalInitialInvestment ?? model.totalInitialInvestment?.default ?? invMax;
+    const empresa = getEmpresa();
+    const proj = empresa?.proyectos?.find(p => p.id === branch.proyectoId);
+    const isFran = branch.isFranchise !== undefined ? branch.isFranchise : (proj?.isFranchise !== false);
+    const hasBrandFee = isFran && model.franchise && model.franchise.brandFee > 0;
+    const brandFeeAmt = model.franchise?.brandFee || 0;
+    const brandDiscPct = ov.brandFeeDiscount ?? 0;
+    const branchBudgetVal = ov.branchBudget ?? 0;
     invEl.innerHTML = [
+      editField('Presupuesto Sucursal', 'branchBudget', branchBudgetVal, 0, 50000, '$', 0, invMax * 3, 'Capital asignado a esta sucursal para comparar rendimiento individual. Si es 0, usa el capital global del proyecto.'),
       editField('Capex Base', 'totalInitialInvestment', invCurrent, invMax, 1000, '$', invMin, invMax * 2, 'Equipamiento, adecuación e inventario (sin capital de trabajo)'),
+      hasBrandFee ? `<div class="edit-field"><label>Cuota de Marca (Fija)</label><div class="edit-input-wrap"><input type="text" class="input-text" value="${fmt.m(brandFeeAmt)}" disabled style="background:var(--surface);opacity:0.8;color:var(--text-1)"><span class="edit-unit">$</span></div><div class="edit-default">Incluida en Capex Base</div></div>` : '',
+      hasBrandFee ? editField('Dcto. Cuota de Marca', 'brandFeeDiscount', brandDiscPct, 0, 5000, '$', 0, brandFeeAmt, `Descuento negociado sobre la cuota de marca (${fmt.m(brandFeeAmt)}). Ej: 2ª sucursal $20,000 de descuento.`) : '',
       editField('Ajuste de Ventas', 'scenarioFactor', (ov.scenarioFactor ?? 1) * 100, 100, 5, '%', 50, 200, 'Sube o baja este % para simular que vendes más o menos de lo proyectado')
     ].join('');
   }
@@ -3853,8 +3863,12 @@ function applyEditField(branchId, key, val) {
   if (!branch) return;
   const ov = { ...branch.overrides };
 
-  if (key === 'totalInitialInvestment') {
+  if (key === 'branchBudget') {
+    ov.branchBudget = Math.max(0, val);
+  } else if (key === 'totalInitialInvestment') {
     ov.totalInitialInvestment = val;
+  } else if (key === 'brandFeeDiscount') {
+    ov.brandFeeDiscount = Math.max(0, val);
   } else if (key === 'scenarioFactor') {
     ov.scenarioFactor = val / 100;
   } else if (key.startsWith('fc.')) {
