@@ -1646,7 +1646,7 @@ function renderPortfolio(empresa){
       actionBtns += `<button class="btn-sm success" data-action="restore" data-bid="${b.id}">${ico('refresh',14)} Restaurar</button>`;
     }
 
-    return `<div class="branch-card ${isArchived?'archived':''}" data-branch="${b.id}">
+    return `<div class="branch-card ${isArchived?'archived':(isPlanned?'planned':(isActive?'active':''))}" data-branch="${b.id}">
       <div class="branch-card-header">
         <span class="branch-emoji">${emoji}</span>
         <div class="branch-info"><div class="branch-name">${b.name}</div><div class="branch-meta">${MODELS[b.format]?.label||b.format} · ${b.colonia||'Sin colonia'}</div></div>
