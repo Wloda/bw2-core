@@ -4657,6 +4657,171 @@ async function renderConsolidated(empresa){
       renderCurrentView();
     });
   });
+  
+  const btnColiseo = $('btn-coliseo');
+  if (btnColiseo) {
+    btnColiseo.onclick = () => openColiseoSelector(pseudoEmpresa);
+  }
+}
+
+/* ═══ MODO COLISEO (COMPARADOR LADO A LADO) ═══ */
+function openColiseoSelector(empresa) {
+  const branches = empresa.branches || [];
+  if (branches.length < 2) {
+    showToast('Necesitas al menos 2 sucursales para comparar.', 'warning');
+    return;
+  }
+  
+  const old = document.querySelector('.bw2-modal-overlay:not([id])');
+  if (old) old.remove();
+  
+  const overlay = document.createElement('div');
+  overlay.className = 'bw2-modal-overlay';
+  const checkboxes = branches.map(b => `
+    <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:var(--bg-body);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border 0.2s">
+      <input type="checkbox" value="${b.id}" class="coliseo-branch-cb" ${b.status==='planned'?'checked':''}>
+      <span style="flex:1;"><strong>${b.name}</strong> <span style="font-size:0.75rem;color:var(--text-3)">(${b.status==='planned'?'📋 Planeada':'📍 Activa'})</span></span>
+    </label>
+  `).join('');
+
+  overlay.innerHTML = `
+    <div class="bw2-modal" style="max-width:450px">
+      <div class="bw2-modal-header">
+        <h3 style="display:flex;align-items:center;gap:0.5rem">⚔️ Modo Coliseo</h3>
+        <button class="bw2-modal-close">✕</button>
+      </div>
+      <div class="bw2-modal-body">
+        <p style="margin-bottom:1rem;color:var(--text-2);font-size:0.9rem">Selecciona hasta 4 sucursales para comparar lado a lado.</p>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;max-height:40vh;overflow-y:auto;padding-right:0.5rem">
+          ${checkboxes}
+        </div>
+      </div>
+      <div class="bw2-modal-footer">
+        <button class="btn-text bw2-modal-close">Cancelar</button>
+        <button class="btn-primary" id="btn-run-coliseo" style="background:var(--accent);border:none">Iniciar Combate ▶</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.style.display = 'flex';
+  
+  const closeFns = () => overlay.remove();
+  overlay.querySelectorAll('.bw2-modal-close').forEach(b => b.onclick = closeFns);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeFns(); });
+  
+  // Enforce Max 4 checkboxes
+  const cbs = overlay.querySelectorAll('.coliseo-branch-cb');
+  cbs.forEach(cb => {
+    cb.addEventListener('change', () => {
+      const checked = Array.from(cbs).filter(x => x.checked);
+      if (checked.length > 4) {
+        cb.checked = false;
+        showToast('Máximo 4 sucursales permitidas', 'warning');
+      }
+    });
+  });
+
+  const runBtn = overlay.querySelector('#btn-run-coliseo');
+  if (runBtn) {
+    runBtn.onclick = () => {
+      const selectedIds = Array.from(cbs).filter(x => x.checked).map(x => x.value);
+      if (selectedIds.length < 2) {
+        showToast('Selecciona al menos 2', 'warning');
+        return;
+      }
+      overlay.remove();
+      renderColiseoTable(selectedIds, empresa);
+    };
+  }
+}
+
+function renderColiseoTable(branchIds, empresa) {
+  const branches = branchIds.map(id => empresa.branches.find(b => b.id === id)).filter(Boolean);
+  const data = branches.map(b => ({
+    branch: b,
+    result: runBranchProjection(b, empresa)
+  }));
+  
+  const metrics = [
+    { label: 'Formato', type: 'text', get: d => MODELS[d.branch.format]?.label || d.branch.format },
+    { label: 'Inversión Total', type: 'min', get: d => getOOP(d.result), fmt: fmt.mt.oop },
+    { label: 'Reserva Cap.', type: 'min', get: d => d.result.recommendedReserve, fmt: fmt.m },
+    { label: 'Payback (Meses)', type: 'min', get: d => d.result.paybackSimple || 999, fmt: v => v===999?'∞':Math.round(v)+'m' },
+    { label: 'EBITDA Mensual', type: 'max', get: d => d.result.avgMonthlyEBITDA, fmt: fmt.m },
+    { label: 'TIR Anualizada', type: 'max', get: d => d.result.roi36 / 3, fmt: v => v.toFixed(1)+'%' },
+    { label: 'Score Locación', type: 'max', get: d => d.branch.locationStudy?.scores?.total || 0, fmt: v => v+'/100' }
+  ];
+  
+  let headerHTML = '<th>Métrica</th>';
+  branches.forEach(b => {
+    headerHTML += `<th style="text-align:center;min-width:140px"><div style="font-size:1.1rem;margin-bottom:0.2rem">${MODELS[b.format]?.emoji||'📍'}</div>${esc(b.name)}<div style="font-size:0.7rem;font-weight:normal;opacity:0.8;margin-top:0.2rem">${b.status==='planned'?'📋 Planeada':'📍 Activa'}</div></th>`;
+  });
+  
+  let rowsHTML = '';
+  let scores = new Array(branches.length).fill(0);
+  
+  metrics.forEach(m => {
+    const rawValues = data.map(d => m.get(d));
+    let bestVal = m.type === 'min' ? Math.min(...rawValues) : m.type === 'max' ? Math.max(...rawValues) : null;
+    
+    let cellsHTML = '';
+    rawValues.forEach((val, i) => {
+      let isBest = (m.type !== 'text') && (val === bestVal) && (m.type==='min'?val<999:val>0);
+      let isWorst = (m.type !== 'text') && (val !== bestVal);
+      // Determine worst heuristically if needed, but styling just Best is enough
+      if (isBest) scores[i]++;
+      
+      let style = isBest ? 'color:var(--green);font-weight:700;' : (m.type!=='text' && m.type==='min' && val===999 ? 'color:var(--text-4)' : '');
+      let display = m.fmt ? m.fmt(val) : val;
+      cellsHTML += `<td style="text-align:center;${style}">${isBest ? '<span style="font-size:0.8rem;margin-right:4px">🏆</span>' : ''}${display}</td>`;
+    });
+    
+    rowsHTML += `<tr><td style="font-weight:600;color:var(--text-2);background:var(--bg-body)">${m.label}</td>${cellsHTML}</tr>`;
+  });
+  
+  const maxScore = Math.max(...scores);
+  const winnerIndex = scores.indexOf(maxScore);
+  const winnerBranch = branches[winnerIndex];
+  
+  const old = document.querySelector('.bw2-modal-overlay:not([id])');
+  if (old) old.remove();
+  
+  const overlay = document.createElement('div');
+  overlay.className = 'bw2-modal-overlay';
+  overlay.innerHTML = `
+    <div class="bw2-modal" style="max-width:900px;width:95%">
+      <div class="bw2-modal-header" style="background:var(--surface)">
+        <h3 style="display:flex;align-items:center;gap:0.5rem">⚔️ Coliseo: Resultados</h3>
+        <button class="bw2-modal-close">✕</button>
+      </div>
+      <div class="bw2-modal-body" style="padding:1.5rem;background:var(--bg-body)">
+        <div style="background:var(--surface);border-radius:12px;padding:1rem;margin-bottom:1.5rem;border:1px solid var(--border);display:flex;align-items:center;gap:1rem">
+          <div style="font-size:2rem">🏆</div>
+          <div>
+            <div style="font-size:0.85rem;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:1px">Recomendación Analítica</div>
+            <div style="font-size:1.1rem;font-weight:700;color:var(--text-1)">${esc(winnerBranch.name)} domina el rubro</div>
+            <div style="font-size:0.9rem;color:var(--text-2)">Obtuvo los mejores indicadores en ${maxScore} de 6 métricas financieras clave.</div>
+          </div>
+        </div>
+        
+        <div class="table-responsive" style="border-radius:8px;box-shadow:var(--shadow-card);background:var(--surface)">
+          <table class="data-table" style="margin:0;width:100%">
+            <thead><tr>${headerHTML}</tr></thead>
+            <tbody>${rowsHTML}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="bw2-modal-footer" style="justify-content:center">
+        <button class="btn-primary bw2-modal-close">Entendido</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.style.display = 'flex';
+  
+  const closeFns = () => overlay.remove();
+  overlay.querySelectorAll('.bw2-modal-close').forEach(b => b.onclick = closeFns);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeFns(); });
 }
 
 /* ═══ COMPARADOR VIEW ═══ */

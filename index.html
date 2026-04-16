@@ -631,7 +631,10 @@
         </div>
         <div class="consol-table-col" style="flex:7">
           <div class="dash-card visible">
-            <h3 class="section-title" style="margin-bottom:0.5rem">Detalle por Sucursal <span class="kpi-help">?<span class="kpi-tip">Desglose individual del peso, rentabilidad y tiempo de recuperación que aporta cada ubicación al fondo global.</span></span></h3>
+            <h3 class="section-title" style="margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center">
+              <span>Detalle por Sucursal <span class="kpi-help">?<span class="kpi-tip">Desglose individual del peso, rentabilidad y tiempo de recuperación que aporta cada ubicación al fondo global.</span></span></span>
+              <button id="btn-coliseo" class="btn-sm" style="background:var(--accent);color:white;border:none;border-radius:12px;padding:0.4rem 0.8rem;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;transition:transform 0.2s,box-shadow 0.2s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(234, 179, 8, 0.3)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">⚔️ MODO COLISEO</button>
+            </h3>
             <div class="table-responsive" id="consol-branch-table"></div>
           </div>
         </div>
